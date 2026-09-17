@@ -126,6 +126,11 @@ always a version difference, not a broken pipeline.
 
 ## Licence
 
-Code under `src/`, `paper/analysis/` and the pipeline scripts: MIT.
-Derived data under `data/` and `reference/`: CC BY 4.0.
-Neither covers the abstracts themselves, which are not distributed here.
+Copyright 2026 Ajay Mandyam Rangarajan and Jeyashree Krishnan.
+
+Code under `src/`, `paper/` and the pipeline scripts: MIT (`LICENSE`).
+Derived data under `judge_scores/` and `reference/`: CC BY 4.0
+(`LICENSE-DATA`).
+
+Neither covers the NeurIPS abstracts the metrics were computed from. Those
+are not distributed here and remain with their authors and publisher.
