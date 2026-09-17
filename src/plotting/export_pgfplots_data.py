@@ -100,34 +100,7 @@ def export_llm_scores() -> None:
             save(df[cols], f"llm_scores{suffix}_{prompt}.csv")
 
 
-SENSATIONAL_CATS = [
-    ("hype_importance_per_100", "importance"),
-    ("hype_novelty_per_100",    "novelty"),
-    ("hype_rigor_per_100",      "rigor"),
-    ("hype_scale_per_100",      "scale"),
-    ("hype_utility_per_100",    "utility"),
-    ("hype_quality_per_100",    "quality"),
-    ("hype_attitude_per_100",   "attitude"),
-    ("hype_problem_per_100",    "problem"),
-    ("hype_additional_per_100", "additional"),
-    ("hype_total_per_100",      "total"),
-]
 
-HOHMANN_METRICS = [
-    ("sentence_length",      "words_per_sentence",  "sentence_length"),
-    ("parse_depth",          "parse_depth",          "parse_depth"),
-    ("clauses_per_sentence", "clauses_per_sent",     "clauses_per_sent"),
-    ("np_density",           "np_density",           "np_density"),
-    ("noun_chunks",          "noun_chunks_per_100",  "noun_chunks"),
-    ("nouns",                "noun_per_100",         "nouns"),
-    ("verbs",                "verb_per_100",         "verbs"),
-    ("numbers",              "num_per_100",          "numbers"),
-    ("signposting",          "signposting_per_100",  "signposting"),
-    ("hedging",              "hedging_per_100",      "hedging"),
-    ("active_narration",     "has_narrator",         "active_narration"),
-    ("passive_rate",         "passive_rate",         "passive_rate"),
-    ("ttr",                  "ttr",                  "ttr"),
-]
 
 
 

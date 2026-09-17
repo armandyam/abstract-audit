@@ -7,6 +7,7 @@ numpy==2.4.4
 matplotlib==3.10.8
 textstat==0.7.13
 spacy==3.8.13
+pydantic==2.13.3
 
 # The spaCy model is a separate download and its version is part of the
 # result: parse depth, NP density, passive rate, TTR and the noun/verb counts

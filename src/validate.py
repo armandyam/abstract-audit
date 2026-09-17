@@ -162,3 +162,40 @@ def validate_all(
             validate_file(os.path.join(venue_dir, f)) for f in files
         ]
     return all_results
+
+
+def main() -> None:
+    """Validate every processed JSON against the schema.
+
+        python src/validate.py --venues neurips
+    """
+    import argparse
+
+    ap = argparse.ArgumentParser(description=main.__doc__)
+    ap.add_argument("--processed-dir",
+                    default=os.path.join(os.environ.get("AA_DATA", "data"), "processed"))
+    ap.add_argument("--venues", nargs="+", default=["neurips"])
+    a = ap.parse_args()
+
+    results = validate_all(a.processed_dir, a.venues)
+    if not results:
+        sys.exit(f"no processed venues found under {a.processed_dir}")
+
+    total = failed = 0
+    for venue, files in results.items():
+        n_ok = sum(r.n_ok for r in files)
+        n_all = sum(r.total for r in files)
+        bad = [r for r in files if not r.passed]
+        total += n_all
+        failed += n_all - n_ok
+        print(f"  [{venue}] {n_ok:,}/{n_all:,} records valid across {len(files)} files")
+        for r in bad:
+            print("  " + r.summary())
+
+    if failed:
+        sys.exit(f"{failed:,} of {total:,} records failed schema validation")
+    print(f"  all {total:,} records valid")
+
+
+if __name__ == "__main__":
+    main()

@@ -9,6 +9,7 @@
 Stages:
 
   process    process_neurips          data/raw/neurips -> data/processed/neurips
+  validate   validate                 every record against the Pydantic schema
   metrics    metrics/*                processed abstracts -> readability, acronyms,
                                       hedging, signposting, narration, hype
   metrics_nlp nlp_features             spaCy: noun chunks, nouns, verbs, numbers
@@ -42,6 +43,7 @@ STAGES: list[tuple[str, list[list[str]]]] = [
     ("process",   [["src/processing/process_neurips.py",
                     "--raw-dir", "data/raw/neurips",
                     "--processed-dir", "data/processed/neurips"]]),
+    ("validate",  [["src/validate.py", "--venues", "neurips"]]),
     ("metrics",   [[f"src/metrics/{m}.py",
                     "--processed-dir", "data/processed",
                     "--out-dir", f"data/per_paper/{m}",
