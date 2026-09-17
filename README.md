@@ -66,6 +66,7 @@ so it can be read without a TeX installation.
 
 ```
 src/            the pipeline
+tests/          269 tests; see tests/README.md
 paper/          figure sources and their generators
 judge_scores/   shipped: six models, 1.3 M scored rows, not regenerable
 reference/      shipped: expected outputs, and the no-scrape entry path
@@ -108,6 +109,22 @@ shipped.
 Decoding is `temperature=0.7`, `do_sample=True`, `max_new_tokens=8`, three runs
 per (paper, prompt, model), median reported. Scores are standardised per model
 against the 1987-2022 baseline, then averaged.
+
+## Tests
+
+```bash
+pip install -r requirements-dev.txt
+pytest
+```
+
+269 tests, about two seconds. They cover what a pipeline run structurally
+cannot reach: inputs absent from the corpus (empty abstracts, no sentence
+terminator, heavy LaTeX, non-ASCII), the resume logic that reads a partially
+written CSV, the error paths, the acronym rule, the judge score parser, and
+the papers.nips.cc HTML parsers. `tests/README.md` explains what is
+deliberately not tested and why coverage sits near 54%.
+
+The tests do not gate the pipeline. `python main.py` never invokes them.
 
 ## Reproducibility
 
