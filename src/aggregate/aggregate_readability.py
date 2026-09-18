@@ -9,8 +9,11 @@ Run:
   python src/aggregate/aggregate_readability.py
 """
 
-import os, sys
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+import os
+import sys
+
+_SRC = os.path.join(os.path.dirname(__file__), "..")
+sys.path.insert(0, _SRC)  # allows direct invocation
 from aggregate._utils import aggregate
 
 COLS = [

@@ -33,7 +33,8 @@ import sys
 
 import pandas as pd
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+_SRC = os.path.join(os.path.dirname(__file__), "..")
+sys.path.insert(0, _SRC)  # allows direct invocation
 from schema import load_processed, resume_year_counts, resume_year_ids
 
 VENUES = ["neurips", "iclr", "icml", "arxiv"]
@@ -112,16 +113,10 @@ def _is_acronym_token(word: str) -> bool:
     B&D acronym test (line 182):
         (uwords >= (lwords + nwords)) & uwords >= 2
 
-    This naturally excludes:
-    - Sentence-initial words like 'We', 'To', 'By' (only 1 uppercase letter)
-    - Chemical symbols like 'Na', 'Ca' (only 1 uppercase letter)
-    - Units like 'pH', 'mL', 'hr' (only 1 uppercase letter)
-    - Numbers like '3D' (only 1 uppercase, 1 digit → 1 >= 1+1? No)
-    Wait — '3D': u=1, l=0, n=1 → 1 >= (0+1)=1 AND 1>=2? No → NOT acronym.
-    '2D': u=1, l=0, n=1 → same → NOT acronym. But B&D do count these!
-    Re-check: '2D' is d=2(digit),u=1,l=0 → hmm, nchar('2D')=2, remove non-digits=1,
-    remove non-lower=0, remove non-upper=1. So u=1,l=0,n=1 → 1>=(0+1)=1 AND 1>=2? FALSE.
-    So B&D would NOT count '2D' as an acronym. We follow this exactly.
+    Naturally excludes sentence-initial words ('We', u=1), chemical symbols
+    ('Na', u=1), units ('pH', u=1), and alphanumeric tokens like '2D'
+    (u=1, l=0, n=1 → 1 >= 1 but 1 < 2 → NOT an acronym). This matches B&D
+    despite the intuition that '2D' should count.
     """
     u, l, n = _word_stats(word)
     return u >= (l + n) and u >= 2
@@ -164,7 +159,7 @@ def _preprocess_title(text: str) -> tuple[list[str], bool]:
     # Line 100: replace '...' with '~'
     text = text.replace('...', '~')
 
-    # Line 101: replace plurals: 's ' → ' '
+    # B&D line 101: crude plural normalisation — strips trailing 's' from all words
     text = text.replace('s ', ' ')
 
     # Lines 103–104: specific replacements
@@ -264,7 +259,7 @@ def _preprocess_abstract(text: str) -> tuple[list[str], bool]:
     # Line 66: replace '...' with '~'
     text = text.replace('...', '~')
 
-    # Line 67: replace plurals: 's ' → ' '
+    # B&D line 101: crude plural normalisation — strips trailing 's' from all words
     text = text.replace('s ', ' ')
 
     # Lines 69–70: specific replacements

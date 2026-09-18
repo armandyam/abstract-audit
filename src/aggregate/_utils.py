@@ -19,6 +19,9 @@ import pandas as pd
 DATA_DIR      = os.environ.get("AA_DATA", "data")
 PER_PAPER_DIR = os.path.join(DATA_DIR, "per_paper")
 OUT_DIR       = os.path.join(DATA_DIR, "aggregate")
+# Aggregate only NeurIPS (the shipped corpus). validate.py's VALID_VENUES is
+# broader {"neurips","iclr","icml","arxiv"}; adding a venue there without
+# adding it here will pass validation but silently skip aggregation.
 VENUES        = ["neurips"]
 
 

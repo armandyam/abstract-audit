@@ -14,10 +14,13 @@ import json
 import os
 import re
 import sys
-from typing import Iterator
+from typing import Callable, Iterator
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from schema import load_processed
+import pandas as pd
+
+_SRC = os.path.join(os.path.dirname(__file__), "..")
+sys.path.insert(0, _SRC)  # allows direct invocation
+from schema import load_processed, resume_year_counts, resume_year_ids
 
 # ── Structured-abstract heading removal ───────────────────────────────────────
 # From 99_key_characters_words_phrases.R bogus.acronyms.abstract list
@@ -211,6 +214,55 @@ def count_sentences(text: str) -> int:
     if text.rstrip().endswith('.'):
         count += 1
     return max(count, 1)
+
+
+# ── Shared venue runner ───────────────────────────────────────────────────────
+
+def run_venue_metric(
+    venue: str,
+    processed_dir: str,
+    out_dir: str,
+    compute_row: Callable[[dict], dict],
+) -> int:
+    """Run a narrator-style metric for one venue.
+
+    Handles resume logic, CSV append, and progress printing. Each caller
+    supplies compute_row(paper) -> row_dict with the metric-specific columns.
+    """
+    venue_dir = os.path.join(processed_dir, venue)
+    if not os.path.isdir(venue_dir):
+        print(f"  [{venue}] not found"); return 0
+
+    os.makedirs(out_dir, exist_ok=True)
+    csv_path = os.path.join(out_dir, f"{venue}.csv")
+
+    done_counts = resume_year_counts(csv_path)
+    if done_counts:
+        print(f"  [{venue}] resuming — {len(done_counts)} years present in output")
+
+    header_written = os.path.exists(csv_path)
+    total = 0
+    for fname in sorted(os.listdir(venue_dir)):
+        if not fname.endswith('.json'):
+            continue
+        m = re.search(r'(\d{4})', fname)
+        year = int(m.group(1)) if m else -1
+        papers = load_processed(os.path.join(venue_dir, fname))
+        if done_counts.get(year, 0) >= len(papers):
+            print(f"  [{venue}] {fname}: skip (complete)"); continue
+        if done_counts.get(year, 0) > 0:
+            done = resume_year_ids(csv_path, year)
+            papers = [p for p in papers if p["paper_id"] not in done]
+            print(f"  [{venue}] {fname}: partial year — {len(papers)} papers to top up")
+        rows = [compute_row(p) for p in papers]
+        if rows:
+            pd.DataFrame(rows).to_csv(csv_path, mode='a', header=not header_written, index=False)
+            header_written = True
+            total += len(rows)
+        print(f"  [{venue}] {fname}: {len(papers)} papers → {len(rows)} rows (total {total})")
+
+    print(f"  [{venue}] done — {total} new rows → {csv_path}")
+    return total
 
 
 # ── Data loading ──────────────────────────────────────────────────────────────
