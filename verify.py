@@ -130,6 +130,7 @@ def main() -> None:
 
     total = ok + fail + missing
     print(f"\n{ok}/{total} artefacts match reference")
+    environment_report()
     if fail or missing:
         sys.exit(f"FAILED: {fail} mismatched, {missing} missing")
     print("reproduction verified")

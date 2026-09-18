@@ -1,4 +1,6 @@
-# abstract-audit
+# Abstract Audit
+
+## About
 
 Writing metrics for research abstracts. The pipeline computes 15 classical
 readability formulas, 14 further writing measures, and six open-weight LLM

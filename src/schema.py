@@ -120,14 +120,25 @@ def resume_year_counts(csv_path: str) -> dict:
     return counts
 
 
+_resume_id_cache: dict = {}
+
+
 def resume_year_ids(csv_path: str, year: int) -> set:
-    """paper_ids already present for one year of a metric output CSV."""
+    """paper_ids already present for one year of a metric output CSV.
+
+    Builds a full {year: set(ids)} index on the first call per path so that
+    repeated calls for different partial years cost one scan total, not one
+    scan per year.
+    """
     import csv as _csv
-    done: set = set()
     if not os.path.exists(csv_path):
-        return done
-    with open(csv_path, encoding="utf-8") as fh:
-        for r in _csv.DictReader(fh):
-            if r.get("year") and int(r["year"]) == year:
-                done.add(r.get("paper_id"))
-    return done
+        return set()
+    if csv_path not in _resume_id_cache:
+        index: dict[int, set] = {}
+        with open(csv_path, encoding="utf-8") as fh:
+            for r in _csv.DictReader(fh):
+                y, pid = r.get("year"), r.get("paper_id")
+                if y and pid:
+                    index.setdefault(int(y), set()).add(pid)
+        _resume_id_cache[csv_path] = index
+    return _resume_id_cache[csv_path].get(year, set())
