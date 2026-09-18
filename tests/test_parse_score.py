@@ -1,10 +1,10 @@
 """Tests for parsing a judge model's output into a score.
 
-This function is the one whose silent failure produced a 73,920-row file of
-nulls: a reasoning-distilled 70B model spent its entire 8-token budget on
-"Okay, so I'm trying to" and never emitted a digit, so every row parsed to
-None and the run looked complete. The tests below pin both the intended
-behaviour and the known-loose fallback, so neither changes unnoticed.
+The parser tries a labelled "Score: N" pattern first and falls back to any
+standalone digit in 1-5. Both paths are pinned here, along with the case
+where neither matches and the function returns None, because a model that
+emits no digit within its token budget scores nothing and the resulting
+null is easy to miss downstream.
 """
 import pytest
 
