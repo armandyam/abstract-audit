@@ -23,6 +23,13 @@ Stages (each runs over NeurIPS, ICLR and ICML):
              visual_abstract_data     the two-panel summary series
              latex_robustness         Flesch under LaTeX and URL normalisation
              readability_collinearity correlation and PCA of the 15 formulas
+  self_audit audit_self               the TMLR paper's own title and abstract
+  citations  src/citations/*          citation analyses; runs only with the
+                                      reader's own Semantic Scholar counts
+  macros     paper/tmlr/make_macros   the TMLR paper's 163 inline numbers and
+                                      six generated tables -> data/tmlr/
+             paper/tmlr/check_macros  compared with reference/tmlr/tex/
+                                      (report only; verify is the gate)
   figures    make_heatmap             the judge-vs-metric heatmap PNG
              build_figures            renders every figure to paper/figures.pdf
   verify     verify                   every output against reference/
@@ -110,6 +117,8 @@ STAGES: list[tuple[str, list[list[str]]]] = [
                    ["src/citations/regression_topics.py", "--assignments", TOPIC_ASSIGN],
                    ["src/citations/topic_citations.py", "--assignments", TOPIC_ASSIGN,
                     "--profiles", TOPIC_PROFILE]]),
+    ("macros",    [["paper/tmlr/make_macros.py"],
+                   ["paper/tmlr/check_macros.py", "--report-only"]]),
     ("figures",   [["paper/analysis/make_heatmap.py"],
                    ["paper/build_figures.py"]]),
     ("verify",    [["verify.py"]]),

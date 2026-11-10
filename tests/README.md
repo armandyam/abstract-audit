@@ -32,6 +32,10 @@ So these tests target what an end-to-end run structurally cannot reach:
   cut-offs are inclusive, immature years, zero-length bibliographies and
   authorless records are excluded, and the snapshot check tells the
   published citation data from a fresh fetch.
+- **Macro checking.** The `\newcommand` parser on nested and escaped
+  braces, comments and malformed definitions; missing, extra, differing and
+  skipped names; the three citation modes. The generator is also run on the
+  committed reference inputs, with and without citation outputs.
 - **Source dispatch.** Each ICLR and ICML year reads one raw source, and the
   early sources pass their text through unchanged.
 

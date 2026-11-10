@@ -118,6 +118,8 @@ export       aggregates to plot-ready CSVs: data/pgfplots/ for the UncertaiNLP
 model_avg    per-model z-scores to the six-model average
 analysis     metric against judge Spearman correlation, summary series,
              Flesch under LaTeX and URL normalisation, readability collinearity
+macros       the TMLR paper's 163 inline numbers and six generated tables,
+             written to data/tmlr/ by paper/tmlr/make_macros.py
 figures      heatmap and the rendered figure set
 verify       all artefacts against reference/
 ```
@@ -167,6 +169,16 @@ the plot-ready CSVs and analysis outputs of both papers numerically at
 `atol=0` (text columns as strings), and the figure PNG byte for byte. It exits
 non-zero on any mismatch and reports the installed package versions against
 those `reference/` was built with.
+
+It also checks the TMLR paper's inline numbers. The paper resolves 163 of
+them through `\newcommand` macros in three generated files and inputs six
+generated tables. `paper/tmlr/make_macros.py` writes all of them from the
+pipeline's outputs with the formatting code of the upstream generators, and
+`paper/tmlr/check_macros.py` compares them with the paper's own files in
+`reference/tmlr/tex/`: macros by name and exact value, tables byte for byte.
+Eleven macros and two tables need citation counts. They are compared when the
+local counts are the published snapshot, reported but not counted after a
+fresh fetch, and skipped when there are none.
 
 Two dependencies determine the values and are pinned exactly. The `textstat`
 implementations have changed across releases. The spaCy model version

@@ -13,6 +13,9 @@ Comparisons, for the UncertaiNLP paper (reference/) and the TMLR paper
   plot-ready CSVs            numeric at atol=0 (NaN equal to NaN), text columns
                              equal as strings
   TMLR analysis CSVs         as plot-ready CSVs
+  TMLR inline numbers        the 163 \newcommand macros by name and value,
+                             the six generated tables byte-for-byte
+                             (paper/tmlr/check_macros.py)
   figure PNG                 byte-for-byte
 
     python verify.py
@@ -147,6 +150,28 @@ def citations_section() -> None:
         ok, fail, missing = saved
 
 
+def macros_section() -> None:
+    """The paper's inline numbers and generated tables.
+
+    paper/tmlr/check_macros.py does the comparison; see its docstring. The
+    citation-dependent macros and tables follow the citation mode as the
+    citation outputs do: compared in strict mode, reported but not counted in
+    fresh mode, skipped when the counts are absent.
+    """
+    global ok, fail, missing
+    sys.path.insert(0, os.path.join(HERE, "src"))
+    sys.path.insert(0, os.path.join(HERE, "paper", "tmlr"))
+    from check_macros import check, citation_mode
+    m = citation_mode(DATA)
+    print(f"\nTMLR macros and tables (citation mode {m})")
+    res = check(os.path.join(DATA, "tmlr"), m)
+    for line in res.lines + res.summary():
+        print(line)
+    ok += res.ok
+    fail += res.bad
+    missing += res.missing
+
+
 def main() -> None:
     print("verifying against reference/\n")
 
@@ -183,6 +208,7 @@ def main() -> None:
         check_csv(rel, os.path.join(DATA, "aggregate", base), ref_path)
 
     citations_section()
+    macros_section()
 
     print("\nfigures")
     check_bytes("paper/figs/fig_judge_metric_heatmap.png",
