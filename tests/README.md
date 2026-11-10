@@ -1,6 +1,6 @@
 # tests
 
-352 tests covering what the pipeline run cannot.
+423 tests covering what the pipeline run cannot.
 
 ## What these are for
 
@@ -25,6 +25,13 @@ So these tests target what an end-to-end run structurally cannot reach:
 - **Third-party markup.** The parsers for papers.nips.cc, OpenReview, the
   arXiv API, the iclr.cc and icml.cc archive pages, PMLR and the ICLR dataset
   are the only things here that can break with no change to this code.
+  The Semantic Scholar and OpenAlex citation fetchers are tested the same
+  way, against hand-written responses in `fixtures/citations/`, with the
+  network disabled.
+- **Citation rules.** Tied citation counts share a percentile, the decile
+  cut-offs are inclusive, immature years, zero-length bibliographies and
+  authorless records are excluded, and the snapshot check tells the
+  published citation data from a fresh fetch.
 - **Source dispatch.** Each ICLR and ICML year reads one raw source, and the
   early sources pass their text through unchanged.
 
