@@ -177,6 +177,7 @@ def test_audit_runs_on_a_short_abstract(tmp_path):
                             "dale_chall", "spache", "coleman_liau", "ari", "linsear_write",
                             "lix", "rix", "forcast", "powers_sumner_kearl",
                             "avg_sentence_length", "avg_syllables_per_word"],
+            "sentence_length": ["words_per_sentence"],
             "parse_depth": ["parse_depth"], "np_density": ["np_density"],
             "noun_chunks": ["noun_chunks_per_100"], "nouns": ["noun_per_100"],
             "verbs": ["verb_per_100"], "numbers": ["num_per_100"],
@@ -193,6 +194,9 @@ def test_audit_runs_on_a_short_abstract(tmp_path):
             "It is faster than prior work. We show it on three benchmarks.")
     df = audit("A Title", text, nlp, per_paper=str(pp))
     assert set(df.family) == {"readability", "style", "sensational", "acronyms"}
-    assert len(df) == 15 + 11 + 10 + 1
+    assert len(df) == 15 + 12 + 10 + 1
     assert df.percentile.between(0, 100).all()
     assert "SGD" in df.attrs["abstract_acronyms"]
+    # Three sentences of 11, 6 and 6 words after preprocessing.
+    row = df[df.metric == "Sentence length (Hohmann)"].iloc[0]
+    assert row.abstract == pytest.approx(23 / 3)

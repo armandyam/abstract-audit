@@ -103,9 +103,9 @@ SENSATIONAL = [
     ("hype_total_per_100",      "total"),
 ]
 
-# (aggregate file, column, TMLR file name). The TMLR paper's sentence length
-# series (Hohmann) is not part of this release.
+# (aggregate file, column, TMLR file name).
 STYLE = [
+    ("sentence_length",      "words_per_sentence",   "sentence_length"),
     ("parse_depth",          "parse_depth",          "parse_depth"),
     ("clauses_per_sentence", "clauses_per_sent",     "clauses_per_sent"),
     ("np_density",           "np_density",           "np_density"),

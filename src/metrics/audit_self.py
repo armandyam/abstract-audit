@@ -14,10 +14,9 @@ Table tab:self-audit). To reproduce that table:
       --title "Machine Learning Research Has Outpaced Its Communication Norms" \\
       --abstract-file paper/tmlr/self_audit_abstract.txt
 
-The table's sentence-length row (Hohmann) is not reproduced: that per-paper
-metric is not part of this release. The two novel-acronym counts in the table
-are a judgment against the paper's approved-term list, not a computed value;
-this script prints the acronyms it finds so the judgment can be checked.
+The two novel-acronym counts in the table are a judgment against the paper's
+approved-term list, not a computed value; this script prints the acronyms it
+finds so the judgment can be checked.
 
 Usage:
   python src/metrics/audit_self.py --title "..." --abstract-file abstract.txt
@@ -41,8 +40,8 @@ import metrics.acronyms as acronyms  # noqa: E402
 import metrics.nlp_features as nlp_features  # noqa: E402
 import metrics.readability as readability  # noqa: E402
 from metrics._narrator_utils import (  # noqa: E402
-    HYPE_CATEGORIES, count_hedging, count_hype, count_signposting, has_narrator,
-    preprocess, word_count,
+    HYPE_CATEGORIES, count_hedging, count_hype, count_sentences, count_signposting,
+    has_narrator, preprocess, word_count,
 )
 from metrics.linguistic_complexity import _compute as lc_compute  # noqa: E402
 
@@ -146,7 +145,11 @@ def audit(title: str, abstract: str, nlp, per_paper: str = PP) -> pd.DataFrame:
     verbs = sum(1 for t in doc if t.pos_ == "VERB")
     nums = sum(1 for t in doc if t.pos_ == "NUM")
     chunks = nlp_features._noun_chunks(doc)
+    # Unrounded, as the paper's table computes it; sentence_length.py stores
+    # the same ratio rounded to 4 decimals.
+    sent_len = nw / count_sentences(pa)
     style = [
+        ("Sentence length (Hohmann)", sent_len, "sentence_length", "words_per_sentence"),
         ("Parse depth", lc["parse_depth"], "parse_depth", "parse_depth"),
         ("NP density", lc["np_density"], "np_density", "np_density"),
         ("Noun chunks /100", per100(chunks), "noun_chunks", "noun_chunks_per_100"),

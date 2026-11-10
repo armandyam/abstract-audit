@@ -1,0 +1,2 @@
+venue,year,n_papers,n_excluded_terms,title_density_all,title_density_excl,abstract_density_all,abstract_density_excl,n_unique_abstract_acronyms,rare_share_all,rare_share_excl
+neurips,2025,5823,30,4.15,2.98,2.97,2.37,15693,89.5,89.7

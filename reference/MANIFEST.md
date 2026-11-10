@@ -179,3 +179,53 @@ e4df969913a51278  tmlr/pgfplots/sensational_utility.csv
 505dad21d478ee8f  tmlr/pgfplots/verbs.csv
 d519a7059d8b673d  tmlr/readability_collinearity.csv
 ```
+
+## TMLR paper: sentence length, acronym tables, topic analyses
+
+Added from the same upstream commit `eda2733`. Every file below was copied byte
+for byte from the upstream working tree, which matches that commit, except
+`tmlr/pgfplots/sentence_length.csv`, trimmed as the other `tmlr/pgfplots/`
+series are (`year,neurips,iclr,icml`, rows where one of those is non-empty,
+kept cells the original strings). The trimmed file is byte-identical to the
+one `export_pgfplots_data.py` writes.
+
+- `per_paper/sentence_length/{neurips,iclr,icml}.csv`: upstream
+  `data/per_paper/sentence_length/` (not tracked upstream; regenerated here
+  byte for byte by `src/metrics/sentence_length.py`).
+- `tmlr/pgfplots/sentence_length.csv`: upstream
+  `tmlr/data/pgfplots/sentence_length.csv`, trimmed.
+- `tmlr/analysis/acronym_reuse_freq.csv`, `tmlr/analysis/acronym_robustness.csv`:
+  upstream `data/aggregate/`. The reuse file holds all seven upstream rows;
+  this release computes the NeurIPS, ICLR, ICML and Barnett and Doubleday
+  rows, and the arXiv ML, arXiv non-ML and PubMed rows need their acronym
+  frequency histograms.
+- `tmlr/analysis/{acronym_concentration,acronym_top_terms,flesch_decomposition,
+  topic_assignments,topic_terms,topic_stability,topic_trends,topic_profiles,
+  topic_decomposition,topic_decomposition_summary,fixed_mix_readability}.csv`:
+  upstream `tmlr/analysis/out/`. `topic_profiles.csv` carries two citation
+  columns, `median_citations` and `n_with_citations`, which this release does
+  not compute without citation data.
+
+Topic clustering additionally needs scikit-learn 1.9.0.
+
+sha256, first 16 hex:
+
+```
+ef870ceb2cd92625  per_paper/sentence_length/neurips.csv
+7a01a9a86e51b2ab  per_paper/sentence_length/iclr.csv
+5d796220cc68881f  per_paper/sentence_length/icml.csv
+4068699f0b65ffc4  tmlr/pgfplots/sentence_length.csv
+498d4a785a3e68dc  tmlr/analysis/acronym_concentration.csv
+5eeb7980e2dd778a  tmlr/analysis/acronym_reuse_freq.csv
+2e1ef078bcd5a534  tmlr/analysis/acronym_robustness.csv
+41e2765db2a36c31  tmlr/analysis/acronym_top_terms.csv
+1deb3285badda1f1  tmlr/analysis/fixed_mix_readability.csv
+c375e91a4335fac3  tmlr/analysis/flesch_decomposition.csv
+a4dfa81dd5b02ea0  tmlr/analysis/topic_assignments.csv
+04486650bc796cf5  tmlr/analysis/topic_decomposition.csv
+3c3e672a21af87e4  tmlr/analysis/topic_decomposition_summary.csv
+ec1eca9a7d8b0165  tmlr/analysis/topic_profiles.csv
+52923e414c40fbd5  tmlr/analysis/topic_stability.csv
+4bc880bfc5745590  tmlr/analysis/topic_terms.csv
+2f678b2b0e37d4e6  tmlr/analysis/topic_trends.csv
+```
