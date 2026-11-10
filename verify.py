@@ -16,6 +16,11 @@ Comparisons, for the UncertaiNLP paper (reference/) and the TMLR paper
   TMLR inline numbers        the 163 \newcommand macros by name and value,
                              the six generated tables byte-for-byte
                              (paper/tmlr/check_macros.py)
+  TMLR printed numbers       every other number in the manuscript text
+                             (paper/tmlr/source/) against paper/tmlr/claims.csv
+                             and the outputs (paper/tmlr/check_claims.py);
+                             a mismatch, an error, an uncovered number and a
+                             stale claim each count as a failure
   figure PNG                 byte-for-byte
 
     python verify.py
@@ -172,6 +177,29 @@ def macros_section() -> None:
     missing += res.missing
 
 
+def claims_section() -> None:
+    """Every number the TMLR manuscript prints, outside the macros.
+
+    paper/tmlr/check_claims.py does the work; see its docstring. A match
+    counts as ok; a mismatch, a check error, a number with no claims.csv row
+    and a row whose quote no longer marks a number each count as a failure.
+    Skipped claims (literature, unchecked design constants, citation claims
+    outside strict mode, inputs absent) and unverifiable ones are reported,
+    not counted.
+    """
+    global ok, fail
+    sys.path.insert(0, os.path.join(HERE, "src"))
+    sys.path.insert(0, os.path.join(HERE, "paper", "tmlr"))
+    from check_claims import citation_mode, run
+    m = citation_mode(DATA)
+    print(f"\nTMLR printed numbers (citation mode {m})")
+    rep = run(DATA, m)
+    for line in rep.lines() + rep.summary():
+        print(line)
+    ok += rep.count("MATCH")
+    fail += rep.failures
+
+
 def main() -> None:
     print("verifying against reference/\n")
 
@@ -209,6 +237,7 @@ def main() -> None:
 
     citations_section()
     macros_section()
+    claims_section()
 
     print("\nfigures")
     check_bytes("paper/figs/fig_judge_metric_heatmap.png",

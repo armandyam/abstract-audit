@@ -1,6 +1,6 @@
 # tests
 
-423 tests covering what the pipeline run cannot.
+604 tests covering what the pipeline run cannot.
 
 ## What these are for
 
@@ -36,6 +36,13 @@ So these tests target what an end-to-end run structurally cannot reach:
   braces, comments and malformed definitions; missing, extra, differing and
   skipped names; the three citation modes. The generator is also run on the
   committed reference inputs, with and without citation outputs.
+- **Claim checking.** The tokenizer that finds the TMLR paper's printed
+  numbers (ranges, fractions, spelled-out quantities, identifiers that are
+  not numbers, masked LaTeX structure and figure code); coverage on
+  deliberately broken claims (uncovered, stale, ambiguous, duplicate); the
+  comparison rules; check functions on synthetic series with a known
+  answer; the author-block scrub of the source import. One test ties the
+  committed `claims.csv` to the committed source without any data.
 - **Source dispatch.** Each ICLR and ICML year reads one raw source, and the
   early sources pass their text through unchanged.
 

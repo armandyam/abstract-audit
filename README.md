@@ -62,7 +62,10 @@ re-fetched.
 src/            pipeline
 tests/          tests, documented in tests/README.md
 paper/          UncertaiNLP figure sources and rendered figures.pdf;
-                paper/tmlr/ holds the TMLR abstract for the self-audit
+                paper/tmlr/ holds the TMLR abstract for the self-audit, the
+                macro generator, and the manuscript text (source/) with the
+                claim table (claims.csv) that ties every printed number to
+                an output
 judge_scores/   judge scores, six models, by venue
 reference/      expected pipeline outputs, both papers
 data/           generated, absent from a fresh clone
@@ -120,6 +123,8 @@ analysis     metric against judge Spearman correlation, summary series,
              Flesch under LaTeX and URL normalisation, readability collinearity
 macros       the TMLR paper's 163 inline numbers and six generated tables,
              written to data/tmlr/ by paper/tmlr/make_macros.py
+claims       every other number the TMLR manuscript prints, checked against
+             the outputs by paper/tmlr/check_claims.py
 figures      heatmap and the rendered figure set
 verify       all artefacts against reference/
 ```
@@ -179,6 +184,21 @@ pipeline's outputs with the formatting code of the upstream generators, and
 Eleven macros and two tables need citation counts. They are compared when the
 local counts are the published snapshot, reported but not counted after a
 fresh fetch, and skipped when there are none.
+
+Every other number the manuscript prints is checked too. `paper/tmlr/source/`
+holds the manuscript text (main.tex and every table and figure it inputs,
+without comments or author details), copied from the research repository by
+`paper/tmlr/import_source.py`. `paper/tmlr/inventory.py` finds every number in
+it: numerals, ranges, fractions such as "14 of the 15", and spelled-out
+quantities such as "roughly a quarter". `paper/tmlr/claims.csv` has one row
+per number, saying whether it is measured, quoted from the literature, a
+design constant or unverifiable, and naming the function in
+`paper/tmlr/claims.py` that recomputes it from the pipeline's outputs.
+`paper/tmlr/check_claims.py` reports each as MATCH, MISMATCH, SKIP or
+UNVERIFIABLE, and fails if a number has no row or a row no longer marks a
+number. Citation claims are recomputed in strict citation mode and otherwise
+compared with the frozen outputs in `reference/tmlr/citations/`. Its docstring
+says how to update `claims.csv` after the manuscript changes.
 
 Two dependencies determine the values and are pinned exactly. The `textstat`
 implementations have changed across releases. The spaCy model version

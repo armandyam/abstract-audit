@@ -30,6 +30,9 @@ Stages (each runs over NeurIPS, ICLR and ICML):
                                       six generated tables -> data/tmlr/
              paper/tmlr/check_macros  compared with reference/tmlr/tex/
                                       (report only; verify is the gate)
+  claims     paper/tmlr/check_claims  every other number the TMLR paper prints
+                                      (paper/tmlr/source/, claims.csv), checked
+                                      against the outputs above (report only)
   figures    make_heatmap             the judge-vs-metric heatmap PNG
              build_figures            renders every figure to paper/figures.pdf
   verify     verify                   every output against reference/
@@ -119,6 +122,7 @@ STAGES: list[tuple[str, list[list[str]]]] = [
                     "--profiles", TOPIC_PROFILE]]),
     ("macros",    [["paper/tmlr/make_macros.py"],
                    ["paper/tmlr/check_macros.py", "--report-only"]]),
+    ("claims",    [["paper/tmlr/check_claims.py", "--report-only"]]),
     ("figures",   [["paper/analysis/make_heatmap.py"],
                    ["paper/build_figures.py"]]),
     ("verify",    [["verify.py"]]),
