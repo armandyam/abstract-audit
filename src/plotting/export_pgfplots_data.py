@@ -7,32 +7,57 @@ Two output sets, one per paper:
                        `year,neurips` for each readability metric and the
                        NeurIPS judge series. Unchanged from the tag
                        uncertainlp-2026, so verify.py checks it as before.
-  data/pgfplots/tmlr/  the TMLR paper's conference series under the paper's
-                       own file names: `year,neurips,iclr,icml` for each
-                       metric, papers per year, and the judge series for all
-                       three venues. The paper's arXiv and PubMed series are
-                       not part of this release.
+  data/pgfplots/tmlr/  the TMLR paper's series under the paper's own file
+                       names: one CSV per metric, papers per year, and the
+                       judge series for all three venues.
 
-Each metric becomes a CSV of `year` plus one column per venue, restricted to
-the years at least one of those venues covers.
+By default the TMLR set holds the conferences alone: `year,neurips,iclr,icml`,
+restricted to the years at least one of them covers.
+
+With --baselines the TMLR set is the paper's figure data in full. The arXiv
+and PubMed aggregates shipped in baselines/ are merged in, and each per-metric
+file has the paper's six columns
+
+  year, neurips, iclr, icml, arxiv_ml, arxiv_nonml, pubmed
+
+over every year any of the five corpora covers (1987-2027; the rows past 2025
+come from ICLR 2026 and PubMed's ahead-of-print records). arxiv_ml and
+arxiv_nonml are count-weighted means over the primary categories of each
+group (src/arxiv_categories.py), and PubMed is cut at PUBMED_MAX = 2025.
+Papers per year takes the arXiv counts from the acronym aggregate's
+categories and PubMed's from the readability-scored count (see
+baselines/README.md for the two PubMed denominators). This is the upstream
+computation, and the files equal reference/tmlr/pgfplots_full/.
+
+The judge series and the UncertaiNLP set are the same either way.
 
 Run:
   python src/plotting/export_pgfplots_data.py
+  python src/plotting/export_pgfplots_data.py --baselines            # baselines/
+  python src/plotting/export_pgfplots_data.py --baselines path/to/dir
 """
 
 from __future__ import annotations
+import argparse
 import os
 import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import numpy as np
 import pandas as pd
-from aggregate._utils import VENUES
+from aggregate._utils import CATEGORY_COL, VENUES
+from arxiv_categories import is_ml
 
 _D = os.environ.get("AA_DATA", "data")
 AGG  = os.path.join(_D, "aggregate")
 OUT  = os.path.join(_D, "pgfplots")
 TMLR = os.path.join(OUT, "tmlr")
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+BASELINES = os.path.join(REPO, "baselines")
+
+# PubMed's last full year. The baseline holds ahead-of-print records dated
+# 2026 and 2027, which belong to no publication year.
+PUBMED_MAX = 2025
 
 COMPLETE_MODELS = [
     "Gemma-3-27B-Instruct",
@@ -198,29 +223,146 @@ def export_papers_per_year(out: str | None = None) -> None:
     save(result, "papers_per_year.csv", out or TMLR)
 
 
-def export_tmlr() -> None:
-    """TMLR set: the three conferences, under the paper's file names."""
+# ── arXiv and PubMed baselines ───────────────────────────────────────────────
+
+def weighted_mean_by_year(df_cat: pd.DataFrame, col: str, mask: pd.Series) -> pd.DataFrame:
+    """Count-weighted mean of {col}_mean over the categories in `mask`, per
+    year: sum(mean_i * count_i) / sum(count_i). Columns: year, wmean.
+
+    A category-year without a mean or count is left out. A year whose counts
+    sum to zero has no mean (NaN). Upstream also computed a pooled interval
+    here; no figure reads it, so it is not ported.
+    """
+    mean_col, count_col = f"{col}_mean", f"{col}_count"
+    if mean_col not in df_cat.columns or count_col not in df_cat.columns:
+        return pd.DataFrame({"year": pd.Series(dtype="int64"),
+                             "wmean": pd.Series(dtype="float64")})
+    sub = df_cat[mask].copy()
+    sub = sub.dropna(subset=[mean_col, count_col])
+    sub["_sum"] = sub[mean_col] * sub[count_col]
+    agg = sub.groupby("year").agg(
+        _sum=("_sum", "sum"),
+        _cnt=(count_col, "sum"),
+    ).reset_index()
+    agg["wmean"] = agg["_sum"] / agg["_cnt"].replace(0, np.nan)
+    return agg[["year", "wmean"]]
+
+
+def arxiv_split(df_cat: pd.DataFrame, col: str) -> pd.DataFrame:
+    """year, arxiv_ml, arxiv_nonml: the count-weighted means of each group."""
+    ml = is_ml(df_cat[CATEGORY_COL])
+    a = weighted_mean_by_year(df_cat, col, ml).rename(columns={"wmean": "arxiv_ml"})
+    b = weighted_mean_by_year(df_cat, col, ~ml).rename(columns={"wmean": "arxiv_nonml"})
+    return a.merge(b, on="year", how="outer")
+
+
+def export_metric_full(metric_name: str, col: str, out_name: str,
+                       baselines: str, out: str) -> None:
+    """The paper's six-column series: conferences from the aggregate,
+    arXiv and PubMed from baselines/, on the union of their years."""
+    main_csv = f"{AGG}/{metric_name}.csv"
+    if not os.path.exists(main_csv):
+        print(f"  SKIP {main_csv} (not found)")
+        return
+    df = pd.read_csv(main_csv)
+    base_csv = os.path.join(baselines, "aggregate", f"{metric_name}.csv")
+    if os.path.exists(base_csv):
+        df = (df.merge(pd.read_csv(base_csv), on="year", how="outer")
+                .sort_values("year").reset_index(drop=True))
+
+    result = df[["year"]].copy()
+    for venue in VENUES:
+        mean_col = f"{venue}_{col}_mean"
+        if mean_col in df.columns:
+            result[venue] = df[mean_col]
+    cat_csv = os.path.join(baselines, "aggregate", f"{metric_name}_arxiv_by_category.csv")
+    if os.path.exists(cat_csv):
+        result = result.merge(arxiv_split(pd.read_csv(cat_csv), col), on="year", how="left")
+    pubmed_col = f"pubmed_{col}_mean"
+    if pubmed_col in df.columns:
+        pub = df[["year", pubmed_col]].rename(columns={pubmed_col: "pubmed"})
+        result = result.merge(pub, on="year", how="left")
+        result.loc[result["year"] > PUBMED_MAX, "pubmed"] = np.nan
+    else:
+        result["pubmed"] = np.nan  # the column is always present
+    save(result, f"{out_name}.csv", out)
+
+
+def export_papers_per_year_full(baselines: str, out: str) -> None:
+    """Papers per year with the arXiv groups and PubMed (readability-scored
+    count, cut at PUBMED_MAX). The year index is the conferences' plus the
+    years arXiv covers, as the upstream count over processed records was."""
+    src = f"{AGG}/papers_per_year.csv"
+    if not os.path.exists(src):
+        print(f"  SKIP {src} (not found)")
+        return
+    df = pd.read_csv(src)
+    base_csv = os.path.join(baselines, "papers_per_year.csv")
+    base = pd.read_csv(base_csv) if os.path.exists(base_csv) else None
+    years = set(df["year"])
+    if base is not None:
+        arxiv_years = base.loc[base[["arxiv_ml", "arxiv_nonml"]].notna().any(axis=1), "year"]
+        years |= set(arxiv_years)
+    result = pd.DataFrame({"year": sorted(years)})
+    conf = df.set_index("year")
+    for venue in VENUES:
+        if venue in df.columns:
+            result[venue] = result["year"].map(conf[venue]).replace(0, np.nan)
+    if base is not None:
+        for col in ("arxiv_ml", "arxiv_nonml"):
+            result = result.merge(base[["year", col]].dropna(), on="year", how="left")
+        pub = base[["year", "pubmed_scored"]].dropna().rename(columns={"pubmed_scored": "pubmed"})
+        result = result.merge(pub, on="year", how="left")
+        result.loc[result["year"] > PUBMED_MAX, "pubmed"] = np.nan
+    save(result, "papers_per_year.csv", out)
+
+
+# The sentence length series is in the full set only, and only once the
+# conference aggregate for it (data/aggregate/sentence_length.csv) exists.
+FULL_EXTRA = [("sentence_length", "words_per_sentence", "sentence_length")]
+
+
+def export_tmlr(baselines: str | None = None) -> None:
+    """TMLR set under the paper's file names: the three conferences, or with
+    `baselines` the paper's full six-column series."""
     TMLR = os.path.join(OUT, "tmlr")
-    for m in READABILITY:
-        export_metric("readability", m, f"readability_{m}", out=TMLR)
-    export_metric("acronyms", "title_acronym_density", "acronyms_title", out=TMLR)
-    export_metric("acronyms", "abstract_acronym_density", "acronyms_abstract", out=TMLR)
-    for col, short in SENSATIONAL:
-        export_metric("sensational_language", col, f"sensational_{short}", out=TMLR)
-    for metric_file, col, out_name in STYLE:
-        export_metric(metric_file, col, out_name, out=TMLR)
-    export_papers_per_year(TMLR)
+    series = ([("readability", m, f"readability_{m}") for m in READABILITY]
+              + [("acronyms", "title_acronym_density", "acronyms_title"),
+                 ("acronyms", "abstract_acronym_density", "acronyms_abstract")]
+              + [("sensational_language", col, f"sensational_{short}")
+                 for col, short in SENSATIONAL]
+              + list(STYLE))
+    if baselines:
+        names = {s[2] for s in series}
+        series += [s for s in FULL_EXTRA if s[2] not in names]
+        for metric_file, col, out_name in series:
+            export_metric_full(metric_file, col, out_name, baselines, TMLR)
+        export_papers_per_year_full(baselines, TMLR)
+    else:
+        for metric_file, col, out_name in series:
+            export_metric(metric_file, col, out_name, out=TMLR)
+        export_papers_per_year(TMLR)
     export_llm_scores(VENUES, TMLR)
     export_standardized_llm(VENUES, TMLR)
 
 
 def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--baselines", nargs="?", const=BASELINES, default=None,
+                    metavar="DIR",
+                    help="merge the arXiv and PubMed baselines into the TMLR set "
+                         "(default DIR: baselines/)")
+    a = ap.parse_args()
+    if a.baselines and not os.path.isdir(a.baselines):
+        sys.exit(f"--baselines: {a.baselines} is not a directory")
+
     print("Exporting pgfplots CSVs")
     export_readability()
     export_llm_scores()
     export_standardized_llm()
-    print("TMLR set")
-    export_tmlr()
+    print("TMLR set" + (f" with baselines from {a.baselines}" if a.baselines else ""))
+    export_tmlr(a.baselines)
     print("Done.")
 
 
