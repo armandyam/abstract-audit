@@ -24,8 +24,7 @@ Exclusions. This licence does not cover:
     None is distributed in this repository. They remain with their authors
     and publishers and under the terms of the services that provide them;
   - third-party citation and reference counts (Semantic Scholar, OpenAlex).
-    Per-paper counts are not distributed. The statistics computed from them
-    in reference/tmlr/citations/ carry the provider attribution given in
-    reference/tmlr/citations/SNAPSHOT.md.
+    Neither the per-paper counts nor any statistic computed from them is
+    distributed.
 
 Attribution for the sources is given in README.md and baselines/README.md.

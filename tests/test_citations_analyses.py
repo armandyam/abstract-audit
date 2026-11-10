@@ -1,7 +1,8 @@
 """Tests for the citation analyses and the snapshot check.
 
-verify.py compares every output against reference/tmlr/citations/ when the
-published snapshot is present. These tests cover what that run cannot: the
+verify.py compares the citation numbers the paper prints with the
+recomputed outputs when the published snapshot is present (no citation output
+is distributed). These tests cover what that run cannot: the
 percentile rule under ties, the exclusion rules (immature years, missing
 counts, zero-length bibliographies, authorless records), the decile cut-offs
 at their boundaries, inputs that are missing or empty, and the three
@@ -96,13 +97,12 @@ def test_snapshot_sha256_matches_hashlib(tmp_path):
     assert snap.sha256(str(p)) == hashlib.sha256(p.read_bytes()).hexdigest()
 
 
-def test_snapshot_table_covers_the_three_venues_and_is_in_snapshot_md():
+def test_snapshot_table_covers_the_three_venues_with_hashes_and_dates():
     assert set(snap.SNAPSHOT) == {f"{v}_s2.csv" for v in ("neurips", "iclr", "icml")}
-    md = os.path.join(os.path.dirname(__file__), "..", "reference", "tmlr",
-                      "citations", "SNAPSHOT.md")
-    text = open(md, encoding="utf-8").read()
+    assert set(snap.RETRIEVED) == set(snap.SNAPSHOT)
     for name, h in snap.SNAPSHOT.items():
-        assert h in text and name in text
+        assert len(h) == 64 and int(h, 16) >= 0
+        assert snap.RETRIEVED[name][:4] == "2026"
 
 
 # ── coverage ─────────────────────────────────────────────────────────────

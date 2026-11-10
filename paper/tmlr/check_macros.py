@@ -1,44 +1,43 @@
 #!/usr/bin/env python3
-"""Compare the built TMLR macros and tables with the paper's own files.
+"""Compare the built TMLR macros with the values the paper prints.
 
-make_macros.py writes three macro files and six tables under $AA_DATA/tmlr/.
-reference/tmlr/tex/ holds the files the paper was built with, copied byte for
-byte from upstream commit eda2733. This module compares them:
+make_macros.py writes three macro files under $AA_DATA/tmlr/. The paper
+resolves 163 inline numbers through the same macro names. Their printed
+values are stored in reference/tmlr/macros.csv (file, name, value): computed
+numbers and the few computed labels (a topic's leading term, the ten
+commonest acronyms), never text from the manuscript. This module compares:
 
-  macros   every \\newcommand in each reference file is parsed with full
-           brace matching, then the name sets and the values (as strings,
-           exactly) are compared file by file. A missing, an extra and a
-           differing macro are each a mismatch.
-  tables   byte for byte. None of the six was edited by hand after it was
-           generated: upstream's generators, rerun on upstream's inputs,
-           write all six byte-identical to the paper's copies.
+  built     every \\newcommand of each built file, parsed with full brace
+            matching, against macros.csv by name and exact value. A missing,
+            an extra and a differing macro are each a mismatch.
+  paper     with a local copy of the manuscript ($AA_PAPER or --paper-dir,
+            see manuscript.py), macros.csv against the paper's own
+            generated_round{2,3,4}.tex, by name and exact value, in every
+            citation mode. Without it this comparison is reported as
+            skipped.
 
-The paper's own copies. paper/tmlr/source/ holds the macro files and tables
-the manuscript text actually inputs (import_source.py copies them with the
-comments removed). Every macro there is compared with reference/tmlr/tex/ by
-name and exact value, and every generated table byte for byte after the same
-comment removal, in every citation mode and always counted. With the built
-files compared with the same reference, a printed value is tied to the
-recomputed one: shipped == reference == built. A changed shipped value is a
-mismatch even where the built value is not compared (citation items outside
-strict mode), since the printed paper must still equal the frozen snapshot.
+The generated tables are compared by check_tables.py.
 
 A section make_macros.py could not run for lack of an input (the --from
 aggregate route has no processed abstracts) is listed in skipped.json under
-"incomplete" with the input it missed. Its macros and tables are then
-reported missing, with that reason, and count as failures.
+"incomplete" with the input it missed. Its macros are then reported missing,
+with that reason, and count as failures.
 
-The eleven macros and two tables that need citation outputs
-(make_macros.CITATION_MACROS, CITATION_TABLES) follow the citation mode of
-src/citations/snapshot.py:
+The eleven macros that need citation outputs (make_macros.CITATION_MACROS)
+follow the citation mode of src/citations/snapshot.py:
 
   strict   compared like everything else
   fresh    compared and reported, not counted: a new fetch gives new numbers
   absent   not compared, reported as skipped. make_macros.py must then have
-           skipped exactly these (its skipped.json), and nothing else.
+           skipped exactly the citation items (its skipped.json), and
+           nothing else.
+
+macros.csv is written from the manuscript, once per manuscript revision:
+
+    python paper/tmlr/check_macros.py --write-reference --paper-dir path/to/manuscript
 
 verify.py calls `check` for its TMLR macros section. Run alone it prints the
-same report and exits non-zero on any mismatch or missing file:
+same report and exits non-zero on any mismatch or missing macro:
 
     python paper/tmlr/check_macros.py
     python paper/tmlr/check_macros.py --built-dir path/to/tmlr --mode strict
@@ -46,6 +45,7 @@ same report and exits non-zero on any mismatch or missing file:
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import os
 import sys
@@ -55,10 +55,10 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
 sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(REPO, "src"))
-from make_macros import CITATION_MACROS, CITATION_TABLES, ROUND_FILES, TABLES  # noqa: E402
+from make_macros import CITATION_MACROS, CITATION_TABLES, ROUND_FILES  # noqa: E402
+from manuscript import SKIP_REASON, paper_dir  # noqa: E402
 
-REF_DIR = os.path.join(REPO, "reference", "tmlr", "tex")
-SHIPPED_DIR = os.path.join(HERE, "source")
+REF = os.path.join(REPO, "reference", "tmlr", "macros.csv")
 STRICT, FRESH, ABSENT = "strict", "fresh", "absent"
 
 
@@ -191,16 +191,16 @@ def compare_macros(built: dict[str, str], ref: dict[str, str],
 
 @dataclass
 class Result:
-    """Everything check() found: one record per macro or table, and the
-    report lines for the ones that did not match."""
+    """Everything check() found: one record per macro, and the report lines
+    for the ones that did not match."""
     records: list[tuple[str, str, str, bool]] = field(default_factory=list)
     lines: list[str] = field(default_factory=list)
+    paper_checked: bool = False
 
     def add(self, verdict: str, name: str, detail: str = "", counted: bool = True) -> None:
         """verdict is ok, bad, missing or skipped. An uncounted record is a
         citation item compared in fresh mode: reported, never a failure."""
-        kind = ("shipped" if name.startswith("source/") else
-                "table" if name.startswith("tmlr/tables/") else "macro")
+        kind = "paper" if name.startswith("paper:") else "macro"
         self.records.append((kind, verdict, name, counted))
         if verdict in ("ok", "skipped"):
             return
@@ -233,19 +233,68 @@ class Result:
         return sum(1 for *_, c in self.records if not c)
 
     def summary(self) -> list[str]:
-        out = []
-        for kind in ("macro", "table", "shipped"):
-            if kind == "shipped":
-                n = [self.count(v, kind) for v in ("ok", "bad", "missing")]
-                out.append(f"  paper's copies (source/) against reference: {n[0]} equal, "
-                           f"{n[1]} differ, {n[2]} missing")
-                continue
-            n = [self.count(v, kind) for v in ("ok", "bad", "missing", "skipped")]
-            u = sum(1 for k, *_, c in self.records if k == kind and not c)
-            out.append(f"  {kind}s: {n[0]} matched, {n[1]} mismatched, {n[2]} missing, "
-                       f"{n[3]} skipped" + (f", {u} compared but not counted "
-                                            "(fresh citations)" if u else ""))
+        n = [self.count(v, "macro") for v in ("ok", "bad", "missing", "skipped")]
+        u = sum(1 for k, *_, c in self.records if k == "macro" and not c)
+        out = [f"  macros: {n[0]} matched, {n[1]} mismatched, {n[2]} missing, "
+               f"{n[3]} skipped" + (f", {u} compared but not counted "
+                                    "(fresh citations)" if u else "")]
+        if self.paper_checked:
+            p = [self.count(v, "paper") for v in ("ok", "bad")]
+            out.append(f"  macros.csv against the manuscript's macro files: {p[0]} equal, "
+                       f"{p[1]} differ")
+        else:
+            out.append(f"  macros.csv against the manuscript: skipped ({SKIP_REASON})")
         return out
+
+
+def load_reference(path: str = REF) -> dict[str, dict[str, str]]:
+    """macros.csv as {round file: {name: value}}."""
+    out: dict[str, dict[str, str]] = {f: {} for f in ROUND_FILES.values()}
+    with open(path, newline="", encoding="utf-8") as fh:
+        for r in csv.DictReader(fh):
+            if r["name"] in out.setdefault(r["file"], {}):
+                raise ValueError(f"{r['name']} listed twice in {path}")
+            out[r["file"]][r["name"]] = r["value"]
+    return out
+
+
+def paper_macros(paper: str) -> dict[str, dict[str, str]]:
+    """The manuscript's own macro files, parsed."""
+    out = {}
+    for fname in ROUND_FILES.values():
+        with open(os.path.join(paper, fname), encoding="utf-8") as fh:
+            out[fname] = parse_newcommands(fh.read())
+    return out
+
+
+def write_reference(paper: str, path: str = REF) -> int:
+    """Write macros.csv from the manuscript's macro files. Returns the number
+    of macros written."""
+    rows = [(f, name, value) for f, m in paper_macros(paper).items()
+            for name, value in sorted(m.items())]
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", newline="", encoding="utf-8") as fh:
+        w = csv.writer(fh, lineterminator="\n")
+        w.writerow(["file", "name", "value"])
+        w.writerows(rows)
+    return len(rows)
+
+
+def check_paper(res: Result, ref: dict[str, dict[str, str]], paper: str) -> None:
+    """macros.csv against the manuscript's macro files: every macro by name
+    and value. Counted in every citation mode."""
+    res.paper_checked = True
+    for fname, got in paper_macros(paper).items():
+        d = compare_macros(got, ref.get(fname, {}))
+        for name in d.matched:
+            res.add("ok", f"paper:{fname} \\{name}")
+        for name, want, value in d.mismatched:
+            res.add("bad", f"paper:{fname} \\{name}",
+                    f"macros.csv {want!r}, manuscript {value!r}")
+        for name in d.missing:
+            res.add("bad", f"paper:{fname} \\{name}", "(in macros.csv, not in the manuscript)")
+        for name in d.extra:
+            res.add("bad", f"paper:{fname} \\{name}", "(in the manuscript, not in macros.csv)")
 
 
 def read_skipped(built_dir: str) -> dict | None:
@@ -256,50 +305,17 @@ def read_skipped(built_dir: str) -> dict | None:
         return json.load(fh)
 
 
-def check_shipped(res: Result, ref_dir: str, shipped_dir: str) -> None:
-    """The paper's copies against the reference: every macro by name and
-    value, every generated table byte for byte after comment removal.
-    Counted in every citation mode (see the module docstring)."""
-    from import_source import scrub
-    for fname in ROUND_FILES.values():
-        ref = parse_newcommands(open(os.path.join(ref_dir, fname)).read())
-        path = os.path.join(shipped_dir, fname)
-        if not os.path.exists(path):
-            res.add("missing", f"source/{fname}", "(the paper's copy is absent)")
-            continue
-        d = compare_macros(parse_newcommands(open(path).read()), ref)
-        for name in d.matched:
-            res.add("ok", f"source/{fname} \\{name}")
-        for name, want, got in d.mismatched:
-            res.add("bad", f"source/{fname} \\{name}",
-                    f"reference {want!r}, paper prints {got!r}")
-        for name in d.missing:
-            res.add("bad", f"source/{fname} \\{name}", "(not defined in the paper's copy)")
-        for name in d.extra:
-            res.add("bad", f"source/{fname} \\{name}", "(in the paper's copy, not in reference)")
-    for t in TABLES:
-        path = os.path.join(shipped_dir, "tables", t)
-        if not os.path.exists(path):
-            res.add("missing", f"source/tables/{t}", "(the paper's copy is absent)")
-            continue
-        with open(os.path.join(ref_dir, "tables", t), encoding="utf-8") as fh:
-            want = scrub(fh.read()).rstrip("\n")
-        with open(path, encoding="utf-8") as fh:
-            got = fh.read().rstrip("\n")
-        res.add("ok" if got == want else "bad", f"source/tables/{t}",
-                "" if got == want else "differs from reference")
-
-
-def check(built_dir: str, mode: str, ref_dir: str = REF_DIR,
-          shipped_dir: str | None = SHIPPED_DIR) -> Result:
-    """Compare every macro and table under built_dir with ref_dir, under one
-    citation mode (strict, fresh or absent), and the paper's copies under
-    shipped_dir with ref_dir (None skips that, for tests of the built side)."""
+def check(built_dir: str, mode: str, ref_path: str = REF,
+          paper: str | None = None) -> Result:
+    """Compare every macro under built_dir with macros.csv, under one
+    citation mode (strict, fresh or absent), and, given the manuscript
+    directory `paper`, macros.csv with the manuscript's own files."""
     if mode not in (STRICT, FRESH, ABSENT):
         raise ValueError(f"unknown citation mode {mode!r}")
     res = Result()
-    if shipped_dir is not None:
-        check_shipped(res, ref_dir, shipped_dir)
+    reference = load_reference(ref_path)
+    if paper is not None:
+        check_paper(res, reference, paper)
     sk = read_skipped(built_dir)
     why_missing = "(not built)"
     if sk and sk.get("incomplete"):
@@ -316,7 +332,7 @@ def check(built_dir: str, mode: str, ref_dir: str = REF_DIR,
             res.add("bad", "tmlr/skipped.json", f"skipped non-citation items {other}")
 
     for fname in ROUND_FILES.values():
-        ref = parse_newcommands(open(os.path.join(ref_dir, fname)).read())
+        ref = reference.get(fname, {})
         path = os.path.join(built_dir, fname)
         if not os.path.exists(path):
             for name in ref:
@@ -332,32 +348,16 @@ def check(built_dir: str, mode: str, ref_dir: str = REF_DIR,
         for name in d.matched:
             res.add("ok", f"\\{name}", counted=not (mode == FRESH and name in CITATION_MACROS))
         for name, want, got in d.mismatched:
-            res.add("bad", f"{fname} \\{name}", f"reference {want!r}, built {got!r}",
+            res.add("bad", f"{fname} \\{name}", f"printed {want!r}, built {got!r}",
                     counted=not (mode == FRESH and name in CITATION_MACROS))
         for name in d.missing:
             res.add("missing", f"{fname} \\{name}",
                     "(not in built file)" if why_missing == "(not built)" else why_missing,
                     counted=not (mode == FRESH and name in CITATION_MACROS))
         for name in d.extra:
-            res.add("bad", f"{fname} \\{name}", "(built, not in reference)")
+            res.add("bad", f"{fname} \\{name}", "(built, not in macros.csv)")
         for name in d.skipped:
             res.add("skipped", f"\\{name}")
-
-    for t in TABLES:
-        name = f"tmlr/tables/{t}"
-        cit = t in CITATION_TABLES
-        if mode == ABSENT and cit:
-            res.add("skipped", name)
-            continue
-        built = os.path.join(built_dir, "tables", t)
-        counted = not (mode == FRESH and cit)
-        if not os.path.exists(built):
-            res.add("missing", name, why_missing, counted=counted)
-            continue
-        with open(built, "rb") as a, open(os.path.join(ref_dir, "tables", t), "rb") as b:
-            same = a.read() == b.read()
-        res.add("ok" if same else "bad", name, "" if same else "bytes differ",
-                counted=counted)
     return res
 
 
@@ -373,14 +373,24 @@ def main() -> None:
     ap.add_argument("--built-dir", default=None, help="default: {data-dir}/tmlr")
     ap.add_argument("--mode", choices=[STRICT, FRESH, ABSENT], default=None,
                     help="citation mode; default: from the local citation files")
+    ap.add_argument("--paper-dir", default=None,
+                    help="the manuscript directory (default: $AA_PAPER)")
+    ap.add_argument("--write-reference", action="store_true",
+                    help="write reference/tmlr/macros.csv from the manuscript's macro files")
     ap.add_argument("--report-only", action="store_true",
                     help="exit 0 even on a mismatch (the pipeline stage; "
                          "verify.py is the gate)")
     a = ap.parse_args()
+    paper = paper_dir(a.paper_dir)
+    if a.write_reference:
+        if paper is None:
+            sys.exit("--write-reference needs the manuscript: set AA_PAPER or pass --paper-dir")
+        print(f"wrote {write_reference(paper)} macros to {REF}")
+        return
     built = a.built_dir or os.path.join(a.data_dir, "tmlr")
     m = a.mode or citation_mode(a.data_dir)
-    res = check(built, m)
-    print(f"TMLR macros and tables, citation mode {m}")
+    res = check(built, m, paper=paper)
+    print(f"TMLR macros, citation mode {m}")
     for line in res.lines + res.summary():
         print(line)
     if (res.bad or res.missing) and not a.report_only:

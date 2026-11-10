@@ -13,3 +13,6 @@ __pycache__/
 *.pyc
 .DS_Store
 venv/
+paper/tmlr/*.aux
+paper/tmlr/*.log
+paper/tmlr/*.out

@@ -19,6 +19,9 @@ Writes:
       venue, year, references_mean, n_papers, n_total, coverage
   $AA_DATA/aggregate/citations/references_per_year.csv
       year, neurips, iclr, icml   (the TMLR bibliography figure; "nan" for gaps)
+  $AA_DATA/pgfplots/tmlr/references_per_year.csv
+      the same file, where the figure sources read it
+      (paper/tmlr/figs/fig_app_references.tex)
 
     python src/citations/references.py
 """
@@ -27,11 +30,12 @@ from __future__ import annotations
 import argparse
 import csv
 import os
+import shutil
 import sys
 from collections import defaultdict
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
-from citations._common import CIT_DIR, OUT_DIR, VENUES, require, require_unique  # noqa: E402
+from citations._common import CIT_DIR, D, OUT_DIR, VENUES, require, require_unique  # noqa: E402
 
 MIN_PAPERS = 20
 
@@ -93,11 +97,16 @@ def main() -> None:
     ap.add_argument("--citations-dir", default=CIT_DIR)
     ap.add_argument("--out-dir", default=OUT_DIR)
     ap.add_argument("--min-papers", type=int, default=MIN_PAPERS)
+    ap.add_argument("--pgfplots-dir", default=os.path.join(D, "pgfplots", "tmlr"),
+                    help="where the figure sources read references_per_year.csv")
     a = ap.parse_args()
     per_venue, totals = {}, {}
     for v in a.venues:
         per_venue[v], totals[v] = load(os.path.join(a.citations_dir, f"{v}_s2.csv"))
-    for p in write(per_venue, totals, a.venues, a.out_dir, a.min_papers):
+    long_path, wide_path = write(per_venue, totals, a.venues, a.out_dir, a.min_papers)
+    os.makedirs(a.pgfplots_dir, exist_ok=True)
+    fig_path = shutil.copyfile(wide_path, os.path.join(a.pgfplots_dir, "references_per_year.csv"))
+    for p in (long_path, wide_path, fig_path):
         print(f"wrote {p}")
 
 

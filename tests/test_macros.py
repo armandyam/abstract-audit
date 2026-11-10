@@ -1,13 +1,16 @@
 """Tests for the TMLR macro generator and its checker (paper/tmlr/).
 
-verify.py compares the built macros with the paper's on the full corpus. What
-is tested here is what that run cannot isolate: the \\newcommand parser on
-input the generator never writes (nested and escaped braces, comments, other
-definition forms, malformed definitions), the comparison logic for missing,
-extra, differing and skipped names, the citation modes, and the generator's
-own guards. Two tests run the generator on the committed reference inputs,
-which reproduces the paper's files without any pipeline run.
+verify.py compares the built macros with the paper's printed values on the
+full corpus. What is tested here is what that run cannot isolate: the
+\\newcommand parser on input the generator never writes (nested and escaped
+braces, comments, other definition forms, malformed definitions), the
+comparison logic for missing, extra, differing and skipped names, the
+citation modes, the comparison of macros.csv with a manuscript's own macro
+files, and the generator's own guards. Two tests run the generator on the
+committed reference inputs, which reproduces the paper's printed values
+without any pipeline run.
 """
+import csv
 import json
 import os
 import shutil
@@ -88,11 +91,15 @@ def test_parse_malformed(text, msg):
         cm.parse_newcommands(text)
 
 
-def test_parse_reference_files_have_163_macros():
-    n = 0
-    for f in mm.ROUND_FILES.values():
-        n += len(cm.parse_newcommands(open(os.path.join(REF, "tex", f)).read()))
-    assert n == 163
+def test_reference_holds_163_printed_values_and_no_prose():
+    ref = cm.load_reference()
+    assert sum(len(m) for m in ref.values()) == 163
+    assert set(ref) == set(mm.ROUND_FILES.values())
+    for m in ref.values():
+        for name, value in m.items():
+            # numbers, or a computed label: a topic's leading term, a number
+            # word, the ten commonest acronyms
+            assert len(value.split()) <= 3 or name == "AcrTopTen", (name, value)
 
 
 # ── comparison ───────────────────────────────────────────────────────────
@@ -126,28 +133,28 @@ def test_compare_skipped_names_not_compared_either_way():
 
 # ── check() over a miniature reference ───────────────────────────────────
 
-def _mini(tmp_path, built_macros, built_tables, skipped=None):
-    """A reference holding one citation macro and one ordinary macro per
-    round file, every table, and a built tree as given."""
-    ref = tmp_path / "ref"
-    (ref / "tables").mkdir(parents=True)
+def _write_macros(path, m):
+    path.write_text("".join(f"\\newcommand{{\\{k}}}{{{v}}}\n" for k, v in m.items()))
+
+
+def _mini(tmp_path, built_macros, skipped=None):
+    """A macros.csv holding one citation macro and one ordinary macro per
+    round file, and a built tree as given."""
     cit = sorted(mm.CITATION_MACROS)
     refm = {f: {"Plain" + "abc"[i]: str(i), cit[i]: f"c{i}"}
             for i, f in enumerate(mm.ROUND_FILES.values())}
-    for f, m in refm.items():
-        (ref / f).write_text("".join(f"\\newcommand{{\\{k}}}{{{v}}}\n" for k, v in m.items()))
-    for t in mm.TABLES:
-        (ref / "tables" / t).write_text(f"table {t}\n")
+    ref = tmp_path / "macros.csv"
+    with open(ref, "w", newline="") as fh:
+        w = csv.writer(fh)
+        w.writerow(["file", "name", "value"])
+        w.writerows((f, k, v) for f, m in refm.items() for k, v in m.items())
     built = tmp_path / "built"
-    (built / "tables").mkdir(parents=True)
+    built.mkdir()
     for f in mm.ROUND_FILES.values():
-        m = built_macros(refm[f])
-        (built / f).write_text("".join(f"\\newcommand{{\\{k}}}{{{v}}}\n" for k, v in m.items()))
-    for t in built_tables:
-        (built / "tables" / t).write_text(f"table {t}\n")
+        _write_macros(built / f, built_macros(refm[f]))
     if skipped is not None:
         (built / "skipped.json").write_text(json.dumps(skipped))
-    return str(built), str(ref)
+    return str(built), str(ref), refm
 
 
 def _no_citations(m):
@@ -155,66 +162,100 @@ def _no_citations(m):
 
 
 def test_check_absent_skips_citation_items(tmp_path):
-    tabs = [t for t in mm.TABLES if t not in mm.CITATION_TABLES]
-    built, ref = _mini(tmp_path, _no_citations, tabs,
-                       skipped={"macros": {"generated_round2.tex": ["CitN"]}, "tables": []})
-    r = cm.check(built, "absent", ref, shipped_dir=None)
-    assert (r.ok, r.bad, r.missing, r.skipped) == (3 + 4, 0, 0, 3 + 2)
+    built, ref, _ = _mini(tmp_path, _no_citations,
+                          skipped={"macros": {"generated_round2.tex": ["CitN"]},
+                                   "tables": ["topics.tex"]})
+    r = cm.check(built, "absent", ref)
+    assert (r.ok, r.bad, r.missing, r.skipped) == (3, 0, 0, 3)
+    assert any("skipped" in ln and "AA_PAPER" in ln for ln in r.summary())
 
 
 def test_check_strict_needs_citation_items(tmp_path):
-    tabs = [t for t in mm.TABLES if t not in mm.CITATION_TABLES]
-    built, ref = _mini(tmp_path, _no_citations, tabs)
-    r = cm.check(built, "strict", ref, shipped_dir=None)
-    assert r.missing == 3 + 2 and r.bad == 0 and r.skipped == 0
+    built, ref, _ = _mini(tmp_path, _no_citations)
+    r = cm.check(built, "strict", ref)
+    assert r.missing == 3 and r.bad == 0 and r.skipped == 0
 
 
 def test_check_fresh_reports_citation_differences_without_counting(tmp_path):
     def wrong_citations(m):
         return {k: ("other" if k in mm.CITATION_MACROS else v) for k, v in m.items()}
-    built, ref = _mini(tmp_path, wrong_citations, mm.TABLES)
-    r = cm.check(built, "fresh", ref, shipped_dir=None)
-    assert (r.ok, r.bad, r.missing) == (3 + 4, 0, 0)
-    assert r.uncounted == 3 + 2
+    built, ref, _ = _mini(tmp_path, wrong_citations)
+    r = cm.check(built, "fresh", ref)
+    assert (r.ok, r.bad, r.missing) == (3, 0, 0)
+    assert r.uncounted == 3
     assert any("(fresh)" in ln for ln in r.lines)
 
 
-def test_check_strict_flags_value_and_bytes(tmp_path):
-    built, ref = _mini(tmp_path, lambda m: {k: ("9" if k == "Plaina" else v)
-                                            for k, v in m.items()}, mm.TABLES)
-    with open(os.path.join(built, "tables", "topics.tex"), "a") as fh:
-        fh.write(" ")
-    r = cm.check(built, "strict", ref, shipped_dir=None)
-    assert r.bad == 2
+def test_check_strict_flags_a_changed_value(tmp_path):
+    built, ref, _ = _mini(tmp_path, lambda m: {k: ("9" if k == "Plaina" else v)
+                                               for k, v in m.items()})
+    r = cm.check(built, "strict", ref)
+    assert r.bad == 1
     assert any("Plaina" in ln and "'0'" in ln and "'9'" in ln for ln in r.lines)
-    assert any("topics.tex" in ln and "bytes differ" in ln for ln in r.lines)
 
 
 def test_check_extra_macro_is_a_mismatch(tmp_path):
-    built, ref = _mini(tmp_path, lambda m: {**m, "Surplus": "1"}, mm.TABLES)
-    r = cm.check(built, "strict", ref, shipped_dir=None)
+    built, ref, _ = _mini(tmp_path, lambda m: {**m, "Surplus": "1"})
+    r = cm.check(built, "strict", ref)
     assert r.bad == 3      # once per round file
 
 
 def test_check_absent_rejects_non_citation_skip(tmp_path):
-    built, ref = _mini(tmp_path, _no_citations, mm.TABLES,
-                       skipped={"macros": {"generated_round2.tex": ["Plaina"]},
-                                "tables": ["normalisation.tex"]})
-    r = cm.check(built, "absent", ref, shipped_dir=None)
+    built, ref, _ = _mini(tmp_path, _no_citations,
+                          skipped={"macros": {"generated_round2.tex": ["Plaina"]},
+                                   "tables": ["normalisation.tex"]})
+    r = cm.check(built, "absent", ref)
     assert r.bad == 1
     assert any("skipped.json" in ln and "Plaina" in ln for ln in r.lines)
 
 
 def test_check_unbuilt_file(tmp_path):
-    built, ref = _mini(tmp_path, lambda m: m, mm.TABLES)
+    built, ref, _ = _mini(tmp_path, lambda m: m)
     os.remove(os.path.join(built, "generated_round3.tex"))
-    assert cm.check(built, "absent", ref, shipped_dir=None).missing == 1          # citation one skipped
-    assert cm.check(built, "strict", ref, shipped_dir=None).missing == 2
+    assert cm.check(built, "absent", ref).missing == 1          # citation one skipped
+    assert cm.check(built, "strict", ref).missing == 2
 
 
 def test_check_unknown_mode(tmp_path):
     with pytest.raises(ValueError):
         cm.check(str(tmp_path), "sometimes")
+
+
+# ── macros.csv against a manuscript's own macro files ────────────────────
+
+def _manuscript(tmp_path, refm):
+    paper = tmp_path / "paper"
+    paper.mkdir()
+    (paper / "main.tex").write_text("\\begin{document}\\end{document}\n")
+    for f, m in refm.items():
+        _write_macros(paper / f, m)
+    return paper
+
+
+@pytest.mark.parametrize("mode", ["strict", "fresh", "absent"])
+def test_manuscript_value_changed_fails_in_every_mode(tmp_path, mode):
+    """A printed value that differs from macros.csv fails even where the
+    built side is not compared (a citation macro outside strict mode)."""
+    built, ref, refm = _mini(tmp_path, lambda m: m)
+    paper = _manuscript(tmp_path, refm)
+    r = cm.check(built, mode, ref, paper=str(paper))
+    assert r.count("ok", "paper") == 6 and r.count("bad", "paper") == 0
+    cit = sorted(mm.CITATION_MACROS)[0]
+    _write_macros(paper / "generated_round2.tex", {"Plaina": "7", cit: "c0"})
+    _write_macros(paper / "generated_round3.tex", {"Plainb": "1"})          # one dropped
+    r = cm.check(built, mode, ref, paper=str(paper))
+    bad = [ln for ln in r.lines if "paper:" in ln]
+    assert r.count("bad", "paper") == 2 and len(bad) == 2
+    assert any("Plaina" in ln and "'7'" in ln for ln in bad)
+    assert any("not in the manuscript" in ln for ln in bad)
+
+
+def test_write_reference_round_trips(tmp_path):
+    _, _, refm = _mini(tmp_path, lambda m: m)
+    paper = _manuscript(tmp_path, refm)
+    out = tmp_path / "out.csv"
+    assert cm.write_reference(str(paper), str(out)) == 6
+    assert cm.load_reference(str(out)) == refm
 
 
 # ── generator guards ─────────────────────────────────────────────────────
@@ -253,93 +294,35 @@ def test_round4_requires_baseline_columns(tmp_path):
 
 # ── the generator on the committed reference inputs ──────────────────────
 
-def _reference_inputs(tmp_path, citations: bool):
+def _reference_inputs(tmp_path):
     """The upstream analysis outputs as committed under reference/tmlr/, laid
-    out where make_macros.py reads them."""
+    out where make_macros.py reads them. No citation output is distributed."""
     agg = tmp_path / "data" / "aggregate"
     agg.mkdir(parents=True)
     for f in os.listdir(os.path.join(REF, "analysis")):
         shutil.copy(os.path.join(REF, "analysis", f), agg / f)
     shutil.copy(os.path.join(REF, "latex_robustness.csv"), agg)
-    if citations:
-        (agg / "citations").mkdir()
-        for f in ("citation_regression_topics.csv", "topic_citations.csv"):
-            shutil.copy(os.path.join(REF, "citations", f), agg / "citations" / f)
     pg = tmp_path / "data" / "pgfplots" / "tmlr"
     pg.mkdir(parents=True)
     shutil.copy(os.path.join(REF, "pgfplots_full", "readability_flesch_ease.csv"), pg)
     return str(tmp_path / "data")
 
 
-def test_build_from_reference_inputs_reproduces_paper(tmp_path):
-    data = _reference_inputs(tmp_path, citations=True)
-    rec = mm.build(data, os.path.join(data, "tmlr"))
-    assert sum(rec["written"].values()) == 163 and rec["tables"] == []
-    r = cm.check(os.path.join(data, "tmlr"), "strict")
-    assert (r.ok, r.bad, r.missing, r.skipped) == (169 + 169, 0, 0, 0), r.lines
-    assert r.count("ok", "shipped") == 163 + 6
-
-
-def test_build_without_citations_skips_exactly_the_citation_set(tmp_path):
-    data = _reference_inputs(tmp_path, citations=False)
+def test_build_without_citations_reproduces_every_other_printed_value(tmp_path):
+    data = _reference_inputs(tmp_path)
     rec = mm.build(data, os.path.join(data, "tmlr"))
     skipped = {m for v in rec["macros"].values() for m in v}
     assert skipped == mm.CITATION_MACROS
     assert set(rec["tables"]) == mm.CITATION_TABLES
     assert sum(rec["written"].values()) == 163 - len(mm.CITATION_MACROS)
     r = cm.check(os.path.join(data, "tmlr"), "absent")
-    assert (r.ok, r.bad, r.missing, r.skipped) == (156 + 169, 0, 0, 13), r.lines
-
-
-# ── the paper's own copies (paper/tmlr/source/) ──────────────────────────
-
-def _shipped_copy(tmp_path):
-    dst = tmp_path / "source"
-    shutil.copytree(cm.SHIPPED_DIR, dst)
-    return dst
-
-
-def test_committed_shipped_copies_equal_reference():
-    res = cm.Result()
-    cm.check_shipped(res, cm.REF_DIR, cm.SHIPPED_DIR)
-    assert (res.count("ok", "shipped"), res.bad, res.missing) == (163 + 6, 0, 0), res.lines
-
-
-@pytest.mark.parametrize("mode", ["strict", "fresh", "absent"])
-def test_changed_shipped_value_fails_in_every_mode(tmp_path, mode):
-    """A printed value edited in the paper's copy fails even where the built
-    side is not compared (a citation macro outside strict mode)."""
-    src = _shipped_copy(tmp_path)
-    f = src / "generated_round2.tex"
-    text = f.read_text()
-    assert "\\newcommand{\\CitN}{" in text and "\\newcommand{\\TopicK}{15}" in text
-    f.write_text(text.replace("\\newcommand{\\TopicK}{15}", "\\newcommand{\\TopicK}{16}")
-                     .replace("\\newcommand{\\CitN}{", "\\newcommand{\\CitN}{9"))
-    built = tmp_path / "built"
-    built.mkdir()
-    r = cm.check(str(built), mode, shipped_dir=str(src))
-    bad = [ln for ln in r.lines if "source/generated_round2.tex" in ln]
-    assert r.count("bad", "shipped") == 2 and len(bad) == 2
-    assert any("TopicK" in ln and "'16'" in ln for ln in bad)
-
-
-def test_changed_shipped_table_and_missing_definition_fail(tmp_path):
-    src = _shipped_copy(tmp_path)
-    t = src / "tables" / "topics.tex"
-    t.write_text(t.read_text().replace("3{,}551", "3{,}552"))
-    f = src / "generated_round4.tex"
-    f.write_text("\n".join(ln for ln in f.read_text().split("\n") if "SlopeICML}" not in ln))
-    res = cm.Result()
-    cm.check_shipped(res, cm.REF_DIR, str(src))
-    assert res.bad == 2
-    assert any("source/tables/topics.tex" in ln for ln in res.lines)
-    assert any("SlopeICML" in ln and "not defined" in ln for ln in res.lines)
+    assert (r.ok, r.bad, r.missing, r.skipped) == (152, 0, 0, 11), r.lines
 
 
 # ── absent inputs: incomplete sections, not a stop ───────────────────────
 
 def test_absent_input_marks_section_incomplete_and_fails_its_macros(tmp_path):
-    data = _reference_inputs(tmp_path, citations=False)
+    data = _reference_inputs(tmp_path)
     os.remove(os.path.join(data, "aggregate", "latex_robustness.csv"))
     rec = mm.build(data, os.path.join(data, "tmlr"))
     assert [i["section"] for i in rec["incomplete"]] == ["normalisation"]
@@ -348,8 +331,8 @@ def test_absent_input_marks_section_incomplete_and_fails_its_macros(tmp_path):
     assert "topic_trends.tex" in rec["written_tables"]       # the rest still built
     r = cm.check(os.path.join(data, "tmlr"), "absent")
     assert any(ln.startswith("  INCOMPLETE normalisation") for ln in r.lines)
-    # the normalisation section's macros and its table are failures, with the reason
-    assert r.missing > 0 and r.count("missing", "table") == 1
+    # the normalisation section's macros are failures, with the reason
+    assert r.missing > 0
     assert all("input is absent" in ln for ln in r.lines if "MISSING" in ln)
     # the citation exemption is not stretched to cover them
     assert not any("skipped non-citation" in ln for ln in r.lines)
@@ -357,7 +340,7 @@ def test_absent_input_marks_section_incomplete_and_fails_its_macros(tmp_path):
 
 def test_markup_range_in_caption_comes_from_the_shares(tmp_path):
     import pandas as pd
-    data = _reference_inputs(tmp_path, citations=False)
+    data = _reference_inputs(tmp_path)
     path = os.path.join(data, "aggregate", "latex_robustness.csv")
     d = pd.read_csv(path)
     # move the last-year normalised score so that markup explains a tenth of

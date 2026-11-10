@@ -54,6 +54,18 @@ def test_processed_dependent_commands_declare_their_input():
     assert set(main.NEEDS) <= staged
 
 
+def test_self_audit_is_skipped_without_the_manuscript(monkeypatch, capsys):
+    """The self-audit reads the paper's own abstract, which is not
+    distributed: without AA_PAPER the stage is skipped, not recorded as
+    incomplete, and nothing runs."""
+    monkeypatch.setattr(main, "PAPER", None)
+    inc = {}
+    main.run("self_audit", [["-c", "raise SystemExit(3)"]], inc)    # would fail if run
+    assert inc == {} and "AA_PAPER is not set; skipped" in capsys.readouterr().out
+    cmd = dict(main.STAGES)["self_audit"][0]
+    assert cmd[0] == "src/metrics/audit_self.py" and "--from-tex" in cmd
+
+
 def test_incomplete_json_round_trip(tmp_path, monkeypatch):
     monkeypatch.setattr(main, "INCOMPLETE", str(tmp_path / "incomplete.json"))
     main.save_incomplete({"b": {"stage": "s"}, "a": {"stage": "s"}})

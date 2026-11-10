@@ -1,0 +1,82 @@
+\begin{figure}[h]
+  \centering
+  \resizebox{\linewidth}{!}{%
+  \begin{tikzpicture}[
+      node distance=7mm and 9mm,
+      font=\scriptsize,
+      every node/.style={align=center},
+      source/.style={draw, rounded corners=1pt, fill=blue!8,
+                     minimum width=18mm, minimum height=5mm, inner sep=1pt},
+      stage/.style={draw, thick, rounded corners=2pt, fill=gray!10,
+                    minimum width=26mm, minimum height=10mm, inner sep=3pt},
+      metric/.style={draw, rounded corners=1pt, fill=orange!12,
+                     minimum width=26mm, minimum height=5mm, inner sep=1pt},
+      output/.style={draw, thick, rounded corners=2pt, fill=green!10,
+                     minimum width=30mm, minimum height=10mm, inner sep=3pt},
+      flow/.style={-{Latex[length=2mm]}, thick},
+    ]
+    % Column 1: sources.
+    \node[source] (s1) {NeurIPS 1987--2025 \\ {\footnotesize ICLR 2013+, ICML 2008+}};
+    \node[source, below=of s1] (s2) {arXiv 1991--2025 \\ {\footnotesize (ML and non-ML)}};
+    \node[source, below=of s2] (s3) {PubMed 1990--2025};
+    \node[above=1mm of s1, font=\scriptsize\bfseries] {Data sources};
+
+    % Column 2: canonical schema.
+    \node[stage, right=12mm of s2.east] (schema)
+      {Canonical schema \\ (Pydantic validated) \\
+       \texttt{paper\_id, venue, year,} \\
+       \texttt{title, abstract, authors,} \\
+       \texttt{arxiv\_primary\_category}};
+
+    % Column 3: per paper metrics.
+    \node[metric, right=14mm of schema.north east, yshift=-2mm] (m1)
+      {Classical readability \\ (15 scores, \texttt{textstat})};
+    \node[metric, below=2mm of m1] (m2)
+      {Hohmann writing style \\ (9 metrics, spaCy)};
+    \node[metric, below=2mm of m2] (m3)
+      {Acronym density + reuse \\ (Barnett 2020 algorithm)};
+    \node[metric, below=2mm of m3] (m4)
+      {LLM as judge readability \\ (Cachola 2025 prompts)};
+    \node[metric, below=2mm of m4] (m5)
+      {Citations (OpenAlex, S2)};
+    \node[above=1mm of m1, font=\scriptsize\bfseries] {Per paper metrics};
+
+    % Column 4: aggregation.
+    \node[stage, right=12mm of m3.east] (agg)
+      {Aggregation \\ per venue-year \\ per arXiv category};
+
+    % Column 5: outputs.
+    \node[output, right=11mm of agg.north east, yshift=-5mm] (ev)
+      {\textbf{Evidence} \\ volume, readability, \\ acronyms, fragmentation};
+    \node[output, below=3mm of ev] (pol)
+      {\textbf{Recommendations} \\ seven measurable standards};
+
+    % Flow arrows: sources to schema.
+    \foreach \src in {s1, s2, s3}
+      \draw[flow] (\src.east) -- (schema.west);
+
+    % Schema to metrics.
+    \foreach \met in {m1, m2, m3, m4, m5}
+      \draw[flow] (schema.east) -- (\met.west);
+
+    % Metrics to aggregation.
+    \foreach \met in {m1, m2, m3, m4, m5}
+      \draw[flow] (\met.east) -- (agg.west);
+
+    % Aggregation to outputs.
+    \draw[flow] (agg.east) -- (ev.west);
+    \draw[flow] (agg.east) -- (pol.west);
+  \end{tikzpicture}%
+  }
+  \caption{\textbf{End to end workflow.} Three data sources feed a
+  canonical Pydantic-validated schema. Five per-paper metric
+  families are computed \revfour{on abstracts, and acronym density
+  also on titles,} then
+  aggregated per venue-year and per arXiv primary category.
+  The outputs feed the empirical evidence
+  (Sections~\ref{sec:readability} through~\ref{sec:volume}) and
+  the recommendations
+  (Section~\ref{sec:policy}). Pipeline details appear in
+  Appendix~\ref{app:workflow}.}
+  \label{fig:workflow}
+\end{figure}

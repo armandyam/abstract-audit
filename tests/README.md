@@ -1,13 +1,13 @@
 # tests
 
-656 tests covering what the pipeline run cannot.
+668 tests covering what the pipeline run cannot (one runs only with
+the manuscript, `AA_PAPER`).
 
 ## What these are for
 
-`verify.py` already compares 167 files against `reference/` (in strict
-citation mode), 49 of them byte for byte, over 62,628 real papers, and checks
-the TMLR paper's 163 macros, six generated tables and the 1,169 numbers its
-manuscript prints. As a regression test that is stronger than any unit test
+`verify.py` already compares 157 files against `reference/`, 49 of them byte
+for byte, over 62,628 real papers, and checks the TMLR paper's 163 macros,
+its 15 tables and the 1,166 numbers its manuscript prints. As a regression test that is stronger than any unit test
 could be, and tests that re-walk the same happy path would add lines without
 adding information.
 
@@ -39,15 +39,23 @@ So these tests target what an end-to-end run structurally cannot reach:
   published citation data from a fresh fetch.
 - **Macro checking.** The `\newcommand` parser on nested and escaped
   braces, comments and malformed definitions; missing, extra, differing and
-  skipped names; the three citation modes. The generator is also run on the
-  committed reference inputs, with and without citation outputs.
+  skipped names; the three citation modes; `macros.csv` against a
+  manuscript's own macro files. The generator is also run on the committed
+  reference inputs, which reproduces every printed value except the eleven
+  citation ones.
+- **Table checking.** The tabular parser on the markup the paper's tables
+  use, the inline tables found by label, the check's verdicts and citation
+  modes on a miniature manuscript, and the generators whose content is code
+  (the judge prompts, the normalisation examples).
 - **Claim checking.** The tokenizer that finds the TMLR paper's printed
   numbers (ranges, fractions, spelled-out quantities, identifiers that are
   not numbers, masked LaTeX structure and figure code); coverage on
-  deliberately broken claims (uncovered, stale, ambiguous, duplicate); the
-  comparison rules; check functions on synthetic series with a known
-  answer; the author-block scrub of the source import. One test ties the
-  committed `claims.csv` to the committed source without any data.
+  deliberately broken claims (uncovered, stale, a changed printed value,
+  duplicate) tied by context hash; the comparison rules; the KNOWN and
+  citation verdicts; check functions on synthetic series with a known
+  answer. One test checks that the committed `claims.csv` holds no
+  manuscript text; one ties it to the manuscript when `AA_PAPER` points at a
+  local copy, and is skipped otherwise.
 - **Source dispatch.** Each ICLR and ICML year reads one raw source, and the
   early sources pass their text through unchanged.
 - **Reference provenance.** `reference/MANIFEST.md` lists every file in

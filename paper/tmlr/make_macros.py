@@ -7,8 +7,9 @@ revision round (tmlr/analysis/make_round{2,3,4}_tex.py at commit eda2733).
 This script is their port, one section per round, reading this repository's
 outputs instead of the upstream ones. The formatting code is kept as it was
 upstream: the same macro names, the same rounding, the same table templates,
-so the output can be compared with the paper's files in reference/tmlr/tex/
-value for value and, for the tables, byte for byte.
+so the output can be compared with the paper's printed values
+(reference/tmlr/macros.csv, check_macros.py) value for value and, for the
+tables, with the paper's own tables (check_tables.py) cell for cell.
 
 Writes, under --out-dir (default $AA_DATA/tmlr):
 

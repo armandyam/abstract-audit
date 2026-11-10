@@ -1,0 +1,73 @@
+% LLM-as-judge: model-averaged z-scores per venue, one curve per prompt.
+% Each curve is the mean of all 6 model z-scores for that prompt, standardized
+% to each model's own baseline through 2022 within that venue.
+% Data: ../../data/pgfplots/tmlr/llm_scores_model_avg[_{venue}]_{prompt}.csv
+
+% One panel's three prompt curves + zero line + 2022 marker.
+% #1 = file suffix: "" (NeurIPS), "_iclr", "_icml"
+\providecommand{\llmpanel}[1]{%
+  \addplot[color={rgb,255:red,44;green,160;blue,44}, solid, very thick]
+    table[x=year, y=avg_z, col sep=comma]{../../data/pgfplots/tmlr/llm_scores_model_avg#1_simple.csv};
+  \addplot[color={rgb,255:red,148;green,103;blue,189}, dashed, very thick]
+    table[x=year, y=avg_z, col sep=comma]{../../data/pgfplots/tmlr/llm_scores_model_avg#1_ascb.csv};
+  \addplot[color={rgb,255:red,214;green,39;blue,40}, dashdotted, very thick]
+    table[x=year, y=avg_z, col sep=comma]{../../data/pgfplots/tmlr/llm_scores_model_avg#1_own_reasoning.csv};
+  \draw[black, dotted, thin] (axis cs:1900,0) -- (axis cs:2100,0);
+  \draw[black, dashed, semithick] (axis cs:2022,-2) -- (axis cs:2022,5.5);
+}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+\begin{groupplot}[
+    group style={group size=3 by 1, horizontal sep=10mm},
+    width=0.30\linewidth, height=4.3cm,
+    ymin=-2, ymax=5.5,
+    xtick distance=8,
+    x tick label style={rotate=45, anchor=east, font=\tiny,
+                        /pgf/number format/1000 sep={}},
+    y tick label style={font=\tiny},
+    ytick align=inside,
+    enlarge x limits=0.03,
+    title style={font=\small, yshift=-1mm},
+  ]
+  \nextgroupplot[title={NeurIPS}, ylabel={Model-averaged readability (z)},
+    ylabel style={font=\tiny},
+    legend to name=llmlegend, legend columns=3,
+    legend style={draw=none, fill=none, font=\scriptsize,
+                  cells={anchor=west}, column sep=8pt}]
+  \addplot[color={rgb,255:red,44;green,160;blue,44}, solid, very thick]
+    table[x=year, y=avg_z, col sep=comma]{../../data/pgfplots/tmlr/llm_scores_model_avg_simple.csv};
+  \addlegendentry{Simple}
+  \addplot[color={rgb,255:red,148;green,103;blue,189}, dashed, very thick]
+    table[x=year, y=avg_z, col sep=comma]{../../data/pgfplots/tmlr/llm_scores_model_avg_ascb.csv};
+  \addlegendentry{ASCB}
+  \addplot[color={rgb,255:red,214;green,39;blue,40}, dashdotted, very thick]
+    table[x=year, y=avg_z, col sep=comma]{../../data/pgfplots/tmlr/llm_scores_model_avg_own_reasoning.csv};
+  \addlegendentry{Own reasoning}
+  \draw[black, dotted, thin] (axis cs:1900,0) -- (axis cs:2100,0);
+  \draw[black, dashed, semithick] (axis cs:2022,-2) -- (axis cs:2022,5.5);
+
+  \nextgroupplot[title={ICLR}]
+  \llmpanel{_iclr}
+
+  \nextgroupplot[title={ICML}]
+  \llmpanel{_icml}
+\end{groupplot}
+\end{tikzpicture}
+
+\vspace{1mm}
+\pgfplotslegendfromname{llmlegend}
+
+\caption{\textbf{LLM as judge readability across the three conferences.}
+  Each curve is the mean z-score across all six open-weight models for one
+  prompt variant, standardized to each model's own \revfour{baseline through 2022} within
+  that venue. NeurIPS and
+  ICML show the same pattern. \revfour{Scores rise sharply after 2022,
+  by roughly three to five standard deviations}, directly contradicting
+  the classical readability decline in Figure~\ref{fig:readability-flesch}.
+  \rev{ICLR shows no comparable rise, and its post-2022 movement does not settle
+  into a consistent trend across the three prompts, so we draw no conclusion
+  from that series and leave it to further investigation.}}
+\label{fig:llm-judge}
+\end{figure}

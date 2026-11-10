@@ -1,0 +1,62 @@
+% Total sensational language per 100 abstract words.
+% Data: ../../data/pgfplots/tmlr/sensational_total.csv
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+    width=0.88\linewidth, height=5cm,
+    xlabel={Year},
+    ylabel={Total sensational words per 100},
+    xtick distance=8,
+    x tick label style={rotate=45, anchor=east, font=\tiny,
+                        /pgf/number format/1000 sep={}},
+    ytick align=inside,
+    legend columns=3,
+    legend style={draw=none, fill=none, font=\scriptsize,
+                  cells={anchor=west}, column sep=8pt,
+                  at={(0.5,-0.28)}, anchor=north},
+    tick label style={font=\tiny},
+    label style={font=\small},
+    enlarge x limits=0.02,
+    ymin=0,
+  ]
+  \addplot[color={rgb,255:red,44;green,160;blue,44}, dashdotted, very thick]
+    table[x=year, y=neurips, col sep=comma]
+    {../../data/pgfplots/tmlr/sensational_total.csv};
+  \addlegendentry{NeurIPS}
+  \addplot[color={rgb,255:red,31;green,119;blue,180}, densely dashed, very thick]
+    table[x=year, y=iclr, col sep=comma]
+    {../../data/pgfplots/tmlr/sensational_total.csv};
+  \addlegendentry{ICLR}
+  \addplot[color={rgb,255:red,255;green,127;blue,14}, densely dotted, very thick]
+    table[x=year, y=icml, col sep=comma]
+    {../../data/pgfplots/tmlr/sensational_total.csv};
+  \addlegendentry{ICML}
+  \addplot[color={rgb,255:red,148;green,103;blue,189}, solid, very thick]
+    table[x=year, y=arxiv_ml, col sep=comma]
+    {../../data/pgfplots/tmlr/sensational_total.csv};
+  \addlegendentry{arXiv ML}
+  \addplot[color={rgb,255:red,140;green,86;blue,75}, dotted, thick]
+    table[x=year, y=arxiv_nonml, col sep=comma]
+    {../../data/pgfplots/tmlr/sensational_total.csv};
+  \addlegendentry{arXiv non-ML}
+  \addplot[color={rgb,255:red,214;green,39;blue,40}, dashed, thick]
+    table[x=year, y=pubmed, col sep=comma]
+    {../../data/pgfplots/tmlr/sensational_total.csv};
+  \addlegendentry{PubMed}
+  % ChatGPT launch marker (line only; the text label appears
+  % only in fig:readability-flesch, the first chronological figure).
+  \draw[black, dashed, semithick] (axis cs:2022,0) -- (axis cs:2022,30);
+\end{axis}
+\end{tikzpicture}
+\caption{\textbf{Total sensational language per 100 abstract words,
+  1987--\revfour{2026}.}
+  \rev{The rate rises across all three conferences and arXiv ML. The
+  arXiv non-ML baseline rises far
+  more slowly, and the divergence between ML and non-ML venues
+  accelerates after 2022.}
+  The \revfour{breakdown by category} appears in
+  Appendix~\ref{app:figures}.}
+\label{fig:sensational-total}
+\end{figure}

@@ -1,0 +1,104 @@
+% Hohmann writing style metrics on NeurIPS, arXiv ML, arXiv non-ML, PubMed.
+% Data: ../../data/pgfplots/tmlr/<metric>.csv
+% Legend collected from first panel and rendered below, matching fig_readability.
+
+\providecommand{\hohmannpanel}[2]{%
+  \nextgroupplot[title={\tiny #1},
+                 title style={font=\tiny, yshift=-1.5mm}]
+  \addplot[color={rgb,255:red,44;green,160;blue,44}, dashdotted, very thick]
+    table[x=year, y=neurips, col sep=comma]{../../data/pgfplots/tmlr/#2.csv};
+  \addplot[color={rgb,255:red,31;green,119;blue,180}, densely dashed, very thick]
+    table[x=year, y=iclr, col sep=comma]{../../data/pgfplots/tmlr/#2.csv};
+  \addplot[color={rgb,255:red,255;green,127;blue,14}, densely dotted, very thick]
+    table[x=year, y=icml, col sep=comma]{../../data/pgfplots/tmlr/#2.csv};
+  \addplot[color={rgb,255:red,148;green,103;blue,189}, solid, thick]
+    table[x=year, y=arxiv_ml, col sep=comma]{../../data/pgfplots/tmlr/#2.csv};
+  \addplot[color={rgb,255:red,140;green,86;blue,75}, dotted, thick]
+    table[x=year, y=arxiv_nonml, col sep=comma]{../../data/pgfplots/tmlr/#2.csv};
+  \addplot[color={rgb,255:red,214;green,39;blue,40}, dashed, thick]
+    table[x=year, y=pubmed, col sep=comma]{../../data/pgfplots/tmlr/#2.csv};
+  \draw[black, dashed, semithick]
+    ({axis cs:2022,0} |- {rel axis cs:0,0})
+    -- ({axis cs:2022,0} |- {rel axis cs:0,1});
+}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}
+\begin{groupplot}[
+    group style={
+      group size=3 by 4,
+      horizontal sep=8mm,
+      vertical sep=12mm,
+    },
+    width=40mm, height=2.4cm,
+    scale only axis,
+    xlabel={}, ylabel={},
+    xtick distance=12,
+    x tick label style={rotate=55, anchor=east, font=\tiny,
+                        /pgf/number format/1000 sep={}},
+    y tick label style={font=\tiny},
+    ytick align=inside,
+    enlarge x limits=0.02,
+    tick label style={font=\tiny},
+  ]
+  % First panel: legend collected here
+  \nextgroupplot[
+    title={\tiny Sentence length},
+    title style={font=\tiny, yshift=-1.5mm},
+    legend to name=hohmannlegend,
+    legend columns=3,
+    legend style={draw=none, fill=none, font=\scriptsize,
+                  cells={anchor=west}, column sep=8pt},
+  ]
+  \addplot[color={rgb,255:red,44;green,160;blue,44}, dashdotted, very thick]
+    table[x=year, y=neurips, col sep=comma]{../../data/pgfplots/tmlr/sentence_length.csv};
+  \addlegendentry{NeurIPS}
+  \addplot[color={rgb,255:red,31;green,119;blue,180}, densely dashed, very thick]
+    table[x=year, y=iclr, col sep=comma]{../../data/pgfplots/tmlr/sentence_length.csv};
+  \addlegendentry{ICLR}
+  \addplot[color={rgb,255:red,255;green,127;blue,14}, densely dotted, very thick]
+    table[x=year, y=icml, col sep=comma]{../../data/pgfplots/tmlr/sentence_length.csv};
+  \addlegendentry{ICML}
+  \addplot[color={rgb,255:red,148;green,103;blue,189}, solid, thick]
+    table[x=year, y=arxiv_ml, col sep=comma]{../../data/pgfplots/tmlr/sentence_length.csv};
+  \addlegendentry{arXiv ML}
+  \addplot[color={rgb,255:red,140;green,86;blue,75}, dotted, thick]
+    table[x=year, y=arxiv_nonml, col sep=comma]{../../data/pgfplots/tmlr/sentence_length.csv};
+  \addlegendentry{arXiv non-ML}
+  \addplot[color={rgb,255:red,214;green,39;blue,40}, dashed, thick]
+    table[x=year, y=pubmed, col sep=comma]{../../data/pgfplots/tmlr/sentence_length.csv};
+  \addlegendentry{PubMed}
+  \draw[black, dashed, semithick]
+    ({axis cs:2022,0} |- {rel axis cs:0,0})
+    -- ({axis cs:2022,0} |- {rel axis cs:0,1});
+  % Remaining 11 panels via macro
+  \hohmannpanel{Parse depth}{parse_depth}
+  \hohmannpanel{NP density}{np_density}
+  \hohmannpanel{Noun chunks/100}{noun_chunks}
+  \hohmannpanel{Nouns/100}{nouns}
+  \hohmannpanel{Verbs/100}{verbs}
+  \hohmannpanel{Numbers/100}{numbers}
+  \hohmannpanel{Signposting/100}{signposting}
+  \hohmannpanel{Hedging/100}{hedging}
+  \hohmannpanel{Active narration}{active_narration}
+  \hohmannpanel{Passive rate}{passive_rate}
+  \hohmannpanel{Type-token ratio}{ttr}
+\end{groupplot}
+\end{tikzpicture}
+
+\vspace{2mm}
+\pgfplotslegendfromname{hohmannlegend}
+
+\caption{\textbf{Hohmann writing style metrics across all six
+  corpora (NeurIPS, ICLR, ICML, arXiv ML, arXiv non-ML, and
+  PubMed), 1987--\revfour{2026}.}
+  PubMed data are available only for the four metrics computed
+  by lightweight regex and word-level rules (sentence length,
+  signposting, hedging, and active narration). The remaining
+  metrics depend on full spaCy dependency parsing and were not
+  run on the \revfour{24.3} million paper PubMed corpus because of compute
+  cost. \revfour{The corresponding panels omit PubMed.} Across the suite, ML and non-ML venues are
+  largely parallel.}
+\label{fig:app-hohmann}
+\end{figure}

@@ -1,109 +1,116 @@
 #!/usr/bin/env python3
 """Check every number the TMLR paper prints against this repository's outputs.
 
-Three files work together:
+The manuscript is not distributed with this repository. paper/tmlr/claims.csv
+holds one row per number it prints, with the number itself and how to check
+it, but none of the text around it. The check therefore runs in two parts:
 
-  inventory.py   finds every number in paper/tmlr/source/ (the manuscript
-                 text, see import_source.py), macro invocations excepted:
-                 check_macros.py compares the 163 macros value by value.
-  claims.csv     one row per number: where it is, what kind of number it is,
-                 and how to check it.
-  claims.py      the check functions the rows name.
+  values    every row's check function (claims.py) recomputes the number
+            from the pipeline's outputs and compares it with the printed
+            value stored in the row. Needs no manuscript.
+  coverage  with a local copy of the manuscript ($AA_PAPER or --paper-dir,
+            see manuscript.py), inventory.py finds every number it prints,
+            macro invocations excepted (check_macros.py compares the 163
+            macros). Each occurrence is tied to its row by context_sha256, a
+            hash of the number and the words around it. A number no row ties
+            to (uncovered), a row that ties to no number (stale, usually a
+            reworded sentence) and a row whose printed value differs from
+            the manuscript's fail the check. Without AA_PAPER the coverage
+            check is reported as skipped.
 
 claims.csv columns:
 
-  id        stable identifier, assigned once (file stem and a hash of the
-            quote at the time the row was written); never reused
-  file      the source file, relative to paper/tmlr/source/
-  line      the line the number was on when the row was last synced
-            (informational; --sync-lines rewrites it)
-  quote     a snippet of the file's text, whitespace collapsed, with the
-            number marked <<like this>>. It must occur exactly once in the
-            file, and the marked text must be a number the inventory finds
-            at that position. This is how a row is tied to its number.
-  category  computed     measured, recomputed by `check`
-            citation     measured from citation counts, recomputed in strict
-                         citation mode, else read from the frozen published
-                         outputs (reported as recomputation skipped)
-            generated    a cell of a table make_macros.py generates; the
-                         check compares the whole table with the built one
-            literature   a value quoted from the cited literature (`source`)
-            design       a constant of the study design, a scope count, a
-                         window bound, a policy threshold or a label;
-                         checked against the code when `check` is given
-            unverifiable a measured number nothing in the release can
-                         reproduce; reported, never silently passed
-  check     a function in claims.py (empty for unchecked literature or
-            design rows)
-  args      its keyword arguments, key=value separated by semicolons; a
-            list value joins items with +
-  rule      how the computed value is compared with the printed one:
-              auto         at the printed precision (default): the computed
-                           value formatted with as many decimals as the
-                           printed one equals it; a "2.8 million" compares
-                           millions; a range or fraction compares element by
-                           element
-              abs          as auto on the absolute value ("1.07 lower")
-              exact        equal
-              gt ge lt le  computed > >= < <= printed ("more than 3,000")
-              nearest:q    computed rounded to the nearest multiple of q
-                           ("approximately 80 percent", nearest:10)
-              approx:t     |computed - printed| <= t ("roughly ten")
-              round:n      computed rounded to n digits, n may be negative
-              within       a computed (min, max) inside the printed range
-              claim:text   the check returns a string that must equal text
-                           (the paper's named set, e.g. which metrics)
-              true         the check returns True
-  source    for literature, the work quoted; for design, what the constant
-            is; otherwise where the value comes from
-  note      anything else, such as a known disagreement awaiting a text fix
+  id              stable identifier, assigned once; never reused
+  file            the manuscript file, relative to its directory
+  line            the line the number was on when the row was last synced
+                  (informational; --sync-lines rewrites it)
+  printed         the number as printed, whitespace collapsed ("30,595",
+                  "88 to 90", "14 of the 15", "three quarters")
+  kind            number, date, word, pair or fraction (inventory.py)
+  category        computed     measured, recomputed by `check`
+                  citation     measured from citation counts: recomputed and
+                               compared in strict citation mode, compared and
+                               reported but not counted after a fresh fetch,
+                               skipped when the counts are absent
+                  generated    a cell of a table make_macros.py generates,
+                               compared with the same cell of the built table
+                  literature   a value quoted from the cited literature
+                  design       a constant of the study design, a scope count,
+                               a window bound, a policy threshold or a label;
+                               checked against the code when `check` is given
+                  unverifiable a measured number nothing in the release can
+                               reproduce; reported, never silently passed
+  check           a function in claims.py (empty for unchecked literature or
+                  design rows)
+  args            its keyword arguments, key=value separated by semicolons;
+                  a list value joins items with +
+  rule            how the computed value is compared with the printed one:
+                    auto         at the printed precision (default): the
+                                 computed value formatted with as many
+                                 decimals as the printed one equals it; a
+                                 "2.8 million" compares millions; a range or
+                                 fraction compares element by element
+                    abs          as auto on the absolute value
+                    exact        equal
+                    gt ge lt le  computed > >= < <= printed
+                    nearest:q    computed rounded to the nearest multiple of q
+                    approx:t     |computed - printed| <= t
+                    round:n      computed rounded to n digits
+                    within       a computed (min, max) inside the printed range
+                    claim:text   the check returns a string equal to text
+                    true         the check returns True
+                    text         the check returns the printed text itself
+                                 (a cell of a generated table)
+  known           non-empty for a discrepancy the authors accepted: the
+                  printed value stays as it is in the published paper. Such
+                  a row is reported KNOWN with its computed value and not
+                  counted as a failure. If it ever matches, it is reported
+                  so that the flag can be cleared.
+  source          for literature, the work quoted; for design, what the
+                  constant is; otherwise where the value comes from
+  note            anything else
+  context_sha256  sha256 of the file, the number and its context
+                  (inventory.context_hashes); no text is stored
 
-Results: MATCH, MISMATCH, MISSING, SKIP(reason) and UNVERIFIABLE. The
-coverage check fails if the inventory finds a number no row claims, or a row's
-quote no longer marks a number in the source (stale). verify.py counts
-mismatches, missing inputs, errors, uncovered numbers and stale rows as
+Results: MATCH, MISMATCH, KNOWN, MISSING, SKIP(reason) and UNVERIFIABLE.
+verify.py counts mismatches, missing inputs, errors, and, with the
+manuscript, uncovered numbers, stale rows and printed values that differ, as
 failures.
 
 Missing inputs. A computed, citation or generated claim whose input file is
-absent is MISSING, a failure: the number has not been checked, and an absent
-analysis must not look like a pass. The exemptions are explicit and few, and
-each is reported as SKIP with its reason:
+absent is MISSING, a failure. The exemptions are explicit, and each is
+reported as SKIP with its reason:
 
-  design, literature   rows without a check (a design constant, scope count,
-                       window bound or label, or a value quoted from the
-                       literature); nothing to recompute
-  citation, outside    the counts are not distributed. The claim is compared
-  strict mode          with the frozen published outputs in
-                       reference/tmlr/citations/ (shipped, so never absent)
-                       and a match is reported as "recomputation skipped"
-  exempt input         a check registered with exempt=<reason> in claims.py.
-                       One exists: neurips_fallback_count re-reads the raw
-                       NeurIPS scrape, which the --from aggregate route does
-                       not have (claims.RAW_EXEMPT)
+  design, literature   rows without a check
+  citation counts      absent: the counts are not distributed, so citation
+                       claims are skipped
+  manuscript absent    the self-audit measures the paper's own abstract,
+                       which the release does not ship; its claims are
+                       skipped when AA_PAPER is unset and the self-audit
+                       output is absent (claims.PAPER_EXEMPT)
+  exempt input         neurips_fallback_count re-reads the raw NeurIPS
+                       scrape, which the --from aggregate route does not
+                       have (claims.RAW_EXEMPT)
 
-Everything else that is absent (the processed abstracts, an analysis the
-pipeline did not run, a generated table) fails. verify.py lists the skips by
-reason.
+After the paper text changes (needs AA_PAPER):
 
-After the paper text changes:
-
-  1. python paper/tmlr/import_source.py --upstream <research repo>/tmlr
-  2. python paper/tmlr/check_claims.py        lists uncovered and stale rows
-  3. python paper/tmlr/check_claims.py --suggest
-                                              prints a claims.csv row with a
-                                              unique quote for every
-                                              uncovered number; paste and
-                                              fill in category, check, args
-  4. fix or delete each stale row (a reworded sentence usually needs only
-     a new quote), then python paper/tmlr/check_claims.py --sync-lines
+  1. python paper/tmlr/check_claims.py           lists uncovered and stale rows
+  2. python paper/tmlr/check_claims.py --suggest  prints a claims.csv row for
+                                                  every uncovered number (the
+                                                  context goes to stderr, for
+                                                  the author only); paste the
+                                                  rows and fill in category,
+                                                  check and args
+  3. delete the stale rows a new row replaces, then
+     python paper/tmlr/check_claims.py --sync-lines
 
     python paper/tmlr/check_claims.py [--data-dir DIR] [--mode strict|fresh|absent]
+                                      [--paper-dir DIR]
 """
 from __future__ import annotations
 
 import argparse
 import csv
-import hashlib
 import os
 import re
 import sys
@@ -117,16 +124,18 @@ sys.path.insert(0, os.path.join(REPO, "src"))
 
 import claims as C  # noqa: E402
 import inventory as inv  # noqa: E402
+from manuscript import SKIP_REASON, paper_dir  # noqa: E402
 
 CLAIMS = os.path.join(HERE, "claims.csv")
-FIELDS = ["id", "file", "line", "quote", "category", "check", "args", "rule",
-          "source", "note"]
+FIELDS = ["id", "file", "line", "printed", "kind", "category", "check", "args", "rule",
+          "known", "source", "note", "context_sha256"]
 CATEGORIES = {"computed", "citation", "generated", "literature", "design",
               "unverifiable"}
-OPEN, CLOSE = "<<", ">>"
-FROZEN_SKIP = "recomputation skipped, frozen reference matches"
+CIT_ABSENT = "citation counts absent"
+CIT_FRESH = "citation counts are a fresh fetch: compared, not counted"
 # Skip reasons verify.py reports as counts; any other reason lists its claims.
-COUNTED_SKIPS = {"design", "literature", FROZEN_SKIP}
+PAPER_ABSENT = f"manuscript absent: {C.PAPER_EXEMPT}"
+COUNTED_SKIPS = {"design", "literature", CIT_ABSENT, CIT_FRESH, PAPER_ABSENT}
 
 
 # ============================================================ claims.csv ===
@@ -136,8 +145,7 @@ def load(path: str = CLAIMS) -> list[dict]:
         rows = list(csv.DictReader(fh))
     for r in rows:
         for k in FIELDS:
-            r.setdefault(k, "")
-            r[k] = r[k] or ""
+            r[k] = r.get(k) or ""
     return rows
 
 
@@ -147,21 +155,6 @@ def save(rows: list[dict], path: str = CLAIMS) -> None:
         w.writeheader()
         for r in rows:
             w.writerow({k: r.get(k, "") for k in FIELDS})
-
-
-def make_id(file: str, quote: str) -> str:
-    stem = os.path.splitext(os.path.basename(file))[0]
-    return f"{stem}-{hashlib.sha1(quote.encode()).hexdigest()[:8]}"
-
-
-def split_quote(quote: str) -> tuple[str, int, str]:
-    """(plain text, offset of the marked number in it, marked text)."""
-    a = quote.find(OPEN)
-    b = quote.find(CLOSE, a + 2)
-    if a < 0 or b < 0 or quote.find(OPEN, b) >= 0:
-        raise ValueError(f"quote must mark exactly one number: {quote!r}")
-    token = quote[a + 2:b]
-    return quote[:a] + token + quote[b + 2:], a, token
 
 
 def parse_args(s: str) -> dict:
@@ -178,70 +171,39 @@ def parse_args(s: str) -> dict:
 class Coverage:
     matched: dict[int, inv.Occurrence] = field(default_factory=dict)   # row -> occ
     stale: list[tuple[int, str]] = field(default_factory=list)         # row, why
-    uncovered: list[inv.Occurrence] = field(default_factory=list)
+    uncovered: list[tuple[inv.Occurrence, str]] = field(default_factory=list)  # occ, hash
     duplicate: list[tuple[int, int]] = field(default_factory=list)
-
-
-def find_all(text: str, sub: str) -> list[int]:
-    out, i = [], text.find(sub)
-    while i >= 0:
-        out.append(i)
-        i = text.find(sub, i + 1)
-    return out
 
 
 def match(rows: list[dict], occ: list[inv.Occurrence],
           norms: dict[str, inv.Normalised]) -> Coverage:
-    """Tie each row to the occurrence its quote marks; collect the rows that
-    tie to none (stale) and the occurrences no row ties to (uncovered)."""
+    """Tie each row to the occurrence with its file and context hash; collect
+    the rows that tie to none or whose printed value differs (stale) and the
+    occurrences no row ties to (uncovered)."""
     cov = Coverage()
-    by_pos = {(o.file, o.pos): o for o in occ}
-    owner: dict[tuple[str, int], int] = {}
+    hashes = inv.context_hashes(occ, norms)
+    by_hash = {(o.file, h): (i, o) for i, (o, h) in enumerate(zip(occ, hashes))}
+    owner: dict[int, int] = {}
     for i, r in enumerate(rows):
-        try:
-            plain, off, token = split_quote(r["quote"])
-        except ValueError as e:
-            cov.stale.append((i, str(e)))
-            continue
         if r["file"] not in norms:
             cov.stale.append((i, f"file {r['file']} is not part of the manuscript"))
             continue
-        hits = find_all(norms[r["file"]].text, plain)
-        if not hits:
-            cov.stale.append((i, "quote not found"))
+        hit = by_hash.get((r["file"], r["context_sha256"]))
+        if hit is None:
+            cov.stale.append((i, "context hash not found: the text around the "
+                                 "number changed, or the number was removed"))
             continue
-        if len(hits) > 1:
-            cov.stale.append((i, f"quote occurs {len(hits)} times; lengthen it"))
+        k, o = hit
+        if o.text != r["printed"]:
+            cov.stale.append((i, f"printed {r['printed']!r}, manuscript has {o.text!r}"))
             continue
-        key = (r["file"], hits[0] + off)
-        o = by_pos.get(key)
-        if o is None or o.text != token:
-            cov.stale.append((i, f"<<{token}>> is not an inventoried number there"
-                                 + (f" (found {o.text!r})" if o else "")))
+        if k in owner:
+            cov.duplicate.append((owner[k], i))
             continue
-        if key in owner:
-            cov.duplicate.append((owner[key], i))
-            continue
-        owner[key] = i
+        owner[k] = i
         cov.matched[i] = o
-    cov.uncovered = [o for o in occ if (o.file, o.pos) not in owner]
+    cov.uncovered = [(o, h) for k, (o, h) in enumerate(zip(occ, hashes)) if k not in owner]
     return cov
-
-
-def suggest_quote(o: inv.Occurrence, norm: inv.Normalised, min_words: int = 3) -> str:
-    """A quote around one occurrence that occurs once in the file: at least
-    min_words words on each side, widened until unique."""
-    t = norm.text
-    a, b = o.pos, o.pos + len(o.text)
-    spans = [(m.start(), m.end()) for m in re.finditer(r"\S+", t)]
-    i0 = next(i for i, (s, e) in enumerate(spans) if e > a)
-    i1 = next(i for i, (s, e) in reversed(list(enumerate(spans))) if s < b)
-    for k in range(min_words, len(spans) + 1):
-        left = spans[max(0, i0 - k)][0]
-        right = spans[min(len(spans) - 1, i1 + k)][1]
-        if len(find_all(t, t[left:right])) == 1:
-            break
-    return t[left:a] + OPEN + o.text + CLOSE + t[b:right]
 
 
 # ======================================================== printed value ===
@@ -365,6 +327,7 @@ def show(v) -> str:
 class Report:
     records: list[dict] = field(default_factory=list)
     coverage: Coverage | None = None
+    paper: str | None = None
     n_occ: int = 0
     n_rows: int = 0
     errors: list[str] = field(default_factory=list)
@@ -384,9 +347,8 @@ class Report:
                 + (len(cov.stale) + len(cov.uncovered) + len(cov.duplicate) if cov else 0))
 
     def skip_lines(self) -> list[str]:
-        """Every skip, grouped by reason. The large documented groups
-        (design and literature rows, citation claims compared with the frozen
-        reference) are counted; any other reason lists its claims."""
+        """Every skip, grouped by reason. The large documented groups are
+        counted; any other reason lists its claims."""
         by: dict[str, list[dict]] = {}
         for r in self.records:
             if r["verdict"] == "SKIP":
@@ -398,24 +360,28 @@ class Report:
                 continue
             out += [f"             {r['file']}:{r['line']}  {r['printed']!r}  [{r['check']}]"
                     for r in by[why]]
+        if self.coverage is None:
+            out.append(f"  SKIP  coverage of the manuscript: {SKIP_REASON}")
         return out
 
     def lines(self, verbose: bool = False) -> list[str]:
         out = []
         for r in self.records:
-            if verbose or r["verdict"] in ("MISMATCH", "MISSING", "ERROR", "UNVERIFIABLE"):
+            if verbose or r["verdict"] in ("MISMATCH", "MISSING", "ERROR", "UNVERIFIABLE",
+                                           "KNOWN") or r.get("flag"):
                 tag = r["verdict"] if r["verdict"] != "SKIP" else f"SKIP({r['why']})"
                 out.append(f"  {tag:<12} {r['file']}:{r['line']}  {r['printed']!r}"
                            f"  computed {r['computed']}  [{r['check']}]"
-                           + (f"  {r['why']}" if r["verdict"] != "SKIP" and r["why"] else ""))
+                           + (f"  {r['why']}" if r["verdict"] != "SKIP" and r["why"] else "")
+                           + (f"  {r['flag']}" if r.get("flag") else ""))
         cov = self.coverage
         if cov:
             for i, why in cov.stale:
                 out.append(f"  STALE        row {i + 2} of claims.csv: {why}")
             for a, b in cov.duplicate:
                 out.append(f"  DUPLICATE    rows {a + 2} and {b + 2} of claims.csv mark one number")
-            for o in cov.uncovered:
-                out.append(f"  UNCOVERED    {o.file}:{o.line}  {o.text!r}  ...{o.context}...")
+            for o, _ in cov.uncovered:
+                out.append(f"  UNCOVERED    {o.file}:{o.line}  {o.text!r}")
         out += [f"  ERROR        {e}" for e in self.errors]
         return out
 
@@ -425,6 +391,7 @@ class Report:
         skips = Counter(r["why"] for r in self.records if r["verdict"] == "SKIP")
         cov = self.coverage
         out = [f"  claims: {v['MATCH']} match, {v['MISMATCH']} mismatch, "
+               f"{v['KNOWN']} known (author-accepted), "
                f"{v['MISSING']} missing input, "
                f"{v['SKIP']} skipped, {v['UNVERIFIABLE']} unverifiable, "
                f"{v['ERROR']} errors"]
@@ -435,12 +402,15 @@ class Report:
             out.append(f"  coverage: {self.n_occ} numbers in the manuscript, {self.n_rows} rows, "
                        f"{len(cov.matched)} tied, {len(cov.uncovered)} uncovered, "
                        f"{len(cov.stale)} stale, {len(cov.duplicate)} duplicate")
+        else:
+            out.append(f"  coverage: not checked ({self.n_rows} rows; no manuscript, "
+                       "set AA_PAPER)")
         return out
 
 
-def evaluate(row: dict, occ: inv.Occurrence, ctx: C.Ctx) -> dict:
-    rec = {"id": row["id"], "file": row["file"], "line": occ.line,
-           "printed": occ.text, "category": row["category"], "check": row["check"],
+def evaluate(row: dict, ctx: C.Ctx, line: int | str | None = None) -> dict:
+    rec = {"id": row["id"], "file": row["file"], "line": line or row["line"],
+           "printed": row["printed"], "category": row["category"], "check": row["check"],
            "computed": "", "verdict": "", "why": ""}
     cat = row["category"]
     if cat not in CATEGORIES:
@@ -461,11 +431,16 @@ def evaluate(row: dict, occ: inv.Occurrence, ctx: C.Ctx) -> dict:
         return rec
     kw = parse_args(row["args"])
     citation = C.is_citation_check(row["check"], kw)
+    if citation and ctx.citation_mode == "absent":
+        rec.update(verdict="SKIP", why=CIT_ABSENT)
+        return rec
     try:
         val = fn(ctx, **kw)
     except FileNotFoundError as e:
         what = os.path.relpath(e.filename, ctx.data) if e.filename else str(e)
-        if fn.exempt:
+        if fn.paper and ctx.paper is None:
+            rec.update(verdict="SKIP", why=PAPER_ABSENT)
+        elif fn.exempt:
             rec.update(verdict="SKIP", why=f"exempt input absent: {fn.exempt}")
         else:
             rec.update(verdict="MISSING", why=f"required input absent: {what}")
@@ -475,34 +450,46 @@ def evaluate(row: dict, occ: inv.Occurrence, ctx: C.Ctx) -> dict:
         return rec
     rec["computed"] = show(val)
     try:
-        ok = compare(row["rule"], val, parse_printed(occ.text, occ.kind))
+        if row["rule"] == "text":
+            ok = " ".join(str(val).split()) == row["printed"]
+        else:
+            ok = compare(row["rule"], val, parse_printed(row["printed"], row["kind"]))
     except Exception as e:  # noqa: BLE001
         rec.update(verdict="ERROR", why=f"compare: {e}")
         return rec
-    frozen = citation and ctx.citation_mode != "strict"
+    if citation and ctx.citation_mode != "strict":
+        rec.update(verdict="SKIP", why=CIT_FRESH)
+        if not ok:
+            rec["flag"] = "(fresh citations: differs from the printed value)"
+        return rec
     if ok:
-        if frozen:
-            rec.update(verdict="SKIP", why=FROZEN_SKIP)
-        else:
-            rec["verdict"] = "MATCH"
+        rec["verdict"] = "MATCH"
+        if row["known"]:
+            rec["flag"] = "(a known discrepancy now matches: clear its known flag)"
+    elif row["known"]:
+        rec.update(verdict="KNOWN", why=f"{row['known']}; {row['note']}".rstrip("; "))
     else:
-        rec.update(verdict="MISMATCH",
-                   why=(row["note"] or "") + (" (against the frozen reference)" if frozen else ""))
+        rec.update(verdict="MISMATCH", why=row["note"] or "")
     return rec
 
 
 def run(data_dir: str, mode: str, claims_path: str = CLAIMS,
-        source: str = inv.SOURCE) -> Report:
+        paper: str | None = None) -> Report:
+    """Every row's value check; with `paper` (the manuscript directory) also
+    the coverage check."""
     rows = load(claims_path)
-    occ, norms = inv.inventory(source)
-    cov = match(rows, occ, norms)
-    rep = Report(coverage=cov, n_occ=len(occ), n_rows=len(rows))
+    rep = Report(n_rows=len(rows), paper=paper)
     ids = Counter(r["id"] for r in rows)
     rep.errors += [f"id {k} used {n} times" for k, n in ids.items() if n > 1]
-    ctx = C.Ctx(data_dir, mode, source=source)
+    lines: dict[int, int] = {}
+    if paper is not None:
+        occ, norms = inv.inventory(paper)
+        rep.coverage = match(rows, occ, norms)
+        rep.n_occ = len(occ)
+        lines = {i: o.line for i, o in rep.coverage.matched.items()}
+    ctx = C.Ctx(data_dir, mode, paper=paper)
     for i, r in enumerate(rows):
-        if i in cov.matched:
-            rep.records.append(evaluate(r, cov.matched[i], ctx))
+        rep.records.append(evaluate(r, ctx, lines.get(i)))
     return rep
 
 
@@ -518,19 +505,24 @@ def main() -> None:
     ap.add_argument("--mode", choices=["strict", "fresh", "absent"], default=None,
                     help="citation mode; default: from the local citation files")
     ap.add_argument("--claims", default=CLAIMS)
-    ap.add_argument("--source", default=inv.SOURCE)
+    ap.add_argument("--paper-dir", default=None,
+                    help="the manuscript directory (default: $AA_PAPER)")
     ap.add_argument("--verbose", action="store_true", help="list every claim")
     ap.add_argument("--suggest", action="store_true",
-                    help="print claims.csv rows for the uncovered numbers")
+                    help="print claims.csv rows for the uncovered numbers (needs the manuscript)")
     ap.add_argument("--sync-lines", action="store_true",
-                    help="rewrite the line column of claims.csv from the source")
+                    help="rewrite the line column of claims.csv (needs the manuscript)")
     ap.add_argument("--report-only", action="store_true",
                     help="exit 0 even on a failure (the pipeline stage; verify.py is the gate)")
     a = ap.parse_args()
+    paper = paper_dir(a.paper_dir)
 
     if a.suggest or a.sync_lines:
+        if paper is None:
+            sys.exit("--suggest and --sync-lines need the manuscript: set AA_PAPER "
+                     "or pass --paper-dir")
         rows = load(a.claims)
-        occ, norms = inv.inventory(a.source)
+        occ, norms = inv.inventory(paper)
         cov = match(rows, occ, norms)
         if a.sync_lines:
             for i, o in cov.matched.items():
@@ -539,16 +531,19 @@ def main() -> None:
             print(f"synced {len(cov.matched)} rows; {len(cov.stale)} stale rows left as they were")
         if a.suggest:
             w = csv.DictWriter(sys.stdout, fieldnames=FIELDS, lineterminator="\n")
-            for o in cov.uncovered:
-                q = suggest_quote(o, norms[o.file])
-                w.writerow({"id": make_id(o.file, q), "file": o.file, "line": o.line,
-                            "quote": q, "category": "", "check": "", "args": "",
-                            "rule": "auto", "source": "", "note": ""})
+            for o, h in cov.uncovered:
+                stem = os.path.splitext(os.path.basename(o.file))[0]
+                print(f"{o.file}:{o.line}  ...{o.context}...", file=sys.stderr)
+                w.writerow({"id": f"{stem}-{h[:8]}", "file": o.file, "line": o.line,
+                            "printed": o.text, "kind": o.kind, "category": "", "check": "",
+                            "args": "", "rule": "auto", "known": "", "source": "",
+                            "note": "", "context_sha256": h})
         return
 
     m = a.mode or citation_mode(a.data_dir)
-    rep = run(a.data_dir, m, a.claims, a.source)
-    print(f"TMLR claims, citation mode {m}")
+    rep = run(a.data_dir, m, a.claims, paper)
+    print(f"TMLR claims, citation mode {m}"
+          + ("" if paper else ", no manuscript (coverage skipped)"))
     for line in rep.lines(a.verbose) + rep.skip_lines() + rep.summary():
         print(line)
     if rep.failures and not a.report_only:

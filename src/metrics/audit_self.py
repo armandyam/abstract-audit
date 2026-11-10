@@ -8,11 +8,10 @@ per-paper distribution (data/per_paper/{metric}/neurips.csv, so run the
 pipeline or copy reference/per_paper/ there first).
 
 The TMLR paper audits its own title and abstract this way (Appendix E,
-Table tab:self-audit). To reproduce that table:
+Table tab:self-audit). The manuscript is not distributed with this
+repository; to reproduce that table from a local copy of its LaTeX source:
 
-  python src/metrics/audit_self.py \\
-      --title "Machine Learning Research Has Outpaced Its Communication Norms" \\
-      --abstract-file paper/tmlr/self_audit_abstract.txt
+  python src/metrics/audit_self.py --from-tex $AA_PAPER/main.tex
 
 The two novel-acronym counts in the table are a judgment against the paper's
 approved-term list, not a computed value; this script prints the acronyms it

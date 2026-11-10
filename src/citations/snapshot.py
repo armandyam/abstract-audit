@@ -4,14 +4,16 @@
 Citation counts change daily and Semantic Scholar's licence does not allow
 them to be redistributed, so the paper's citation numbers can be reproduced
 exactly only from the same snapshot of the three {venue}_s2.csv files. This
-module compares the local files' SHA-256 against the published snapshot
-(reference/tmlr/citations/SNAPSHOT.md) and reports one of three modes:
+module compares the local files' SHA-256 against the hashes of the snapshot
+the paper used (SNAPSHOT below; hashes only, no data) and reports one of three
+modes:
 
-  strict  all three files match the snapshot. Every citation output must then
-          equal reference/tmlr/citations/ exactly.
+  strict  all three files match the snapshot. Every citation number the paper
+          prints (claims, macros and the generated citation tables) must then
+          be reproduced exactly.
   fresh   all three files exist and at least one differs: a new fetch. The
           analyses run and their outputs are expected to differ from the
-          paper's; verify.py should report them, not fail on them.
+          paper's; verify.py reports them, not fails on them.
   absent  at least one of the three files is missing. The citation stage
           does not run.
 
@@ -28,8 +30,13 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 from citations._common import CIT_DIR, VENUES  # noqa: E402
 
-# The files behind the TMLR paper (upstream commit eda2733). Retrieval dates:
-# NeurIPS 2026-05-11, ICLR and ICML 2026-06-11.
+# The files behind the TMLR paper (upstream commit eda2733), and the dates
+# they were retrieved, which the paper prints.
+RETRIEVED = {
+    "neurips_s2.csv": "2026-05-11",
+    "iclr_s2.csv":    "2026-06-11",
+    "icml_s2.csv":    "2026-06-11",
+}
 SNAPSHOT = {
     "neurips_s2.csv": "551d261f2e8273b24ec2ad38f0e12014cec39bd8f58e927303e9452517eeee88",
     "iclr_s2.csv":    "d93ada5eda606eed8fc7655062590f6813685f081d9534d93d3361cb377f2244",

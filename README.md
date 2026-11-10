@@ -62,10 +62,10 @@ re-fetched.
 src/            pipeline
 tests/          tests, documented in tests/README.md
 paper/          UncertaiNLP figure sources and rendered figures.pdf;
-                paper/tmlr/ holds the TMLR abstract for the self-audit, the
-                macro generator, and the manuscript text (source/) with the
-                claim table (claims.csv) that ties every printed number to
-                an output
+                paper/tmlr/ holds the TMLR figure and table sources with
+                their rendered figures.pdf, the macro and table generators,
+                and the claim table (claims.csv) that ties every printed
+                number to an output
 judge_scores/   judge scores, six models, by venue
 baselines/      arXiv and PubMed per-year aggregates for the TMLR paper,
                 documented in baselines/README.md
@@ -132,14 +132,15 @@ analysis     metric against judge Spearman correlation, summary series,
              collinearity, acronym reuse, robustness and concentration,
              Flesch decomposition, topic clusters, trends, profiles and
              decomposition
-self_audit   the TMLR paper's own title and abstract
+self_audit   the TMLR paper's own title and abstract (needs AA_PAPER)
 citations    citation analyses; runs only when the reader's own Semantic
              Scholar counts are present (see Citations)
-macros       the TMLR paper's 163 inline numbers and six generated tables,
-             written to data/tmlr/ by paper/tmlr/make_macros.py
+macros       the TMLR paper's 163 inline numbers and its 13 data-driven
+             tables, written to data/tmlr/ by paper/tmlr/make_macros.py and
+             make_tables.py, and compared with the paper
 claims       every other number the TMLR manuscript prints, checked against
              the outputs by paper/tmlr/check_claims.py
-figures      heatmap and the rendered figure set
+figures      heatmap and the rendered figure sets of both papers
 verify       all artefacts against reference/
 ```
 
@@ -173,13 +174,25 @@ The release covers every series, table and number in the TMLR paper:
 - the Flesch decomposition and the topic analyses (clusters, trends,
   profiles and the topic decomposition);
 - the citation analyses, as scripts only (see Citations);
-- the self-audit of the paper's own abstract:
+- the self-audit of the paper's own abstract, from a local copy of the
+  manuscript (see The manuscript):
 
 ```bash
-python src/metrics/audit_self.py \
-    --title "Machine Learning Research Has Outpaced Its Communication Norms" \
-    --abstract-file paper/tmlr/self_audit_abstract.txt
+python src/metrics/audit_self.py --from-tex $AA_PAPER/main.tex
 ```
+
+Every figure and table of the paper has its source in `paper/tmlr/`: the ten
+figures in `figs/`, with their captions, read the export's
+`data/pgfplots/tmlr/`. The data-driven tables are generated from the
+pipeline's outputs into `data/tmlr/tables/`, each from the paper's table as
+the template: six by `make_macros.py` with the paper's macros, seven by
+`make_tables.py` (acronym reuse, the two citation decile tables, corpus
+sizes, the self-audit, the judge prompts and the text normalisation rules).
+The two tables that carry no computed value are committed in `tables/`.
+`paper/tmlr/build_figures.py` renders all of them to `paper/tmlr/figures.pdf`
+(the figures stage), with a note in place of any figure or table whose input
+was not built: the citation figure and tables without the reader's citation
+counts, the self-audit without the manuscript.
 
 The arXiv and PubMed series are computed from per-year aggregates shipped in
 `baselines/`, because neither source can be fetched again in the form the
@@ -189,6 +202,31 @@ paper used. The scripts that produced them are included and documented there:
 records, the metric scripts run with `--venues arxiv pubmed` for the
 per-paper values, and `src/baselines/make_baselines.py` for the aggregates. The acronym reuse rows
 for arXiv and PubMed come from `baselines/acronym_histograms.csv`.
+
+## The manuscript
+
+The TMLR manuscript is not distributed with this repository: no part of its
+text is shipped, apart from the figure and table sources with their captions
+in `paper/tmlr/`. Four checks read it, and take a local copy of its LaTeX
+source (the folder with `main.tex`, `generated_round{2,3,4}.tex`, `tables/`
+and `figs/`) from the environment variable `AA_PAPER` or `--paper-dir`:
+
+```bash
+export AA_PAPER=/path/to/manuscript
+python main.py --from self_audit       # or: python verify.py
+```
+
+```
+self_audit     the paper's own title and abstract, measured by audit_self.py
+check_macros   reference/tmlr/macros.csv against the paper's macro files
+check_tables   every generated table against the paper's table, cell by cell
+check_claims   coverage: every number the paper prints has a row in
+               claims.csv, and every row still marks a number
+```
+
+Without `AA_PAPER` the self-audit stage is skipped, those checks are
+reported as skipped, and everything else runs: every printed value stored in
+`claims.csv` and `macros.csv` is still recomputed and compared.
 
 ## Citations
 
@@ -200,14 +238,18 @@ one of three modes, decided by `src/citations/snapshot.py`:
 
 ```
 strict   the three local files match the published snapshot's hashes: every
-         citation output must equal reference/tmlr/citations/ exactly
-fresh    the files exist but differ (a new fetch): outputs are reported, not
-         failed, since counts change daily
+         citation number the paper prints (claims, macros and the two
+         citation tables) must be reproduced exactly
+fresh    the files exist but differ (a new fetch): those numbers are
+         reported, not failed, since counts change daily
 absent   no files: the citations stage does not run and citation checks are
          skipped
 ```
 
-`reference/tmlr/citations/SNAPSHOT.md` records the snapshot.
+No statistic computed from the counts is distributed either: the citation
+checks compare the recomputed outputs with the values the paper prints.
+`src/citations/snapshot.py` holds the snapshot's SHA-256 hashes and
+retrieval dates.
 
 Citation and reference counts come from Semantic Scholar
 (<https://www.semanticscholar.org/?utm_source=api>), through the Semantic
@@ -218,40 +260,46 @@ released under CC0 1.0.
 
 ## Verification
 
-`verify.py` compares 167 files against `reference/` in strict citation mode,
-157 otherwise. The 48 per-paper metric files (16 families for each venue) and
-the figure PNG are compared byte for byte. The other 118 files, the
-plot-ready CSVs and the analysis and citation outputs of both papers, are
-compared numerically at `atol=0`, with text columns compared as strings. The
-ten citation outputs count only in strict citation mode. It exits non-zero
-on any mismatch and reports the installed package versions against those
-`reference/` was built with. `python reference/make_manifest.py` checks the
-reference files themselves against the hashes in `reference/MANIFEST.md`.
+`verify.py` compares 157 files against `reference/`. The 48 per-paper metric
+files (16 families for each venue) and the figure PNG are compared byte for
+byte. The other 108 files, the plot-ready CSVs and the analysis outputs of
+both papers, are compared numerically at `atol=0`, with text columns
+compared as strings. It exits non-zero on any mismatch and reports the
+installed package versions against those `reference/` was built with.
+`python reference/make_manifest.py` checks the reference files themselves
+against the hashes in `reference/MANIFEST.md`.
 
-It also checks the TMLR paper's inline numbers. The paper resolves 163 of
-them through `\newcommand` macros in three generated files and inputs six
-generated tables. `paper/tmlr/make_macros.py` writes all of them from the
-pipeline's outputs with the formatting code of the upstream generators, and
-`paper/tmlr/check_macros.py` compares them with the paper's own files in
-`reference/tmlr/tex/`: macros by name and exact value, tables byte for byte.
-Eleven macros and two tables need citation counts. They are compared when the
-local counts are the published snapshot, reported but not counted after a
-fresh fetch, and skipped when there are none.
+It also checks every number the TMLR paper prints, in three parts.
 
-Every other number the manuscript prints is checked too. `paper/tmlr/source/`
-holds the manuscript text (main.tex and every table and figure it inputs,
-without comments or author details), copied from the research repository by
-`paper/tmlr/import_source.py`. `paper/tmlr/inventory.py` finds every number in
-it: numerals, ranges, fractions such as "14 of the 15", and spelled-out
-quantities such as "roughly a quarter". `paper/tmlr/claims.csv` has one row
-per number, saying whether it is measured, quoted from the literature, a
-design constant or unverifiable, and naming the function in
-`paper/tmlr/claims.py` that recomputes it from the pipeline's outputs.
-`paper/tmlr/check_claims.py` reports each as MATCH, MISMATCH, SKIP or
-UNVERIFIABLE, and fails if a number has no row or a row no longer marks a
-number. Citation claims are recomputed in strict citation mode and otherwise
-compared with the frozen outputs in `reference/tmlr/citations/`. Its docstring
-says how to update `claims.csv` after the manuscript changes.
+The paper resolves 163 inline numbers through `\newcommand` macros in three
+generated files. `paper/tmlr/make_macros.py` writes them from the pipeline's
+outputs with the formatting code of the upstream generators, and
+`paper/tmlr/check_macros.py` compares them by name and exact value with the
+printed values in `reference/tmlr/macros.csv`.
+
+`paper/tmlr/check_tables.py` compares every table the release builds (the
+thirteen generated tables and the two static ones) with the paper's own
+table, cell by cell.
+
+Every other printed number has a row in `paper/tmlr/claims.csv`: the value
+as printed, whether it is measured, quoted from the literature, a design
+constant or unverifiable, and the function in `paper/tmlr/claims.py` that
+recomputes it from the pipeline's outputs. The file holds no text from the
+manuscript; each row is tied to its place in the paper by a SHA-256 hash of
+the number and the words around it. `paper/tmlr/check_claims.py` reports
+each row as MATCH, MISMATCH, KNOWN, SKIP or UNVERIFIABLE. KNOWN marks the two
+discrepancies the authors chose to keep in the published text; they are
+reported with the computed value and not counted as failures. With the
+manuscript (`AA_PAPER`), `paper/tmlr/inventory.py` finds every number it
+prints (numerals, ranges, fractions and spelled-out quantities), and the
+check fails if a number has no row or a row no longer marks a number. Its
+docstring says how to update `claims.csv` after the manuscript changes.
+
+Citation numbers (eleven macros, two tables and the citation claims) are
+compared when the local counts are the published snapshot, reported but not
+counted after a fresh fetch, and skipped when there are none. Without
+`AA_PAPER` the comparisons with the manuscript are skipped and reported (see
+The manuscript).
 
 Two dependencies determine the values and are pinned exactly. The `textstat`
 implementations have changed across releases. The spaCy model version

@@ -23,18 +23,26 @@ Stages (each runs over NeurIPS, ICLR and ICML):
              visual_abstract_data     the two-panel summary series
              latex_robustness         Flesch under LaTeX and URL normalisation
              readability_collinearity correlation and PCA of the 15 formulas
-  self_audit audit_self               the TMLR paper's own title and abstract
+  self_audit audit_self               the TMLR paper's own title and abstract,
+                                      read from the manuscript; runs only with
+                                      $AA_PAPER (the manuscript is not
+                                      distributed; see README)
   citations  src/citations/*          citation analyses; runs only with the
                                       reader's own Semantic Scholar counts
   macros     paper/tmlr/make_macros   the TMLR paper's 163 inline numbers and
                                       six generated tables -> data/tmlr/
-             paper/tmlr/check_macros  compared with reference/tmlr/tex/
-                                      (report only; verify is the gate)
+             paper/tmlr/make_tables   its seven other data-driven tables
+             paper/tmlr/check_macros  compared with reference/tmlr/macros.csv
+             paper/tmlr/check_tables  every table compared with the paper's,
+                                      given $AA_PAPER (both report only;
+                                      verify is the gate)
   claims     paper/tmlr/check_claims  every other number the TMLR paper prints
-                                      (paper/tmlr/source/, claims.csv), checked
-                                      against the outputs above (report only)
+                                      (paper/tmlr/claims.csv), checked against
+                                      the outputs above (report only)
   figures    make_heatmap             the judge-vs-metric heatmap PNG
              build_figures            renders every figure to paper/figures.pdf
+             tmlr/build_figures       every TMLR figure and table to
+                                      paper/tmlr/figures.pdf
   verify     verify                   every output against reference/
 
 Dependencies. A command whose inputs are absent is not run: main.py prints
@@ -82,7 +90,9 @@ TOPIC_PROFILE = f"{AGG}/topic_profiles.csv"
 # Citation counts are fetched by the reader (src/citations/fetch_s2.py) and
 # are not distributed; the citations stage runs only when all three exist.
 CIT_FILES = [f"{D}/per_paper/citations/{v}_s2.csv" for v in VENUES]
-TMLR_TITLE = "Machine Learning Research Has Outpaced Its Communication Norms"
+# The TMLR manuscript is not distributed; the self-audit reads the paper's
+# own title and abstract from a local copy (see paper/tmlr/manuscript.py).
+PAPER = os.environ.get("AA_PAPER") or None
 
 PROCESSED = f"{D}/processed/*/*.json"
 
@@ -110,6 +120,13 @@ NEEDS: dict[str, list[str]] = {
     "paper/build_figures.py": [f"data/pgfplots/{f}.csv" for f in (
         "va_flesch", "va_zscore", "readability_flesch_ease",
         "llm_scores_model_avg_simple", "llm_scores_standardized_simple")],
+    # Likewise ../../data/ relative to paper/tmlr/. The tables and the
+    # citation figure that were not built are replaced by notes.
+    "paper/tmlr/build_figures.py": [f"data/pgfplots/tmlr/{f}.csv" for f in (
+        "readability_flesch_ease", "sensational_total", "acronyms_title",
+        "acronyms_abstract", "papers_per_year", "sentence_length",
+        "llm_scores_model_avg_simple", "llm_scores_model_avg_iclr_simple",
+        "llm_scores_model_avg_icml_simple")],
 }
 INCOMPLETE = f"{D}/incomplete.json"
 
@@ -149,8 +166,8 @@ STAGES: list[tuple[str, list[list[str]]]] = [
                    ["src/analysis/topic_trends.py"],
                    ["src/analysis/topic_profiles.py"],
                    ["src/analysis/topic_decomposition.py"]]),
-    ("self_audit", [["src/metrics/audit_self.py", "--title", TMLR_TITLE,
-                     "--abstract-file", "paper/tmlr/self_audit_abstract.txt",
+    ("self_audit", [["src/metrics/audit_self.py",
+                     "--from-tex", os.path.join(PAPER or "", "main.tex"),
                      "--out", f"{AGG}/self_audit.csv"]]),
     ("citations", [["src/citations/snapshot.py"],
                    ["src/citations/coverage.py"],
@@ -164,10 +181,13 @@ STAGES: list[tuple[str, list[list[str]]]] = [
                    ["src/citations/topic_citations.py", "--assignments", TOPIC_ASSIGN,
                     "--profiles", TOPIC_PROFILE]]),
     ("macros",    [["paper/tmlr/make_macros.py"],
-                   ["paper/tmlr/check_macros.py", "--report-only"]]),
+                   ["paper/tmlr/make_tables.py"],
+                   ["paper/tmlr/check_macros.py", "--report-only"],
+                   ["paper/tmlr/check_tables.py", "--report-only"]]),
     ("claims",    [["paper/tmlr/check_claims.py", "--report-only"]]),
     ("figures",   [["paper/analysis/make_heatmap.py"],
-                   ["paper/build_figures.py"]]),
+                   ["paper/build_figures.py"],
+                   ["paper/tmlr/build_figures.py"]]),
     ("verify",    [["verify.py"]]),
 ]
 
@@ -205,6 +225,11 @@ def run(stage: str, cmds: list[list[str]], incomplete: dict | None = None) -> No
     if stage == "citations" and not all(os.path.exists(p) for p in CIT_FILES):
         print("  no citation counts under data/per_paper/citations/; skipped "
               "(see README, Citations)", flush=True)
+        return
+    if stage == "self_audit" and PAPER is None:
+        print("  AA_PAPER is not set; skipped. The self-audit reads the TMLR "
+              "paper's own abstract, which is not distributed (see README, "
+              "The manuscript)", flush=True)
         return
     env = dict(os.environ)
     env["PYTHONPATH"] = os.path.join(HERE, "src") + os.pathsep + env.get("PYTHONPATH", "")

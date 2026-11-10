@@ -168,9 +168,9 @@ in `tmlr/pgfplots_full/sentence_length.csv`.
   upstream `tmlr/analysis/out/`. `topic_profiles.csv` is the upstream file
   without its two citation columns, `median_citations` and
   `n_with_citations`: the other six columns and all 15 rows are the upstream
-  strings, unchanged. Those two columns are checked through
-  `tmlr/citations/topic_citations.csv` (below), and only in strict citation
-  mode.
+  strings, unchanged. No citation statistic is distributed: the paper's
+  median citations per topic are checked against the printed table, and only
+  in strict citation mode.
 
 Topic clustering additionally needs scikit-learn 1.9.0.
 
@@ -193,55 +193,6 @@ fae8a138ced76794  tmlr/analysis/topic_profiles.csv
 52923e414c40fbd5  tmlr/analysis/topic_stability.csv
 4bc880bfc5745590  tmlr/analysis/topic_terms.csv
 2f678b2b0e37d4e6  tmlr/analysis/topic_trends.csv
-```
-
-## TMLR paper, citations
-
-Produced from the upstream research repository at commit `eda2733` and the
-citation snapshot described in `tmlr/citations/SNAPSHOT.md` (Semantic Scholar,
-NeurIPS retrieved 2026-05-11, ICLR and ICML 2026-06-11). The snapshot itself
-is not distributed.
-
-Copied byte for byte from upstream, and reproduced byte for byte by
-`src/citations/` from the snapshot:
-
-```
-tmlr/citations/citation_regression.csv                      data/aggregate/citation_regression.csv
-tmlr/citations/citation_readability_top_bottom_combined.csv data/aggregate/citation_readability_top_bottom_combined.csv
-tmlr/citations/references.csv                               data/aggregate/references.csv
-tmlr/citations/references_per_year.csv                      tmlr/data/pgfplots/references_per_year.csv
-tmlr/citations/citation_regression_topics.csv               tmlr/analysis/out/citation_regression_topics.csv
-```
-
-Computed by this repository from the snapshot, because upstream wrote these
-numbers only to LaTeX, to the terminal, or inside a wider file:
-
-- `citation_llm_top_bottom_combined.csv` (`judge_deciles.py`): the 45 numbers
-  of upstream `tmlr/tables/citation_llm_top_bottom_combined.tex`, all equal at
-  the table's two decimals.
-- `citation_cohens_d.csv` (`regression.py`): the pooled Cohen's d upstream
-  `citation_regression.py` printed, equal to full float precision.
-- `topic_citations.csv`, `topic_citation_corr.csv` (`topic_citations.py`):
-  the columns `topic_k15, n, flesch, median_citations, n_with_citations`
-  equal upstream `tmlr/analysis/out/topic_profiles.csv` value for value; the
-  Pearson correlation is the paper's TopicCitCorr, -0.59.
-- `citation_coverage.csv` (`coverage.py`): coverage through 2024 of 99.8,
-  97.0 and 96.3 percent and the 2.1 percent fallback share the paper quotes.
-
-sha256, first 16 hex:
-
-```
-d231fca47ae541bc  tmlr/citations/SNAPSHOT.md
-09744729bddc0a31  tmlr/citations/citation_cohens_d.csv
-d73fdbf40c141f82  tmlr/citations/citation_coverage.csv
-70fde10c229bb6e0  tmlr/citations/citation_llm_top_bottom_combined.csv
-778fa9031fab4d19  tmlr/citations/citation_readability_top_bottom_combined.csv
-ca03a48643809afd  tmlr/citations/citation_regression.csv
-343c1fae5cae36e1  tmlr/citations/citation_regression_topics.csv
-5d6a75f52fb9a80b  tmlr/citations/references.csv
-f568632ce480d5b2  tmlr/citations/references_per_year.csv
-99d68b120d904c70  tmlr/citations/topic_citation_corr.csv
-c7ae017740db495f  tmlr/citations/topic_citations.csv
 ```
 
 ## TMLR paper, untrimmed figure data
@@ -301,27 +252,19 @@ a09886514aa191f1  tmlr/pgfplots_full/signposting.csv
 1bf5a67df8bc7862  tmlr/pgfplots_full/verbs.csv
 ```
 
-## TMLR inline numbers and generated tables
+## TMLR inline numbers
 
-`tmlr/tex/` holds the paper's files at upstream commit `eda2733`
-(eda27335c0a1887bcf2c93935b612620f1381991), extracted with `git show` byte
-for byte: `tmlr/generated_round{2,3,4}.tex` and six tables from
-`tmlr/tables/`. They were written upstream by
-`tmlr/analysis/make_round{2,3,4}_tex.py`. Rerunning those three scripts on
-the upstream inputs at that commit reproduces all nine files byte for byte,
-so none was edited by hand. `topic_controls.tex`, `topics.tex` and eleven
-macros carry values computed from the citation snapshot.
+`tmlr/macros.csv` holds the 163 values the paper prints through its three
+macro files (`generated_round{2,3,4}.tex`): one row per macro, with the file,
+the macro name and the printed value. Every value is a computed number or a
+computed label (a topic's leading term, the ten commonest acronyms); none is
+text from the manuscript. Eleven of them are printed values computed from
+the citation snapshot. It was written from the manuscript at upstream commit
+`1cc4809` by `python paper/tmlr/check_macros.py --write-reference` (the
+macro files are unchanged since `eda2733`).
 
 sha256, first 16 hex:
 
 ```
-c26f8e853f4e3a44  tmlr/tex/generated_round2.tex
-e31c2a0ae623e7de  tmlr/tex/generated_round3.tex
-2c6350e5439663b2  tmlr/tex/generated_round4.tex
-1f879b1f4d4041f4  tmlr/tex/tables/acronym_concentration.tex
-3abbd92dbd367f13  tmlr/tex/tables/normalisation.tex
-e290cf23b51dbab8  tmlr/tex/tables/topic_controls.tex
-fa7f368620dbba1f  tmlr/tex/tables/topic_decomposition.tex
-c3faf0f5685e739b  tmlr/tex/tables/topic_trends.tex
-f1126d8984b43752  tmlr/tex/tables/topics.tex
+2d1e10ca41cd2b58  tmlr/macros.csv
 ```

@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
-"""Every number the TMLR manuscript prints, found in paper/tmlr/source/.
+"""Every number the TMLR manuscript prints.
 
-The inventory reads main.tex and every file it \\input's (tables and figures),
+The manuscript is not distributed with this repository: the inventory reads a
+local copy of its LaTeX source, the directory given by $AA_PAPER or
+--paper-dir (see manuscript.py). It reads main.tex and every file it \\input's (tables and figures),
 except the three macro files: the 163 \\newcommand values are compared value
 by value by check_macros.py, and a macro invocation in the text is not a
 printed number here. Comments are ignored.
@@ -49,18 +51,29 @@ What is not inventoried, and why:
 
 When a case is not covered above it is included.
 
-    python paper/tmlr/inventory.py                 # print every occurrence
-    python paper/tmlr/inventory.py --summary
+Each occurrence is identified without storing any of the text around it:
+context_sha256 hashes the file name, the number as printed and the words
+around it (CONTEXT_WORDS on each side, whitespace collapsed). claims.csv
+stores only that hash, so the check can tie a row to its number in the
+reader's copy of the manuscript and notice when the sentence around it
+changes.
+
+    AA_PAPER=path/to/manuscript python paper/tmlr/inventory.py
+    python paper/tmlr/inventory.py --paper-dir path/to/manuscript --summary
 """
 from __future__ import annotations
 
 import argparse
+import hashlib
 import os
 import re
+import sys
 from dataclasses import dataclass
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-SOURCE = os.path.join(HERE, "source")
+sys.path.insert(0, HERE)
+from manuscript import paper_dir  # noqa: E402
+
 MACRO_FILES = ("generated_round2.tex", "generated_round3.tex", "generated_round4.tex")
 
 
@@ -86,7 +99,7 @@ def read_text(path: str) -> str:
         return "\n".join(strip_comment(ln) for ln in fh.read().split("\n"))
 
 
-def files_of(source: str = SOURCE) -> list[str]:
+def files_of(source: str) -> list[str]:
     """main.tex, then every file it \\input's except the macro files, as paths
     relative to `source`, in order of first \\input."""
     text = read_text(os.path.join(source, "main.tex"))
@@ -104,8 +117,8 @@ def files_of(source: str = SOURCE) -> list[str]:
 class Normalised:
     """A text with every whitespace run collapsed to one space, and a map
     from each position of the original to its position in the collapsed one.
-    Quotes in claims.csv are matched against the collapsed text, so a change
-    of line breaks upstream does not make a claim stale."""
+    Contexts are taken from the collapsed text, so a change of line breaks
+    in the manuscript does not make a claim stale."""
     text: str
     pos: list[int]          # original index -> normalised index
 
@@ -432,7 +445,7 @@ def tokens_in(text: str, is_main: bool = False) -> list[Token]:
     return _merge(_raw_tokens(masked), masked)
 
 
-def occurrences(rel: str, source: str = SOURCE, width: int = 40) -> tuple[list[Occurrence], Normalised]:
+def occurrences(rel: str, source: str, width: int = 40) -> tuple[list[Occurrence], Normalised]:
     """Every number in one source file, and the file's normalised text."""
     text = read_text(os.path.join(source, rel))
     norm = Normalised.of(text)
@@ -446,7 +459,7 @@ def occurrences(rel: str, source: str = SOURCE, width: int = 40) -> tuple[list[O
     return out, norm
 
 
-def inventory(source: str = SOURCE) -> tuple[list[Occurrence], dict[str, Normalised]]:
+def inventory(source: str) -> tuple[list[Occurrence], dict[str, Normalised]]:
     """Every occurrence in every source file, and each file's normalised text."""
     occ, norms = [], {}
     for rel in files_of(source):
@@ -456,13 +469,49 @@ def inventory(source: str = SOURCE) -> tuple[list[Occurrence], dict[str, Normali
     return occ, norms
 
 
+# ================================================================ context ===
+
+CONTEXT_WORDS = 6
+
+
+def context_key(o: Occurrence, norm: Normalised, words: int = CONTEXT_WORDS) -> str:
+    """The number as printed with `words` whitespace-separated words on each
+    side, from the file's normalised text. Only ever hashed, never stored."""
+    t = norm.text
+    a, b = o.pos, o.pos + len(o.text)
+    left = t[:a].split(" ")
+    right = t[b:].split(" ")
+    # a word cut by the number (a bracket, a dollar) is kept whole on its side
+    lw = " ".join(left[-(words + 1):])
+    rw = " ".join(right[:words + 1])
+    return f"{lw}<<{o.text}>>{rw}"
+
+
+def context_hashes(occ: list[Occurrence], norms: dict[str, Normalised]) -> list[str]:
+    """context_sha256 of each occurrence, in order. Two occurrences with the
+    same file and context are told apart by their order in the file."""
+    seen: dict[tuple[str, str], int] = {}
+    out = []
+    for o in occ:
+        key = context_key(o, norms[o.file])
+        k = seen.get((o.file, key), 0)
+        seen[(o.file, key)] = k + 1
+        h = hashlib.sha256(f"{o.file}\n{key}\n{k}".encode("utf-8")).hexdigest()
+        out.append(h)
+    return out
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--source", default=SOURCE)
+    ap.add_argument("--paper-dir", default=None,
+                    help="the manuscript directory (default: $AA_PAPER)")
     ap.add_argument("--summary", action="store_true")
     a = ap.parse_args()
-    occ, _ = inventory(a.source)
+    source = paper_dir(a.paper_dir)
+    if source is None:
+        sys.exit("no manuscript: set AA_PAPER or pass --paper-dir")
+    occ, _ = inventory(source)
     if a.summary:
         from collections import Counter
         for f, n in Counter(o.file for o in occ).items():

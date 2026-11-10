@@ -13,24 +13,38 @@ Comparisons, for the UncertaiNLP paper (reference/) and the TMLR paper
   plot-ready CSVs            numeric at atol=0 (NaN equal to NaN), text columns
                              equal as strings
   TMLR analysis CSVs         as plot-ready CSVs
-  TMLR inline numbers        the 163 \newcommand macros by name and value,
-                             the six generated tables byte-for-byte, and the
-                             paper's own copies of both (paper/tmlr/source/)
-                             against the same reference
+  TMLR inline numbers        the 163 \newcommand macros by name and value
+                             against reference/tmlr/macros.csv
                              (paper/tmlr/check_macros.py)
-  TMLR printed numbers       every other number in the manuscript text
-                             (paper/tmlr/source/) against paper/tmlr/claims.csv
-                             and the outputs (paper/tmlr/check_claims.py);
-                             a mismatch, a missing input, an error, an
-                             uncovered number and a stale claim each count as
-                             a failure; skips are listed by reason
+  TMLR tables                every table the release builds against the
+                             paper's own, cell by cell
+                             (paper/tmlr/check_tables.py)
+  TMLR printed numbers       every other number the manuscript prints,
+                             recomputed and compared with the printed value in
+                             paper/tmlr/claims.csv (paper/tmlr/check_claims.py);
+                             a mismatch, a missing input and an error each
+                             count as a failure; skips are listed by reason;
+                             author-accepted discrepancies are listed as KNOWN
   figure PNG                 byte-for-byte
+
+The manuscript is not distributed. Given a local copy of its LaTeX source
+($AA_PAPER, see paper/tmlr/manuscript.py), three more checks run: the macro
+values in macros.csv against the paper's own macro files, every table
+against the paper's table, and the coverage of claims.csv (an uncovered
+number, a stale row and a printed value that differs each count as a
+failure). Without it these are reported as skipped.
+
+Citations. The citation counts and every statistic computed from them are not
+distributed. With the published snapshot of the counts (strict mode) the
+citation macros, tables and claims are compared like everything else; after a
+fresh fetch they are reported, not counted; without counts they are skipped.
 
 Incomplete analyses. main.py does not run a command whose inputs are absent
 (the --from aggregate route has no processed abstracts) and records it in
 $AA_DATA/incomplete.json; make_macros.py records the sections it could not
-write in tmlr/skipped.json. Both are listed first, so a reader knows which
-analyses did not run before reading the missing outputs they cause. The
+write in tmlr/skipped.json, and make_tables.py the tables in
+tmlr/tables.json. All are listed first, so a reader knows which analyses did
+not run before reading the missing outputs they cause. The
 missing outputs still count: an incomplete run does not verify.
 
     python verify.py
@@ -49,6 +63,8 @@ import pandas as pd
 HERE = os.path.dirname(os.path.abspath(__file__))
 DATA = os.environ.get("AA_DATA", "data")
 REF  = os.path.join(HERE, "reference")
+sys.path.insert(0, os.path.join(HERE, "src"))
+sys.path.insert(0, os.path.join(HERE, "paper", "tmlr"))
 
 ok = fail = missing = 0
 
@@ -135,51 +151,29 @@ def environment_report() -> None:
               "published numbers exactly.")
 
 
-def citations_section() -> None:
-    """Citation outputs, checked only against the authors' snapshot.
-
-    The counts are not distributed. With no local files the section is
-    skipped. With files whose hashes match reference/tmlr/citations/SNAPSHOT.md
-    every output must match exactly. With any other files (a new fetch) the
-    differences are reported but not counted: citation counts change daily, so
-    a fresh fetch recomputes the analysis rather than reproducing it.
-    """
-    global ok, fail, missing
-    sys.path.insert(0, os.path.join(HERE, "src"))
+def citations_section(paper: str | None) -> str:
+    """The citation mode, reported. No citation output is compared here:
+    none is distributed. The citation numbers the paper prints are compared
+    by the macros, tables and claims sections below."""
     from citations.snapshot import mode
     print("\nTMLR citations")
     m = mode(os.path.join(DATA, "per_paper", "citations"))
-    refs = sorted(glob.glob(os.path.join(REF, "tmlr", "citations", "*.csv")))
-    if m == "absent":
-        print("  skipped: no citation counts in data/per_paper/citations/ (see README)")
-        return
-    if m == "fresh":
-        print("  local citation counts differ from the published snapshot; differences "
-              "below are reported, not counted")
-        saved = (ok, fail, missing)
-    for r in refs:
-        base = os.path.basename(r)
-        check_csv(f"tmlr/citations/{base}",
-                  os.path.join(DATA, "aggregate", "citations", base), r)
-    if m == "fresh":
-        ok, fail, missing = saved
+    print({"absent": "  no citation counts in data/per_paper/citations/: citation "
+                     "macros, tables and claims are skipped (see README)",
+           "fresh": "  local citation counts differ from the published snapshot: "
+                    "citation macros, tables and claims are reported, not counted",
+           "strict": "  local citation counts are the published snapshot: citation "
+                     "macros, tables and claims are compared"}[m])
+    return m
 
 
-def macros_section() -> None:
-    """The paper's inline numbers and generated tables.
-
-    paper/tmlr/check_macros.py does the comparison; see its docstring. The
-    citation-dependent macros and tables follow the citation mode as the
-    citation outputs do: compared in strict mode, reported but not counted in
-    fresh mode, skipped when the counts are absent.
-    """
+def macros_section(m: str, paper: str | None) -> None:
+    """The paper's inline numbers; paper/tmlr/check_macros.py, see its
+    docstring."""
     global ok, fail, missing
-    sys.path.insert(0, os.path.join(HERE, "src"))
-    sys.path.insert(0, os.path.join(HERE, "paper", "tmlr"))
-    from check_macros import check, citation_mode
-    m = citation_mode(DATA)
-    print(f"\nTMLR macros and tables (citation mode {m})")
-    res = check(os.path.join(DATA, "tmlr"), m)
+    from check_macros import check
+    print(f"\nTMLR macros (citation mode {m})")
+    res = check(os.path.join(DATA, "tmlr"), m, paper=paper)
     for line in res.lines + res.summary():
         print(line)
     ok += res.ok
@@ -187,24 +181,33 @@ def macros_section() -> None:
     missing += res.missing
 
 
-def claims_section() -> None:
+def tables_section(m: str, paper: str | None) -> None:
+    """Every table against the paper's own; paper/tmlr/check_tables.py."""
+    global ok, fail, missing
+    from check_tables import check
+    print(f"\nTMLR tables (citation mode {m})")
+    res = check(os.path.join(DATA, "tmlr", "tables"), m, paper)
+    for line in res.lines + res.summary():
+        print(line)
+    ok += res.ok
+    fail += res.bad
+    missing += res.missing
+
+
+def claims_section(m: str, paper: str | None) -> None:
     """Every number the TMLR manuscript prints, outside the macros.
 
     paper/tmlr/check_claims.py does the work; see its docstring. A match
-    counts as ok; a mismatch, a check error, a number with no claims.csv row
-    and a row whose quote no longer marks a number each count as a failure.
-    A claim whose required input is absent counts as missing. Skipped
-    claims (design and literature rows, citation claims outside strict mode,
-    the one exempt raw-scrape count) are listed by reason and unverifiable
-    ones reported; neither is counted.
+    counts as ok; a mismatch and a check error count as failures, and, with
+    the manuscript, so do an uncovered number, a stale row and a printed
+    value that differs. A claim whose required input is absent counts as
+    missing. Skipped claims are listed by reason, and unverifiable and
+    author-accepted (KNOWN) ones reported; none of these is counted.
     """
     global ok, fail, missing
-    sys.path.insert(0, os.path.join(HERE, "src"))
-    sys.path.insert(0, os.path.join(HERE, "paper", "tmlr"))
-    from check_claims import citation_mode, run
-    m = citation_mode(DATA)
+    from check_claims import run
     print(f"\nTMLR printed numbers (citation mode {m})")
-    rep = run(DATA, m)
+    rep = run(DATA, m, paper=paper)
     for line in rep.lines() + rep.skip_lines() + rep.summary():
         print(line)
     ok += rep.count("MATCH")
@@ -228,6 +231,11 @@ def incomplete_section() -> None:
             for rec in json.load(fh).get("incomplete", []):
                 items.append(f"  not built macros: section {rec['section']}, "
                              f"absent {rec['input']}")
+    path = os.path.join(DATA, "tmlr", "tables.json")
+    if os.path.exists(path):
+        with open(path) as fh:
+            for name, what in json.load(fh).get("incomplete", {}).items():
+                items.append(f"  not built table: {name}, absent {what}")
     if items:
         print("incomplete analyses (their outputs are reported missing below)")
         for line in items:
@@ -268,12 +276,20 @@ def main() -> None:
     for ref_path in sorted(glob.glob(os.path.join(REF, "tmlr", "*.csv"))
                            + glob.glob(os.path.join(REF, "tmlr", "analysis", "*.csv"))):
         base = os.path.basename(ref_path)
+        if base == "macros.csv":            # the printed macro values: macros section
+            continue
         rel = os.path.relpath(ref_path, REF)
         check_csv(rel, os.path.join(DATA, "aggregate", base), ref_path)
 
-    citations_section()
-    macros_section()
-    claims_section()
+    from manuscript import ENV, paper_dir
+    paper = paper_dir()
+    print(f"\nTMLR manuscript: {paper}" if paper else
+          f"\nTMLR manuscript: not given ({ENV} unset); the checks that read it "
+          "are skipped")
+    m = citations_section(paper)
+    macros_section(m, paper)
+    tables_section(m, paper)
+    claims_section(m, paper)
 
     print("\nfigures")
     check_bytes("paper/figs/fig_judge_metric_heatmap.png",

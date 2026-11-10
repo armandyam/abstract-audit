@@ -32,8 +32,7 @@ covers them. No value was altered.
 - `tmlr/analysis/` holds the acronym reuse, robustness and concentration
   tables, the Flesch decomposition and the topic analyses, copied whole
   except `topic_profiles.csv`, which lacks the two upstream citation columns
-  (`median_citations`, `n_with_citations`). Those are checked through
-  `tmlr/citations/topic_citations.csv`. The arXiv and PubMed rows of
+  (`median_citations`, `n_with_citations`). The arXiv and PubMed rows of
   `acronym_reuse_freq.csv` are computed from `baselines/acronym_histograms.csv`.
 - `tmlr/latex_robustness_summary.csv` holds the derived numbers the paper
   quotes from the normalisation analysis. Upstream computed them inside the
@@ -42,18 +41,19 @@ covers them. No value was altered.
   `latex_robustness.csv`, and every value matches the paper's macros at the
   paper's rounding.
 
-`tmlr/citations/` holds the TMLR paper's citation outputs and
-`SNAPSHOT.md`, the hashes of the Semantic Scholar files they were computed
-from and the data providers' attribution. Those files are not distributed.
-The outputs are compared only when the local files match the snapshot; see
-`src/citations/snapshot.py`.
+`tmlr/macros.csv` holds the values the paper prints through its 163 macros
+(file, name, value), written from the manuscript's macro files by
+`paper/tmlr/check_macros.py --write-reference`. `paper/tmlr/check_macros.py`
+compares the built macros with it.
 
-`tmlr/tex/` holds the paper's three macro files
-(`generated_round{2,3,4}.tex`, 163 `\newcommand` definitions) and the six
-tables generated with them (`tables/`), byte copies of the files the paper
-was built with. None was edited by hand after generation: the upstream
-generators, rerun on the upstream inputs, write all nine byte-identical.
-`paper/tmlr/check_macros.py` compares the built files with these.
+No citation output is held here. The citation counts are not distributed and
+neither is any statistic computed from them; the citation numbers the paper
+prints are checked against the printed values (`paper/tmlr/claims.csv`,
+`macros.csv`) when the reader's counts are the published snapshot (see
+`src/citations/snapshot.py`).
+
+The manuscript itself is not held here either. The checks that read it take
+a local copy at run time (`AA_PAPER`, see the top-level README).
 
 No file in this directory is an input to the pipeline. To work from the shipped
 metrics instead of scraping, copy `reference/per_paper/` into `data/per_paper/`

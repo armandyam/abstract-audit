@@ -1,7 +1,9 @@
 """Check functions for the numbers printed in the TMLR paper.
 
 paper/tmlr/claims.csv names one of these functions for every number the
-manuscript prints (see check_claims.py for the format). Each function computes
+manuscript prints (see check_claims.py for the format). None of them reads
+the manuscript, except the self-audit's acronym count, which needs the
+paper's own abstract ($AA_PAPER, see manuscript.py). Each function computes
 its value from this repository's outputs only:
 
   $AA_DATA/pgfplots/tmlr/      per-venue yearly series, six columns with the
@@ -19,12 +21,13 @@ A function returns a number, a tuple of numbers (for a printed range or a
 fraction such as "14 of the 15"), a string, or a bool. claims.csv says how
 the returned value is compared with the printed one (its `rule`).
 
-Citation claims. The Semantic Scholar counts are not distributed. In strict
-citation mode (local counts equal the published snapshot) the citation
-functions read $AA_DATA/aggregate/citations/, which the pipeline recomputed.
-In any other mode they read the frozen published outputs in
-reference/tmlr/citations/, and check_claims.py reports the claim as
-"recomputation skipped".
+Citation claims. The Semantic Scholar counts are not distributed, and neither
+is any statistic computed from them. The citation functions read
+$AA_DATA/aggregate/citations/, which the citations stage computes from the
+reader's own counts. check_claims.py compares them with the printed values in
+strict citation mode (local counts equal the published snapshot), reports
+them without counting them after a fresh fetch, and skips them when the
+counts are absent.
 
 Where the paper describes a rule in words ("accelerates", "widens clearly",
 "14 of the 15"), the function's docstring states the rule exactly, so that a
@@ -79,22 +82,27 @@ REGISTRY: dict[str, "Check"] = {}
 
 
 class Check:
-    def __init__(self, fn, citation: bool, exempt: str | None = None):
+    def __init__(self, fn, citation: bool, exempt: str | None = None,
+                 paper: bool = False):
         self.fn, self.citation, self.name = fn, citation, fn.__name__
         self.exempt = exempt
+        self.paper = paper
 
     def __call__(self, ctx, **kw):
         return self.fn(ctx, **kw)
 
 
-def check(fn=None, *, citation: bool = False, exempt: str | None = None):
+def check(fn=None, *, citation: bool = False, exempt: str | None = None,
+          paper: bool = False):
     """Register a check function. citation=True marks one that reads
     citation outputs (ctx.cit). exempt, when given, is the documented reason
     why an absent input may be skipped rather than failed (see
-    check_claims.py, Missing inputs); every other check fails on an absent
-    input."""
+    check_claims.py, Missing inputs). paper=True marks one whose input
+    derives from the manuscript (the self-audit): an absent input is skipped
+    when no manuscript is given, and fails when one is. Every other check
+    fails on an absent input."""
     def wrap(f):
-        REGISTRY[f.__name__] = Check(f, citation, exempt)
+        REGISTRY[f.__name__] = Check(f, citation, exempt, paper)
         return f
     return wrap(fn) if fn is not None else wrap
 
@@ -105,11 +113,11 @@ class Ctx:
     """Where the outputs are, and the citation mode. Every file is read once."""
 
     def __init__(self, data: str, citation_mode: str = "absent",
-                 repo: str = REPO, source: str | None = None):
+                 repo: str = REPO, paper: str | None = None):
         self.data = data
         self.repo = repo
         self.citation_mode = citation_mode
-        self.source = source or os.path.join(HERE, "source")
+        self.paper = paper          # the manuscript directory, or None
 
     # -- readers ---------------------------------------------------------
     @lru_cache(maxsize=None)
@@ -124,9 +132,7 @@ class Ctx:
 
     @property
     def cit_dir(self) -> str:
-        if self.citation_mode == "strict":
-            return os.path.join(self.data, "aggregate", "citations")
-        return os.path.join(self.repo, "reference", "tmlr", "citations")
+        return os.path.join(self.data, "aggregate", "citations")
 
     @lru_cache(maxsize=None)
     def cit(self, name: str) -> pd.DataFrame:
@@ -955,6 +961,17 @@ def code_constant(ctx, path, pattern):
 
 
 @check
+def iclr_dataset_years(ctx):
+    """(first, last) year of ICLR read from the ICLR dataset
+    (src/scraping/fetch_iclr_dataset.YEARS)."""
+    m = re.search(r"YEARS = list\(range\((\d{4}), (\d{4})\)\)",
+                  _source(ctx, "src/scraping/fetch_iclr_dataset.py"))
+    if not m:
+        raise ValueError("YEARS not found in fetch_iclr_dataset.py")
+    return int(m.group(1)), int(m.group(2)) - 1
+
+
+@check
 def baseline_end(ctx):
     """The last year of the judge standardisation baseline, from
     aggregate_llm_model_avg.py."""
@@ -995,7 +1012,11 @@ def hype_shared_words(ctx, what="words"):
 
 # ========================================================= self-audit ===
 
-@check
+PAPER_EXEMPT = ("the self-audit measures the paper's own abstract, which is not "
+                "distributed; set AA_PAPER and rerun the self_audit stage")
+
+
+@check(paper=True)
 def self_audit(ctx, metric, col="abstract"):
     """One cell of aggregate/self_audit.csv (metric row, column abstract,
     title or percentile)."""
@@ -1003,21 +1024,22 @@ def self_audit(ctx, metric, col="abstract"):
     return float(df.loc[metric, col])
 
 
-@check
+@check(paper=True)
 def self_audit_family_size(ctx, family):
     """Rows of one family in aggregate/self_audit.csv."""
     return int((ctx.agg("self_audit.csv")["family"] == family).sum())
 
 
-@check
+@check(paper=True)
 def self_audit_acronyms(ctx, field="abstract"):
-    """Distinct acronyms acronyms.py finds in the audited title or abstract
-    (paper/tmlr/self_audit_abstract.txt and the title main.py passes)."""
+    """Distinct acronyms acronyms.py finds in the audited title or abstract,
+    read from the manuscript ($AA_PAPER/main.tex) as the self_audit stage
+    reads them (audit_self.read_from_tex)."""
     import metrics.acronyms as acronyms
-    sys.path.insert(0, ctx.repo)
-    title = "Machine Learning Research Has Outpaced Its Communication Norms"
-    with open(os.path.join(ctx.repo, "paper", "tmlr", "self_audit_abstract.txt")) as fh:
-        abstract = fh.read().strip()
+    from metrics.audit_self import read_from_tex
+    if ctx.paper is None:
+        raise FileNotFoundError("the manuscript ($AA_PAPER/main.tex)")
+    title, abstract = read_from_tex(os.path.join(ctx.paper, "main.tex"))
     row = acronyms.compute_row({"paper_id": "audit", "venue": "neurips", "year": 0,
                                 "title": title, "abstract": abstract})
     return len({a for a in (row.get(f"{field}_acronyms") or "").split("|") if a})
@@ -1233,59 +1255,49 @@ def refs_last_range(ctx, year=LAST):
 
 @check
 def snapshot_date(ctx, file):
-    """The retrieval date of one citation file in
-    reference/tmlr/citations/SNAPSHOT.md."""
-    txt = _source(ctx, "reference/tmlr/citations/SNAPSHOT.md")
-    m = re.search(re.escape(file) + r"\s+(\d{4}-\d{2}-\d{2})", txt)
-    if not m:
-        raise ValueError(f"{file} not in SNAPSHOT.md")
-    return m.group(1)
+    """The retrieval date of one citation file of the published snapshot
+    (citations.snapshot.RETRIEVED)."""
+    from citations.snapshot import RETRIEVED
+    return RETRIEVED[file]
 
 
 # ==================================================== generated tables ===
 
 @check
-def generated_table(ctx, table):
-    """True when the paper's copy of a generated table equals the table
-    make_macros.py built ($AA_DATA/tmlr/tables/), compared after the same
-    comment removal import_source.py applies. Every number in the table is
-    then accounted for by the generator. For the two citation tables
-    (topics.tex, topic_controls.tex) outside strict citation mode the
-    comparison is with reference/tmlr/tex/tables/, the frozen copy."""
-    sys.path.insert(0, HERE)
-    from import_source import scrub
-    from make_macros import CITATION_TABLES
-    if table in CITATION_TABLES and ctx.citation_mode != "strict":
-        built = os.path.join(ctx.repo, "reference", "tmlr", "tex", "tables", table)
-    else:
-        built = os.path.join(ctx.data, "tmlr", "tables", table)
-    with open(built, encoding="utf-8") as fh:
-        b = scrub(fh.read())
-    with open(os.path.join(ctx.source, "tables", table), encoding="utf-8") as fh:
-        s = fh.read()
-    return b.rstrip("\n") == s.rstrip("\n")
+def generated_cell(ctx, table, n):
+    """The n-th number (from 0, in the order inventory.py finds them) of a
+    table make_macros.py builds ($AA_DATA/tmlr/tables/{table}). The paper's
+    copy was generated from the same template, so its n-th number is the
+    printed value this is compared with (rule text). check_tables.py
+    compares the whole table body when the manuscript is given."""
+    import inventory as inv
+    path = os.path.join(ctx.data, "tmlr", "tables", table)
+    if not os.path.exists(path):
+        raise FileNotFoundError(2, "generated table absent", path)
+    text = inv.read_text(path)
+    norm = inv.Normalised.of(text)
+    toks = inv.tokens_in(text)
+    t = toks[int(n)]
+    return norm.text[norm.pos[t.start]:norm.pos[t.end]]
 
 
 @check
-def topics_table_cells(ctx, table="topics.tex"):
-    """True when every cell of the paper's topics table other than median
-    citations (ID, leading terms, papers, Flesch) equals the cell
-    make_macros.topic_rows builds from the regenerated
-    $AA_DATA/aggregate/topic_profiles.csv, in every citation mode. The
-    median-citation column is the only one generated_table's citation
-    exemption covers."""
+def topic_cell(ctx, row, col):
+    """The papers or Flesch cell of one row (from 0, least to most readable)
+    of the topics table, built by make_macros.topic_rows from the regenerated
+    $AA_DATA/aggregate/topic_profiles.csv. Needs no citation output, so it is
+    compared in every citation mode; only the median-citation column of that
+    table depends on the citation counts."""
     sys.path.insert(0, HERE)
     from make_macros import Inputs, topic_rows
-    built = [cells for _, cells in topic_rows(Inputs(ctx.data))]
-    with open(os.path.join(ctx.source, "tables", table), encoding="utf-8") as fh:
-        rows = [ln for ln in fh.read().split("\n") if re.match(r"\s*T\d+ &", ln)]
-    printed = [[c.strip() for c in ln.split("&")][:4] for ln in rows]
-    return printed == [[c.strip() for c in b] for b in built]
+    cells = topic_rows(Inputs(ctx.data))[int(row)][1]
+    return cells[{"papers": 2, "flesch": 3}[col]].strip()
 
 
 def is_citation_check(name: str, kw: dict) -> bool:
     """Whether a check reads citation outputs."""
-    if name == "generated_table":
+    if name == "generated_cell":
+        sys.path.insert(0, HERE)
         from make_macros import CITATION_TABLES
         return kw.get("table") in CITATION_TABLES
     c = REGISTRY.get(name)
