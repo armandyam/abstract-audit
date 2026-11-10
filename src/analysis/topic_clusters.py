@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Assign a topic to every conference abstract.
 
-Conference papers carry no subject labels, so topics are derived from the text
-of the papers themselves and from nothing else. The TMLR paper uses them as a
+Topics are derived from the text of the papers themselves (titles and
+abstracts), since the conference records have no topic field. The TMLR paper uses them as a
 subfield control (Section 5 and Appendix) and to locate the readability trend
 within the field.
 

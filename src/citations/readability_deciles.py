@@ -3,8 +3,8 @@
 
 Pools NeurIPS, ICLR and ICML papers with a within-venue-year citation
 percentile (enrich.py) and a readability score, through --max-year (2024 for
-the paper: the most recent year's citation counts are months old, and their
-low-count ties put 16 percent of 2025 at or below the tenth percentile).
+the paper: the most recent year has had little time to collect citations, and
+its many low-count ties distort the within-year percentiles).
 The top decile is citation_percentile >= 90 and the bottom <= 10.
 
 For each of 13 readability formulas and two surface measures, writes the

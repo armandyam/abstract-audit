@@ -5,8 +5,7 @@ Per venue, from {venue}_s2.csv (one row per paper of the processed corpus):
 
   n_papers_to_max_year        rows with year <= --max-year (2024 in the paper)
   n_with_citations_to_max_year  of those, rows with a citation count
-  coverage_pct                the share, in percent. The paper quotes 99.8,
-                              97.0 and 96.3 for NeurIPS, ICLR and ICML.
+  coverage_pct                the share, in percent.
   n_papers                    rows over all years
   n_{title,s2_fuzzy,openalex,unmatched,error}
                               rows per match_type over all years

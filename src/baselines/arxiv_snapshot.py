@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 """Write baselines/arxiv_snapshot.json: where the arXiv snapshot ends.
 
-The TMLR paper says the arXiv 2025 partition "covers approximately three
-quarters of the calendar year". That is a statement about the snapshot's
-cutoff date, not about how many papers 2025 has, so it is checked against the
-cutoff and not against a ratio of yearly counts (which growth and
-seasonality distort).
+How much of calendar year 2025 the arXiv snapshot covers is a property of
+the snapshot's cutoff date, not of how many papers 2025 has, so it is
+computed from the cutoff and not from a ratio of yearly counts (which growth
+and seasonality distort).
 
 The processed arXiv records carry no submission date, only the identifier.
 A new-style identifier YYMM.NNNNN gives the month of first submission and,

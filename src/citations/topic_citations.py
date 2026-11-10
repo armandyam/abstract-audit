@@ -11,9 +11,7 @@ adds, per topic at --k (15 in the paper):
   n_with_citations  how many of the topic's papers that is
 
 and the correlation across topics between mean Flesch and median citations,
-Pearson (the paper's TopicCitCorr, -0.59) and Spearman. The correlation is
-negative: the least readable topics are the most cited, the opposite sign to
-the within-topic regression coefficient.
+Pearson (the paper's TopicCitCorr macro) and Spearman.
 
 With --profiles, the citation-free profile CSV of the topic stage is read and
 written back out with the two columns inserted before top_terms, which is the
