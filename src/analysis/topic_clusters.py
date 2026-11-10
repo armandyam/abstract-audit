@@ -154,7 +154,9 @@ def main() -> None:
     os.makedirs(OUT, exist_ok=True)
     df = load_conference_papers()
     if df.empty:
-        sys.exit(f"no processed papers under {PROCESSED}")
+        # The pipeline run from the shipped per-paper metrics has no abstracts.
+        print(f"  no processed abstracts under {PROCESSED}; skipping")
+        return
     print(f"conference papers: {len(df):,}\n")
 
     text = pd.Series([clustering_text(t, a) for t, a in zip(df["title"], df["abstract"])])

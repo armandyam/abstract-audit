@@ -134,6 +134,10 @@ def decompose(top: pd.DataFrame, read: pd.DataFrame, hard: set, k: int = K,
 
 def main() -> None:
     col = f"topic_k{K}"
+    if not os.path.exists(os.path.join(OUT, "topic_assignments.csv")):
+        # No abstracts, so topic_clusters.py wrote no topics.
+        print(f"  no topic_assignments.csv under {OUT}; skipping")
+        return
     top = pd.read_csv(os.path.join(OUT, "topic_assignments.csv"))
     read = pd.concat([
         pd.read_csv(os.path.join(PER_PAPER, "readability", f"{v}.csv"),

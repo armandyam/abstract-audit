@@ -149,6 +149,10 @@ def report(prof: pd.DataFrame, d: pd.DataFrame, fm: pd.DataFrame, k: int = K) ->
 
 
 def main() -> None:
+    if not os.path.exists(os.path.join(OUT, "topic_assignments.csv")):
+        # No abstracts, so topic_clusters.py wrote no topics.
+        print(f"  no topic_assignments.csv under {OUT}; skipping")
+        return
     top = pd.read_csv(os.path.join(OUT, "topic_assignments.csv"))
     terms = pd.read_csv(os.path.join(OUT, "topic_terms.csv"))
     prof, d = topic_profiles(top, terms, read_readability())

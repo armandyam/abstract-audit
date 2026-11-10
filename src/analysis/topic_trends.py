@@ -191,6 +191,10 @@ def report(out: pd.DataFrame, d: pd.DataFrame) -> None:
 
 
 def main() -> None:
+    if not os.path.exists(os.path.join(OUT, "topic_assignments.csv")):
+        # No abstracts, so topic_clusters.py wrote no topics.
+        print(f"  no topic_assignments.csv under {OUT}; skipping")
+        return
     terms = pd.read_csv(os.path.join(OUT, "topic_terms.csv"))
     d = load()
     print(f"conference papers in window: {len(d):,}\n")
