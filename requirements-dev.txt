@@ -1,4 +1,7 @@
-# Test dependencies. Not needed to run the pipeline.
+# Test dependencies. Not needed to run the pipeline. The scraper tests import
+# the ICLR and ICML scrapers, so the scraping requirements come too.
 #   pip install -r requirements-dev.txt && pytest
+-r requirements.txt
+-r requirements-scrape.txt
 pytest==9.1.1
 pytest-cov==7.1.0

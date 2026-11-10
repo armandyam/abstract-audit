@@ -1,0 +1,9 @@
+# Only needed to fetch ICLR and ICML afresh: requests for
+# src/scraping/scrape_iclr.py and src/scraping/download_icml.py, beautifulsoup4
+# for download_icml.py, pyarrow to read the ICLR dataset in
+# src/scraping/fetch_iclr_dataset.py. The other scrapers use the standard
+# library alone.
+#   pip install -r requirements-scrape.txt
+requests==2.33.1
+beautifulsoup4==4.14.3
+pyarrow==26.0.1
