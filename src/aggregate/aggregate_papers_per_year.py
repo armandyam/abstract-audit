@@ -5,6 +5,9 @@ Aggregate number of papers published per year, per venue (raw counts, no std).
 Reads:  data/processed/{venue}/
 Writes: data/aggregate/papers_per_year.csv
 Columns: year, neurips, iclr, icml   (0 where a venue has no data that year)
+         plus arxiv when AA_BASELINES names it, as upstream wrote it. PubMed
+         is never counted here: its corpus runs to tens of millions of
+         records, and its counts come from the aggregates (see baselines/).
 
 Run:
   python src/aggregate/aggregate_papers_per_year.py
@@ -18,7 +21,7 @@ import sys
 
 _SRC = os.path.join(os.path.dirname(__file__), "..")
 sys.path.insert(0, _SRC)  # allows direct invocation
-from aggregate._utils import DATA_DIR, OUT_DIR, VENUES
+from aggregate._utils import DATA_DIR, OUT_DIR, VENUES, baselines_from_env
 
 PROCESSED_DIR = os.path.join(DATA_DIR, "processed")
 OUT_PATH = os.path.join(OUT_DIR, "papers_per_year.csv")
@@ -41,7 +44,8 @@ def count_papers_by_year(venue: str, processed_dir: str = PROCESSED_DIR) -> dict
 
 
 def main():
-    venue_counts = {v: count_papers_by_year(v) for v in VENUES}
+    venues = VENUES + (["arxiv"] if "arxiv" in baselines_from_env() else [])
+    venue_counts = {v: count_papers_by_year(v) for v in venues}
     if not any(venue_counts.values()):
         # The pipeline run from the shipped per-paper metrics has no abstracts.
         print(f"  no processed abstracts under {PROCESSED_DIR}; skipping")
@@ -51,12 +55,12 @@ def main():
 
     with open(OUT_PATH, "w", newline="", encoding="utf-8") as fh:
         writer = csv.writer(fh)
-        writer.writerow(["year"] + VENUES)
+        writer.writerow(["year"] + venues)
         for year in all_years:
-            writer.writerow([year] + [venue_counts[v].get(year, 0) for v in VENUES])
+            writer.writerow([year] + [venue_counts[v].get(year, 0) for v in venues])
 
     print(f"  {len(all_years)} rows -> {OUT_PATH}")
-    for v in VENUES:
+    for v in venues:
         total = sum(venue_counts[v].values())
         print(f"    {v}: {total} papers")
 
