@@ -244,8 +244,7 @@ def series_fall(ctx, metric, col, y0=FIRST, y1=LAST):
 
 @check
 def series_fall_range(ctx, metric, cols, y0=FIRST, y1=LAST):
-    """(smallest, largest) fall over the window among the venues in `cols`:
-    "the three conferences and arXiv ML lose 10.1 to 13.7 points"."""
+    """(smallest, largest) fall over the window among the venues in `cols`."""
     f = [series_fall(ctx, metric, c, y0, y1) for c in _list(cols)]
     return min(f), max(f)
 
@@ -254,7 +253,7 @@ def series_fall_range(ctx, metric, cols, y0=FIRST, y1=LAST):
 def fall_ratio_range(ctx, metric="readability_flesch_ease", num="pubmed",
                      dens="neurips+iclr+icml", y0=FIRST, y1=LAST):
     """(min, max) over the venues in `dens` of fall(num) / fall(venue) over
-    the window: "PubMed falls by roughly half as much as the ML venues"."""
+    the window."""
     a = series_fall(ctx, metric, num, y0, y1)
     r = [a / series_fall(ctx, metric, d, y0, y1) for d in _list(dens)]
     return min(r), max(r)
@@ -307,8 +306,7 @@ def slope(ctx, metric, col, window_of=None, last=LAST):
 
 @check
 def slope_ratio(ctx, metric, col, control, last=LAST):
-    """slope(col) / slope(control over col's window): "the ICLR and NeurIPS
-    slopes exceed it by factors of 1.1 and 1.3"."""
+    """slope(col) / slope(control over col's window)."""
     return slope(ctx, metric, col, last=last) / slope(ctx, metric, control, col, last)
 
 
@@ -345,9 +343,8 @@ def rises_over(ctx, metric, col, y0, y1):
 def inflection(ctx, metrics, venues, split, before, after=LAST):
     """True when, for every metric and venue, the OLS slope over split..after
     exceeds the slope over before..split: an inflection at `split` (the
-    trend steepens there). "Our data show a post-2022 inflection in jargon and
-    sensational language" is inflection(acronym density in titles and
-    abstracts, sensational total; the four ML venues; split 2022, before
+    trend steepens there). For example inflection(acronym density in titles
+    and abstracts, sensational total; the four ML venues; split 2022, before
     2015). The magnitude ("sharply") is not part of the rule; where the
     paper quantifies it, that number has its own row."""
     for m in _list(metrics):
@@ -364,8 +361,7 @@ def divergence_accelerates(ctx, metric, split=2022, before=FIRST, after=LAST,
     """True when the ML minus non-ML gap widens faster after `split` than
     before it: gap(y) = mean of the ML venues in y minus the control in y,
     and the OLS slope of gap over split..after exceeds that over
-    before..split. "The divergence between ML and non-ML venues accelerates
-    after 2022"."""
+    before..split."""
     df = ctx.pg(metric)
     gap = df[_list(ml)].mean(axis=1) - df[control]
     return _slope(gap, split, after) > _slope(gap, before, split)
@@ -636,9 +632,8 @@ def papers_min(ctx, groups, year):
 def arxiv_year_fraction(ctx, key="cutoff_year_fraction"):
     """The share of calendar year 2025 the arXiv snapshot covers, from its
     cutoff (baselines/arxiv_snapshot.json, written by
-    src/baselines/arxiv_snapshot.py from the last arXiv identifier): "The
-    arXiv 2025 row covers approximately three quarters of the calendar
-    year". key=cutoff_year_fraction_min or _max gives the bounds the month
+    src/baselines/arxiv_snapshot.py from the last arXiv identifier).
+    key=cutoff_year_fraction_min or _max gives the bounds the month
     of the last identifier alone allows."""
     with open(os.path.join(ctx.repo, "baselines", "arxiv_snapshot.json")) as fh:
         return float(json.load(fh)[key])
@@ -925,8 +920,8 @@ def judge_post_small(ctx, venue="iclr", compare="neurips+icml", split=2022):
 
 @check
 def judge_post_unsettled(ctx, venue="iclr", split=2022):
-    """True when a venue's post-`split` judge series "does not settle into a
-    consistent trend across the three prompts": for every prompt the yearly
+    """True when a venue's post-`split` judge series has no consistent
+    direction across the prompts: for every prompt the yearly
     series from `split` on both rises and falls (it is not monotone), and the
     change from `split` to the last year does not have one sign across the
     prompts."""
@@ -1075,7 +1070,7 @@ def topic_families_all_same(ctx, what="same"):
 def topics_all_move(ctx, families="flesch+hype+acr_abstract"):
     """True when every topic in aggregate/topic_trends.csv moves the
     field-wide way in each family: Flesch falls, sensational language and
-    acronym density rise ("in every one of the \\TopicsAll{} topics")."""
+    acronym density rise, in every topic."""
     df = ctx.agg("topic_trends.csv")
     sign = {"flesch": -1, "hype": 1, "acr_abstract": 1, "acr_title": 1}
     return all(bool((np.sign(df[f"{f}_change"]) == sign[f]).all()) for f in _list(families))
