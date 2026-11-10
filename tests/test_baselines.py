@@ -350,3 +350,33 @@ def test_families_match_the_aggregation_scripts():
         assert script_cols == cols, family
         checked += 1
     assert checked >= 15
+
+
+def test_full_metric_ignores_local_baseline_columns(tmp_path, monkeypatch):
+    """A local aggregate built with AA_BASELINES carries its own pubmed_* and
+    arxiv_* columns. They must not collide with the --baselines source (which
+    left pandas to write pubmed_m_mean_x/_y and an all-NaN PubMed series)."""
+    agg = tmp_path / "agg"
+    agg.mkdir()
+    pd.DataFrame({"year": [2019, 2020], "neurips_m_mean": [1.0, 2.0],
+                  "pubmed_m_mean": [99.0, 99.0], "pubmed_m_count": [1, 1],
+                  "arxiv_m_mean": [98.0, 98.0]}).to_csv(agg / "fam.csv", index=False)
+    cat_frame().assign(m_mean=97.0).to_csv(agg / "fam_arxiv_by_category.csv", index=False)
+    monkeypatch.setattr(export, "AGG", str(agg))
+    base = baselines_dir(tmp_path)
+    export.export_metric_full("fam", "m", "fam", base, str(tmp_path / "o"))
+    df = pd.read_csv(tmp_path / "o" / "fam.csv")
+    assert not [c for c in df.columns if c.endswith(("_x", "_y"))]
+    assert list(df.columns) == ["year", "neurips", "arxiv_ml", "arxiv_nonml", "pubmed"]
+    p = df.set_index("year")["pubmed"]
+    assert p[2020] == 5.0 and p[2025] == 6.0          # from the baselines, not 99
+    assert 97.0 not in df["arxiv_ml"].tolist() and 98.0 not in df["arxiv_ml"].tolist()
+    # pointing --baselines at a full aggregate directory does not leak
+    # conference columns in from that side either
+    full = tmp_path / "full"
+    (full / "aggregate").mkdir(parents=True)
+    pd.read_csv(agg / "fam.csv").to_csv(full / "aggregate" / "fam.csv", index=False)
+    export.export_metric_full("fam", "m", "fam2", str(full), str(tmp_path / "o"))
+    df2 = pd.read_csv(tmp_path / "o" / "fam2.csv")
+    assert list(df2.columns) == ["year", "neurips", "pubmed"]
+    assert df2["neurips"].tolist() == [1.0, 2.0] and df2["pubmed"].tolist() == [99.0, 99.0]

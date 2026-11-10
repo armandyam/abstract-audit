@@ -29,6 +29,13 @@ categories and PubMed's from the readability-scored count (see
 baselines/README.md for the two PubMed denominators). This is the upstream
 computation, and the files equal reference/tmlr/pgfplots_full/.
 
+Each source supplies only its own columns. The conference series always come
+from data/aggregate/; arXiv and PubMed come only from the --baselines
+directory. A local aggregate built with AA_BASELINES also holds arxiv_* and
+pubmed_* columns, and those are ignored here (the run says so). To plot
+locally computed baselines, write them to a directory of their own with
+src/baselines/make_baselines.py --out-dir DIR and pass --baselines DIR.
+
 The judge series and the UncertaiNLP set are the same either way.
 
 Run:
@@ -256,18 +263,35 @@ def arxiv_split(df_cat: pd.DataFrame, col: str) -> pd.DataFrame:
     return a.merge(b, on="year", how="outer")
 
 
+BASELINE_PREFIXES = ("pubmed_", "arxiv_")
+
+
+def _columns_from(df: pd.DataFrame, prefixes: tuple[str, ...]) -> pd.DataFrame:
+    """year and the columns that start with one of `prefixes`."""
+    return df[["year"] + [c for c in df.columns if c.startswith(prefixes)]]
+
+
 def export_metric_full(metric_name: str, col: str, out_name: str,
                        baselines: str, out: str) -> None:
     """The paper's six-column series: conferences from the aggregate,
-    arXiv and PubMed from baselines/, on the union of their years."""
+    arXiv and PubMed from `baselines`, on the union of their years.
+
+    Each source contributes only its own columns, so the two never overlap
+    in a merge."""
     main_csv = f"{AGG}/{metric_name}.csv"
     if not os.path.exists(main_csv):
         print(f"  SKIP {main_csv} (not found)")
         return
-    df = pd.read_csv(main_csv)
+    local = pd.read_csv(main_csv)
+    df = _columns_from(local, tuple(f"{v}_" for v in VENUES))
+    ignored = [c for c in local.columns if c.startswith(BASELINE_PREFIXES)]
+    if ignored:
+        print(f"  note: {main_csv} has {len(ignored)} arXiv/PubMed columns; "
+              f"those series are taken from {baselines} instead")
     base_csv = os.path.join(baselines, "aggregate", f"{metric_name}.csv")
     if os.path.exists(base_csv):
-        df = (df.merge(pd.read_csv(base_csv), on="year", how="outer")
+        base = _columns_from(pd.read_csv(base_csv), BASELINE_PREFIXES)
+        df = (df.merge(base, on="year", how="outer", validate="one_to_one")
                 .sort_values("year").reset_index(drop=True))
 
     result = df[["year"]].copy()
