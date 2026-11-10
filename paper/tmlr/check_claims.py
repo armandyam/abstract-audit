@@ -25,7 +25,7 @@ claims.csv columns:
   line            the line the number was on when the row was last synced
                   (informational; --sync-lines rewrites it)
   printed         the number as printed, whitespace collapsed ("30,595",
-                  "88 to 90", "14 of the 15", "three quarters")
+                  "41 to 47", "7 of the 9", "three quarters")
   kind            number, date, word, pair or fraction (inventory.py)
   category        computed     measured, recomputed by `check`
                   citation     measured from citation counts: recomputed and

@@ -59,17 +59,17 @@ def test_identifiers_glued_to_letters_are_not_numbers():
 
 
 def test_pairs_join_like_numbers_only():
-    assert toks("roughly 88 to 90 percent, 2015--2025, three to five") == \
-        [("88 to 90", "pair"), ("2015--2025", "pair"), ("three to five", "pair")]
+    assert toks("roughly 41 to 47 percent, 2003--2009, six to eight") == \
+        [("41 to 47", "pair"), ("2003--2009", "pair"), ("six to eight", "pair")]
     # a year and a decimal are two numbers, not a range
     assert texts("grows from 3.25 in 1994 to 6.75 in 2021") == ["3.25", "1994 to 6.75"][:1] + \
         ["1994", "6.75", "2021"]
 
 
 def test_fractions_and_spelled_quantities():
-    assert toks("on twelve of fifteen metrics; Fourteen of the 15; 14 of the 15") == \
-        [("twelve of fifteen", "fraction"), ("Fourteen of the 15", "fraction"),
-         ("14 of the 15", "fraction")]
+    assert toks("on nine of eleven measures; Seven of the 9; 7 of the 9") == \
+        [("nine of eleven", "fraction"), ("Seven of the 9", "fraction"),
+         ("7 of the 9", "fraction")]
     got = texts("roughly a quarter, half as much, three quarters, a twelvefold rise, "
                 "once and twice, roughly tripling, the ninth, the first percentile")
     assert got == ["quarter", "half", "three quarters", "twelvefold", "once", "twice",
@@ -82,8 +82,8 @@ def test_enumerating_first_and_second_and_vague_words_are_excluded():
 
 
 def test_scaled_numbers_are_one_occurrence():
-    assert texts("2.8 million arXiv papers and 7 to 32 billion parameters") == \
-        ["2.8 million", "7 to 32 billion"]
+    assert texts("4.6 million records and 5 to 9 billion parameters") == \
+        ["4.6 million", "5 to 9 billion"]
 
 
 def test_structural_latex_is_masked():
@@ -233,7 +233,7 @@ def test_parse_printed_forms():
     assert parts("2{,}823{,}623")[0].value == 2823623
     p = parts("2.8 million")[0]
     assert (p.value, p.decimals, p.scale) == (2.8, 1, 1e6)
-    assert [x.value for x in parts("Fourteen of the 15", "fraction")] == [14, 15]
+    assert [x.value for x in parts("Seven of the 9", "fraction")] == [7, 9]
     assert [x.value for x in parts("2015--2025", "pair")] == [2015, 2025]
     assert parts("three quarters", "word")[0].value == 0.75
     assert parts("twelvefold", "word")[0].value == 12

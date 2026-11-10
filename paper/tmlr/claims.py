@@ -18,7 +18,7 @@ its value from this repository's outputs only:
   src/                         design constants the paper states
 
 A function returns a number, a tuple of numbers (for a printed range or a
-fraction such as "14 of the 15"), a string, or a bool. claims.csv says how
+fraction such as "3 of the 4"), a string, or a bool. claims.csv says how
 the returned value is compared with the printed one (its `rule`).
 
 Citation claims. The Semantic Scholar counts are not distributed, and neither
@@ -29,8 +29,8 @@ strict citation mode (local counts equal the published snapshot), reports
 them without counting them after a fresh fetch, and skips them when the
 counts are absent.
 
-Where the paper describes a rule in words ("accelerates", "widens clearly",
-"14 of the 15"), the function's docstring states the rule exactly, so that a
+Where the paper describes a rule in words rather than a number, the
+function's docstring states the rule exactly, so that a
 disagreement can be traced to either the data or the wording.
 """
 from __future__ import annotations
@@ -171,14 +171,13 @@ def series(ctx, metric, col, year):
 
 @check
 def series_pair(ctx, metric, col, y0, y1):
-    """(value in y0, value in y1) of one series: "from 26.8 to 17.6"."""
+    """(value in y0, value in y1) of one series."""
     return ctx.value(metric, col, y0), ctx.value(metric, col, y1)
 
 
 @check
 def series_cols_pair(ctx, metric, cols, year):
-    """(minimum, maximum) over several venues in one year: "ran from 1.69 to
-    1.84" across the three conferences."""
+    """(minimum, maximum) over several venues in one year."""
     v = [ctx.value(metric, c, year) for c in _list(cols)]
     return min(v), max(v)
 
@@ -218,15 +217,14 @@ def series_extreme(ctx, metric, cols, stat, what="value", last=None):
 @check
 def series_ratio(ctx, metric, col, y0, y1, den_col=None):
     """value(col, y1) / value(den_col or col, y0). With den_col and y0 == y1
-    it compares two venues in one year ("1.5 times the NeurIPS rate")."""
+    it compares two venues in one year."""
     return ctx.value(metric, col, y1) / ctx.value(metric, den_col or col, y0)
 
 
 @check
 def pct_above(ctx, metric, col, year, ref):
     """How far one value lies above a reference value, in percent:
-    100 * (value / ref - 1). "exceeds the biomedical title value of 2.40 by
-    more than 90 percent"."""
+    100 * (value / ref - 1)."""
     return 100.0 * (ctx.value(metric, col, year) / float(ref) - 1)
 
 
@@ -275,7 +273,7 @@ def gap_range(ctx, metric="readability_flesch_ease", controls="arxiv_nonml+pubme
 def below_controls(ctx, metric="readability_flesch_ease", venues="neurips+iclr+icml+arxiv_ml",
                    controls="arxiv_nonml+pubmed", year=LAST):
     """True when every venue in `venues` sits below every control in
-    `controls` in one year ("by 2025 each sits below both")."""
+    `controls` in one year."""
     return all(ctx.value(metric, v, year) < ctx.value(metric, c, year)
                for v in _list(venues) for c in _list(controls))
 
@@ -283,8 +281,7 @@ def below_controls(ctx, metric="readability_flesch_ease", venues="neurips+iclr+i
 @check
 def all_below(ctx, metric, cols, bound):
     """The largest value any venue in `cols` takes in any year; compared with
-    a bound the paper says every venue stays inside ("between 0 and 30
-    throughout")."""
+    a bound the paper says every venue stays inside."""
     return float(ctx.pg(metric)[_list(cols)].max().max())
 
 
@@ -296,7 +293,7 @@ def _window(df: pd.DataFrame, col: str, last: int = LAST) -> pd.DataFrame:
 def slope(ctx, metric, col, window_of=None, last=LAST):
     """OLS slope (points per year) of one series over the years through
     `last` in which venue `window_of` (default: col itself) has a value. The
-    control's slope "over each venue's own window" uses window_of=venue; the
+    control's slope over a venue's own window uses window_of=venue; the
     years the control lacks in that window are left out."""
     df = ctx.pg(metric)
     years = df.loc[:int(last)][window_of or col].dropna().index
@@ -343,7 +340,7 @@ def inflection(ctx, metrics, venues, split, before, after=LAST):
     exceeds the slope over before..split: an inflection at `split` (the
     trend steepens there). For example inflection(acronym density in titles
     and abstracts, sensational total; the four ML venues; split 2022, before
-    2015). The magnitude ("sharply") is not part of the rule; where the
+    2015). The magnitude is not part of the rule; where the
     paper quantifies it, that number has its own row."""
     for m in _list(metrics):
         df = ctx.pg(m)
@@ -370,8 +367,8 @@ def comoves(ctx, falling="readability_flesch_ease",
             rising="acronyms_abstract+acronyms_title", venue="neurips"):
     """True when, over a venue's years, papers per year has a negative
     Spearman correlation with every series in `falling` and a positive one
-    with every series in `rising`: volume and the readability and acronym
-    trends "move together in our data"."""
+    with every series in `rising`: paper volume, readability and acronym density
+    trends move together."""
     n = ctx.pg("papers_per_year")[venue]
     for m, sign in [(m, -1) for m in _list(falling)] + [(m, 1) for m in _list(rising)]:
         j = pd.concat([n, ctx.pg(m)[venue]], axis=1).dropna()
@@ -388,10 +385,10 @@ def _change(ctx, m, v, y0=FIRST, y1=LAST):
 
 @check
 def readability_harder(ctx, venues="neurips+iclr+icml", y0=FIRST, y1=LAST, what="count"):
-    """How many of the 15 classical metrics move toward harder reading from
+    """Count of the 15 readability formulas whose change points to harder reading from
     y0 to y1 at every venue in `venues`, as (count, 15).
 
-    "Harder" is the sign of value(y1) - value(y0) times HARDER_SIGN: Flesch
+    The harder direction is the sign of value(y1) - value(y0) times HARDER_SIGN: Flesch
     Reading Ease falling, every other series rising. what=other gives the
     number of metrics that do not (15 - count); what=total gives 15."""
     vs = _list(venues)
@@ -451,7 +448,7 @@ def latex_summary(ctx, key):
 @check
 def latex_summary_pair(ctx, keys):
     """Two values of aggregate/latex_robustness_summary.csv, as a printed
-    range: "Markup accounts for 5 to 6 percent" is (markup_share_min_pct,
+    range, for example (markup_share_min_pct,
     markup_share_max_pct), each compared at the printed precision (whole
     percent). latex_robustness.py computes the shares; the caption phrase
     make_macros.py writes is not used."""
@@ -463,13 +460,12 @@ def latex_summary_pair(ctx, keys):
 def collinearity_one_signal(ctx, threshold=0.5):
     """True when the first principal component of the 15 standardised
     readability metrics carries more than `threshold` of their variance at
-    every venue (aggregate/readability_collinearity.csv): "the 15 classical
-    metrics carry roughly one common signal".
+    every venue (aggregate/readability_collinearity.csv).
 
     The rule is a majority of the variance on one component. By the Kaiser
     criterion (eigenvalue above 1) a second component also qualifies: it
     carries about 17 percent of 15 units of variance, an eigenvalue near 2.5,
-    which is the "primarily two surface quantities" of Section 3.1."""
+    consistent with two underlying surface quantities."""
     df = ctx.agg("readability_collinearity.csv")
     return bool((df.pc1_var_explained > float(threshold)).all())
 
@@ -477,7 +473,7 @@ def collinearity_one_signal(ctx, threshold=0.5):
 # ======================================================== style suite ===
 
 def _style_gaps(ctx) -> dict[str, float]:
-    """Change in the ML versus non-ML gap from 2015 to 2025 per style metric,
+    """Change from 2015 to 2025 in the difference between ML venues and the control, per style metric,
     in units of the metric's own standard deviation.
 
     ML is the mean of NeurIPS, ICLR, ICML and arXiv ML in a year, non-ML is
@@ -542,8 +538,7 @@ def pubmed_style_metrics(ctx):
 
 @check
 def corpus_size(ctx, group, last=LAST, unit=1):
-    """Papers in a corpus, divided by `unit` (1e6 for "24.3 million paper
-    corpus" printed without the word). Conferences: the sum of papers per year
+    """Papers in a corpus, divided by `unit` (1e6 for a count printed in millions). Conferences: the sum of papers per year
     (pgfplots/tmlr/papers_per_year.csv). arxiv: arXiv ML and non-ML records
     (baselines/papers_per_year.csv). pubmed: PubMed records dated through
     `last` (the cleaned-record count, baselines/papers_per_year.csv)."""
@@ -674,8 +669,8 @@ RAW_EXEMPT = ("raw scrape absent: the count re-reads data/raw/neurips, which "
 @check(exempt=RAW_EXEMPT)
 def neurips_fallback_count(ctx, max_year=None):
     """NeurIPS records whose abstract comes from the full-text fallback of
-    process_neurips.best_abstract: the abstract field, after an "Abstract
-    Unavailable" marker is cleared, has fewer than 20 words and the full
+    process_neurips.best_abstract: the abstract field, after an unavailable-abstract
+    marker is cleared, has fewer than 20 words and the full
     text has at least 20. Counted over every year (max_year limits it).
     Needs the raw scrape in $AA_DATA/raw/neurips/."""
     from processing.process_neurips import sanitize_text
@@ -738,7 +733,7 @@ def reuse_share(ctx, group):
 
 @check
 def reuse_share_range(ctx, groups="neurips+iclr+icml+arxiv_ml"):
-    """(min, max) of reuse_share over groups: "roughly 88 to 90 percent"."""
+    """(min, max) of reuse_share over groups."""
     s = _reuse_shares(ctx)
     v = [s[g] for g in _list(groups)]
     return min(v), max(v)
@@ -747,7 +742,7 @@ def reuse_share_range(ctx, groups="neurips+iclr+icml+arxiv_ml"):
 @check
 def reuse_gap(ctx, groups="neurips", base="bd"):
     """Mean reuse_share over `groups` minus that of `base`, in percentage
-    points: "ten percentage points above the biomedical baseline"."""
+    points."""
     s = _reuse_shares(ctx)
     return float(np.mean([s[g] for g in _list(groups)])) - s[base]
 
@@ -854,13 +849,13 @@ def judge_baseline(ctx, venue):
 @check
 def judge_has_year(ctx, venue, year):
     """year if the venue's judge series has it, else the last scored year
-    (so "NeurIPS 2025 ... is absent" compares 2025 with the last year)."""
+    (so a statement that a year is absent compares it with the last year)."""
     return judge_years(ctx, venue, "last")
 
 
 @check
 def judge_span_decades(ctx, venue="neurips"):
-    """(last - first scored year) / 10: "across four decades"."""
+    """(last - first scored year) / 10, in decades."""
     return (judge_years(ctx, venue, "last") - judge_years(ctx, venue, "first")) / 10
 
 
@@ -880,7 +875,7 @@ def judge_n_models(ctx):
 
 @check
 def judge_rises_after(ctx, venues="neurips+icml", split=2022, ratio=10):
-    """True when the six-model average "rises sharply after `split`" at every
+    """True when the six-model average rises steeply after `split` at every
     venue in `venues`, for each of the three prompts: the final scored year
     exceeds every year up to `split`, and the OLS slope over split..last is
     positive and at least `ratio` times the absolute slope over first..split.
@@ -1169,7 +1164,7 @@ def cit_topic_k_member(ctx, k):
 @check(citation=True)
 def cit_r2_ratio(ctx):
     """Smallest ratio of the within R^2 with topic controls to that
-    without: "more than doubling"."""
+    without."""
     df = ctx.cit("citation_regression_topics.csv")
     r0 = float(df[df.n_topic_dummies == 0].r2_within.iloc[0])
     return float(df[df.n_topic_dummies > 0].r2_within.min()) / r0
@@ -1178,7 +1173,7 @@ def cit_r2_ratio(ctx):
 @check(citation=True)
 def cit_composition_share(ctx):
     """Mean over the topic counts of (b0 - bk) / b0, the share of the
-    no-topic coefficient that topic controls remove: "roughly a quarter"."""
+    no-topic coefficient that topic controls remove."""
     df = ctx.cit("citation_regression_topics.csv")
     b0 = float(df[df.n_topic_dummies == 0].beta_flesch.iloc[0])
     return float(np.mean([(b0 - b) / b0 for b in df[df.n_topic_dummies > 0].beta_flesch]))
