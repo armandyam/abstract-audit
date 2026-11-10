@@ -335,3 +335,28 @@ a09886514aa191f1  tmlr/pgfplots_full/signposting.csv
 28f97df9873a2fab  tmlr/pgfplots_full/ttr.csv
 1bf5a67df8bc7862  tmlr/pgfplots_full/verbs.csv
 ```
+
+## TMLR inline numbers and generated tables
+
+`tmlr/tex/` holds the paper's files at upstream commit `eda2733`
+(eda27335c0a1887bcf2c93935b612620f1381991), extracted with `git show` byte
+for byte: `tmlr/generated_round{2,3,4}.tex` and six tables from
+`tmlr/tables/`. They were written upstream by
+`tmlr/analysis/make_round{2,3,4}_tex.py`. Rerunning those three scripts on
+the upstream inputs at that commit reproduces all nine files byte for byte,
+so none was edited by hand. `topic_controls.tex`, `topics.tex` and eleven
+macros carry values computed from the citation snapshot.
+
+sha256, first 16 hex:
+
+```
+c26f8e853f4e3a44  tmlr/tex/generated_round2.tex
+e31c2a0ae623e7de  tmlr/tex/generated_round3.tex
+2c6350e5439663b2  tmlr/tex/generated_round4.tex
+1f879b1f4d4041f4  tmlr/tex/tables/acronym_concentration.tex
+3abbd92dbd367f13  tmlr/tex/tables/normalisation.tex
+e290cf23b51dbab8  tmlr/tex/tables/topic_controls.tex
+fa7f368620dbba1f  tmlr/tex/tables/topic_decomposition.tex
+c3faf0f5685e739b  tmlr/tex/tables/topic_trends.tex
+f1126d8984b43752  tmlr/tex/tables/topics.tex
+```

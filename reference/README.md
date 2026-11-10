@@ -47,6 +47,13 @@ covers them. No value was altered.
 from. Those files are not distributed. The outputs are compared only when
 the local files match the snapshot; see `src/citations/snapshot.py`.
 
+`tmlr/tex/` holds the paper's three macro files
+(`generated_round{2,3,4}.tex`, 163 `\newcommand` definitions) and the six
+tables generated with them (`tables/`), byte copies of the files the paper
+was built with. None was edited by hand after generation: the upstream
+generators, rerun on the upstream inputs, write all nine byte-identical.
+`paper/tmlr/check_macros.py` compares the built files with these.
+
 Nothing in this directory is an input to the pipeline. To work from the shipped
 metrics instead of scraping, copy `reference/per_paper/` into `data/per_paper/`
 and run `python main.py --from aggregate`.
