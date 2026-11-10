@@ -5,6 +5,11 @@ These files were produced by the upstream research repository at commit
 The `readability_*.csv` series were trimmed to `year,neurips` and to the
 39 years NeurIPS covers; see README.md. No value was altered.
 
+Every hash list below is checked against the files by
+`python reference/make_manifest.py`, which fails on a listed path that is
+missing, a hash that differs and a file no list names; `--write` refreshes
+the hashes.
+
 Built with: python 3.14.3, pandas 3.0.2, numpy 2.4.4, scipy 1.17.1,
 matplotlib 3.10.8, textstat 0.7.13, spacy 3.8.13, en_core_web_sm 3.8.0.
 
@@ -61,10 +66,11 @@ the camera-ready build of the paper.
 
 - `per_paper/*/iclr.csv`, `per_paper/*/icml.csv`: the upstream per-paper
   metric files, copied byte for byte.
-- `tmlr/pgfplots/`: the paper's `tmlr/data/pgfplots/` files. The per-metric
-  series and `papers_per_year.csv` were trimmed to `year,neurips,iclr,icml`
-  and to the rows where at least one of those is non-empty; kept cells are the
-  original strings. The judge series were copied whole. See README.md.
+- `tmlr/pgfplots/`: the 27 judge series of the paper's `tmlr/data/pgfplots/`,
+  copied whole. The per-metric series and `papers_per_year.csv` were first
+  shipped here trimmed to `year,neurips,iclr,icml`; they were removed when
+  the untrimmed files in `tmlr/pgfplots_full/` (below) became the comparison
+  target, and are not listed.
 - `tmlr/latex_robustness.csv`, `tmlr/readability_collinearity.csv`: copied
   whole.
 - `tmlr/latex_robustness_summary.csv`: computed by this repository's
@@ -110,11 +116,6 @@ d66e55daee0fc927  per_paper/verbs/iclr.csv
 5cdb5177f84cf381  per_paper/verbs/icml.csv
 fada74d095f423dc  tmlr/latex_robustness.csv
 441560718fac44c7  tmlr/latex_robustness_summary.csv
-04d96473077e6b67  tmlr/pgfplots/acronyms_abstract.csv
-4d72cde228c63313  tmlr/pgfplots/acronyms_title.csv
-1fbe1d5f80c68e96  tmlr/pgfplots/active_narration.csv
-8e267c8a760806a9  tmlr/pgfplots/clauses_per_sent.csv
-406fd31c5c67d2fa  tmlr/pgfplots/hedging.csv
 43037553b804db56  tmlr/pgfplots/llm_scores_ascb.csv
 f221d7a95bb58603  tmlr/pgfplots/llm_scores_iclr_ascb.csv
 8fa99b93ed9f3812  tmlr/pgfplots/llm_scores_iclr_own_reasoning.csv
@@ -142,41 +143,6 @@ b9bcbd889401908d  tmlr/pgfplots/llm_scores_standardized_icml_ascb.csv
 a3cc0affc3256031  tmlr/pgfplots/llm_scores_standardized_icml_simple.csv
 a9d2ba4d67cbc1f5  tmlr/pgfplots/llm_scores_standardized_own_reasoning.csv
 0d3235e716a8f43c  tmlr/pgfplots/llm_scores_standardized_simple.csv
-49ce10b288ba0cf6  tmlr/pgfplots/noun_chunks.csv
-833491ad0d27c0fe  tmlr/pgfplots/nouns.csv
-24fccba6b274c60f  tmlr/pgfplots/np_density.csv
-2d8c5b61c943329b  tmlr/pgfplots/numbers.csv
-9f906a797e1c4c64  tmlr/pgfplots/papers_per_year.csv
-70b61fd464b2980e  tmlr/pgfplots/parse_depth.csv
-1e99e5325e7da927  tmlr/pgfplots/passive_rate.csv
-abd8da38e1a3dd42  tmlr/pgfplots/readability_ari.csv
-7fe3124712d73a47  tmlr/pgfplots/readability_avg_sentence_length.csv
-4bb476b5e7d019ae  tmlr/pgfplots/readability_avg_syllables_per_word.csv
-22a248d5eb79c6e0  tmlr/pgfplots/readability_coleman_liau.csv
-860f05fe705f8730  tmlr/pgfplots/readability_dale_chall.csv
-9486441ae96b1822  tmlr/pgfplots/readability_flesch_ease.csv
-d2d5c0996506dabc  tmlr/pgfplots/readability_flesch_kincaid.csv
-c1474c4fced81d72  tmlr/pgfplots/readability_forcast.csv
-0acc103ad62faf66  tmlr/pgfplots/readability_gunning_fog.csv
-d86b8d44efb38ddb  tmlr/pgfplots/readability_linsear_write.csv
-3b5bbc06566708c6  tmlr/pgfplots/readability_lix.csv
-895e3abe8e98a227  tmlr/pgfplots/readability_powers_sumner_kearl.csv
-900974f1dcab6a5c  tmlr/pgfplots/readability_rix.csv
-dbbf3700e1d73db3  tmlr/pgfplots/readability_smog.csv
-226d1f5f7ebc2c13  tmlr/pgfplots/readability_spache.csv
-189c2e21b3158052  tmlr/pgfplots/sensational_additional.csv
-1f15143082997114  tmlr/pgfplots/sensational_attitude.csv
-21ca8fda4062323f  tmlr/pgfplots/sensational_importance.csv
-46ee55417ac3a799  tmlr/pgfplots/sensational_novelty.csv
-465b34728cda932c  tmlr/pgfplots/sensational_problem.csv
-9c67c0f3ab1d4345  tmlr/pgfplots/sensational_quality.csv
-96673466ec0375f3  tmlr/pgfplots/sensational_rigor.csv
-6bd9366a6a506306  tmlr/pgfplots/sensational_scale.csv
-1d92096d80383952  tmlr/pgfplots/sensational_total.csv
-e4df969913a51278  tmlr/pgfplots/sensational_utility.csv
-9b135472740d25ec  tmlr/pgfplots/signposting.csv
-124179b58cba5a39  tmlr/pgfplots/ttr.csv
-505dad21d478ee8f  tmlr/pgfplots/verbs.csv
 d519a7059d8b673d  tmlr/readability_collinearity.csv
 ```
 
@@ -184,27 +150,27 @@ d519a7059d8b673d  tmlr/readability_collinearity.csv
 
 Added from the same upstream commit `eda2733`. Every file below was copied byte
 for byte from the upstream working tree, which matches that commit, except
-`tmlr/pgfplots/sentence_length.csv`, trimmed as the other `tmlr/pgfplots/`
-series are (`year,neurips,iclr,icml`, rows where one of those is non-empty,
-kept cells the original strings). The trimmed file is byte-identical to the
-one `export_pgfplots_data.py` writes.
+`tmlr/analysis/topic_profiles.csv` (see below). The sentence length series is
+in `tmlr/pgfplots_full/sentence_length.csv`.
 
 - `per_paper/sentence_length/{neurips,iclr,icml}.csv`: upstream
   `data/per_paper/sentence_length/` (not tracked upstream; regenerated here
   byte for byte by `src/metrics/sentence_length.py`).
-- `tmlr/pgfplots/sentence_length.csv`: upstream
-  `tmlr/data/pgfplots/sentence_length.csv`, trimmed.
 - `tmlr/analysis/acronym_reuse_freq.csv`, `tmlr/analysis/acronym_robustness.csv`:
-  upstream `data/aggregate/`. The reuse file holds all seven upstream rows;
-  this release computes the NeurIPS, ICLR, ICML and Barnett and Doubleday
-  rows, and the arXiv ML, arXiv non-ML and PubMed rows need their acronym
-  frequency histograms.
+  upstream `data/aggregate/`. The reuse file holds all seven upstream rows.
+  `src/analysis/acronym_reuse.py` computes the NeurIPS, ICLR and ICML rows
+  from the per-paper acronyms, the arXiv ML, arXiv non-ML and PubMed rows from
+  `baselines/acronym_histograms.csv`, and quotes the Barnett and Doubleday
+  row.
 - `tmlr/analysis/{acronym_concentration,acronym_top_terms,flesch_decomposition,
   topic_assignments,topic_terms,topic_stability,topic_trends,topic_profiles,
   topic_decomposition,topic_decomposition_summary,fixed_mix_readability}.csv`:
-  upstream `tmlr/analysis/out/`. `topic_profiles.csv` carries two citation
-  columns, `median_citations` and `n_with_citations`, which this release does
-  not compute without citation data.
+  upstream `tmlr/analysis/out/`. `topic_profiles.csv` is the upstream file
+  without its two citation columns, `median_citations` and
+  `n_with_citations`: the other six columns and all 15 rows are the upstream
+  strings, unchanged. Those two columns are checked through
+  `tmlr/citations/topic_citations.csv` (below), and only in strict citation
+  mode.
 
 Topic clustering additionally needs scikit-learn 1.9.0.
 
@@ -214,7 +180,6 @@ sha256, first 16 hex:
 ef870ceb2cd92625  per_paper/sentence_length/neurips.csv
 7a01a9a86e51b2ab  per_paper/sentence_length/iclr.csv
 5d796220cc68881f  per_paper/sentence_length/icml.csv
-4068699f0b65ffc4  tmlr/pgfplots/sentence_length.csv
 498d4a785a3e68dc  tmlr/analysis/acronym_concentration.csv
 5eeb7980e2dd778a  tmlr/analysis/acronym_reuse_freq.csv
 2e1ef078bcd5a534  tmlr/analysis/acronym_robustness.csv
@@ -224,7 +189,7 @@ c375e91a4335fac3  tmlr/analysis/flesch_decomposition.csv
 a4dfa81dd5b02ea0  tmlr/analysis/topic_assignments.csv
 04486650bc796cf5  tmlr/analysis/topic_decomposition.csv
 3c3e672a21af87e4  tmlr/analysis/topic_decomposition_summary.csv
-ec1eca9a7d8b0165  tmlr/analysis/topic_profiles.csv
+fae8a138ced76794  tmlr/analysis/topic_profiles.csv
 52923e414c40fbd5  tmlr/analysis/topic_stability.csv
 4bc880bfc5745590  tmlr/analysis/topic_terms.csv
 2f678b2b0e37d4e6  tmlr/analysis/topic_trends.csv
@@ -266,7 +231,7 @@ numbers only to LaTeX, to the terminal, or inside a wider file:
 sha256, first 16 hex:
 
 ```
-fd2c3ef6d22725a9  tmlr/citations/SNAPSHOT.md
+d231fca47ae541bc  tmlr/citations/SNAPSHOT.md
 09744729bddc0a31  tmlr/citations/citation_cohens_d.csv
 d73fdbf40c141f82  tmlr/citations/citation_coverage.csv
 70fde10c229bb6e0  tmlr/citations/citation_llm_top_bottom_combined.csv
