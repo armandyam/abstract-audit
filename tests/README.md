@@ -1,11 +1,11 @@
 # tests
 
-269 tests covering what the pipeline run cannot.
+352 tests covering what the pipeline run cannot.
 
 ## What these are for
 
-`verify.py` already compares 40 artefacts against `reference/`, 25 of them
-byte-for-byte, over 30,595 real papers. As a regression test that is stronger
+`verify.py` already compares 140 artefacts against `reference/`, 46 of them
+byte-for-byte, over 62,628 real papers. As a regression test that is stronger
 than any unit test could be, and tests that re-walk the same happy path would
 add lines without adding information.
 
@@ -22,8 +22,11 @@ So these tests target what an end-to-end run structurally cannot reach:
 - **Error paths.** A missing venue file, a missing column, a malformed record.
 - **Domain logic that is not self-evident.** The acronym rule, and the judge
   score parser.
-- **Third-party markup.** The papers.nips.cc parsers are the only thing here
-  that can break with no change to this code.
+- **Third-party markup.** The parsers for papers.nips.cc, OpenReview, the
+  arXiv API, the iclr.cc and icml.cc archive pages, PMLR and the ICLR dataset
+  are the only things here that can break with no change to this code.
+- **Source dispatch.** Each ICLR and ICML year reads one raw source, and the
+  early sources pass their text through unchanged.
 
 ## What is deliberately not tested
 
@@ -38,11 +41,11 @@ About 54% of `src/` by statement. That number is low on purpose and the shape
 matters more: the pure logic sits between 74% and 97%, and nearly all of the
 remainder is `main()` functions, file-reading loops, the GPU scoring path and
 network fetching. Those are exercised by a full pipeline run, which checks
-them against 40 reference artefacts rather than against a mock.
+them against 140 reference artefacts rather than against a mock.
 
 The criterion held here is not a percentage but this: every branch that
 handles malformed or edge-case input has a test, because those are exactly
-the branches 30,595 well-formed papers never enter.
+the branches 62,628 well-formed papers never enter.
 
 ## Running
 
