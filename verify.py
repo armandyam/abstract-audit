@@ -14,14 +14,24 @@ Comparisons, for the UncertaiNLP paper (reference/) and the TMLR paper
                              equal as strings
   TMLR analysis CSVs         as plot-ready CSVs
   TMLR inline numbers        the 163 \newcommand macros by name and value,
-                             the six generated tables byte-for-byte
+                             the six generated tables byte-for-byte, and the
+                             paper's own copies of both (paper/tmlr/source/)
+                             against the same reference
                              (paper/tmlr/check_macros.py)
   TMLR printed numbers       every other number in the manuscript text
                              (paper/tmlr/source/) against paper/tmlr/claims.csv
                              and the outputs (paper/tmlr/check_claims.py);
-                             a mismatch, an error, an uncovered number and a
-                             stale claim each count as a failure
+                             a mismatch, a missing input, an error, an
+                             uncovered number and a stale claim each count as
+                             a failure; skips are listed by reason
   figure PNG                 byte-for-byte
+
+Incomplete analyses. main.py does not run a command whose inputs are absent
+(the --from aggregate route has no processed abstracts) and records it in
+$AA_DATA/incomplete.json; make_macros.py records the sections it could not
+write in tmlr/skipped.json. Both are listed first, so a reader knows which
+analyses did not run before reading the missing outputs they cause. The
+missing outputs still count: an incomplete run does not verify.
 
     python verify.py
 """
@@ -183,25 +193,51 @@ def claims_section() -> None:
     paper/tmlr/check_claims.py does the work; see its docstring. A match
     counts as ok; a mismatch, a check error, a number with no claims.csv row
     and a row whose quote no longer marks a number each count as a failure.
-    Skipped claims (literature, unchecked design constants, citation claims
-    outside strict mode, inputs absent) and unverifiable ones are reported,
-    not counted.
+    A claim whose required input is absent counts as missing. Skipped
+    claims (design and literature rows, citation claims outside strict mode,
+    the one exempt raw-scrape count) are listed by reason and unverifiable
+    ones reported; neither is counted.
     """
-    global ok, fail
+    global ok, fail, missing
     sys.path.insert(0, os.path.join(HERE, "src"))
     sys.path.insert(0, os.path.join(HERE, "paper", "tmlr"))
     from check_claims import citation_mode, run
     m = citation_mode(DATA)
     print(f"\nTMLR printed numbers (citation mode {m})")
     rep = run(DATA, m)
-    for line in rep.lines() + rep.summary():
+    for line in rep.lines() + rep.skip_lines() + rep.summary():
         print(line)
     ok += rep.count("MATCH")
-    fail += rep.failures
+    fail += rep.failures - rep.missing
+    missing += rep.missing
+
+
+def incomplete_section() -> None:
+    """The analyses that did not run, and why (see the module docstring)."""
+    import json
+    items = []
+    path = os.path.join(DATA, "incomplete.json")
+    if os.path.exists(path):
+        with open(path) as fh:
+            for rec in json.load(fh).values():
+                items.append(f"  not run   {rec['stage']}: {rec['script']}, "
+                             f"absent {', '.join(rec['absent'])}")
+    path = os.path.join(DATA, "tmlr", "skipped.json")
+    if os.path.exists(path):
+        with open(path) as fh:
+            for rec in json.load(fh).get("incomplete", []):
+                items.append(f"  not built macros: section {rec['section']}, "
+                             f"absent {rec['input']}")
+    if items:
+        print("incomplete analyses (their outputs are reported missing below)")
+        for line in items:
+            print(line)
+        print()
 
 
 def main() -> None:
     print("verifying against reference/\n")
+    incomplete_section()
 
     print("per-paper metrics")
     for ref_path in sorted(glob.glob(os.path.join(REF, "per_paper", "*", "*.csv"))):

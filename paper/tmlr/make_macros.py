@@ -24,7 +24,9 @@ Writes, under --out-dir (default $AA_DATA/tmlr):
   tables/topic_trends.tex           round 3
   tables/acronym_concentration.tex  round 3
   tables/topic_decomposition.tex    round 4
-  skipped.json             what was not written, and why
+  skipped.json             what was not written, and why: the citation items
+                           ("macros", "tables") and, under "incomplete", any
+                           section whose input is absent
 
 Inputs (upstream tmlr/analysis/out/X.csv is $AA_DATA/aggregate/X.csv here):
 
@@ -47,6 +49,13 @@ a reader who has them. The eleven macros and two tables that need citation
 outputs (CITATION_MACROS, CITATION_TABLES) are written only when those outputs
 exist. Otherwise they are left out and listed in skipped.json, and
 check_macros.py does not expect them.
+
+Any other input is required. A section whose input is absent (the --from
+aggregate route has no processed abstracts, so no LaTeX normalisation or
+topic analysis) is not written: the generator records the section and the
+missing input under "incomplete" in skipped.json and carries on with the
+others, and check_macros.py then reports that section's macros and tables
+missing, a failure. Nothing is silently dropped.
 
     python paper/tmlr/make_macros.py
     python paper/tmlr/make_macros.py --data-dir path/to/data --out-dir path/to/tmlr
@@ -108,6 +117,7 @@ class Round:
     n: int
     macros: dict[str, str] = field(default_factory=dict)
     skipped: list[str] = field(default_factory=list)
+    incomplete: list[dict] = field(default_factory=list)   # section, input
 
     def M(self, name: str, value: str) -> None:
         # TeX control sequences are letters only, so a digit in a macro name
@@ -135,11 +145,25 @@ class Output:
         self.written_tables.append(name)
 
 
+class MissingInput(FileNotFoundError):
+    """A required input is absent. build() records the section as
+    incomplete instead of stopping."""
+
+
 def require(path: str) -> str:
     if not os.path.exists(path):
-        raise SystemExit(f"missing input {path}; run the stage that writes it "
-                         "(see the module docstring)")
+        raise MissingInput(f"missing input {path}; run the stage that writes it "
+                           "(see the module docstring)", path)
     return path
+
+
+def section(r: Round, fn, *args) -> None:
+    """Run one section; an absent input marks it incomplete (see the module
+    docstring) rather than stopping the whole generator."""
+    try:
+        fn(r, *args)
+    except MissingInput as e:
+        r.incomplete.append({"section": fn.__name__, "input": e.args[1]})
 
 
 def thousands(n: float) -> str:
@@ -216,6 +240,9 @@ def normalisation(r: Round, inp: Inputs, out: Output) -> None:
         shares.append(100 * (dk - dt) / dk)
     r.M("MarkupMinShare", f"{min(shares):.1f}")
     r.M("MarkupMaxShare", f"{max(shares):.1f}")
+    # The caption's whole-percent range, from the same shares (upstream typed
+    # it). check_claims.py checks it against latex_robustness_summary.csv.
+    markup_range = f"{min(shares):.0f} to {max(shares):.0f}"
 
     n = d[d.venue == "neurips"]
     r.M("MathPreEarly", f"{n[n.year < 2005].pct_with_math.mean():.1f}")
@@ -244,7 +271,7 @@ def normalisation(r: Round, inp: Inputs, out: Output) -> None:
     \bottomrule
   \end{tabular}
   \caption{\revtwo{Flesch Reading Ease at each venue's first and last year
-  under three text normalisations. Markup accounts for 5 to 6 percent of each
+  under three text normalisations. Markup accounts for """ + markup_range + r""" percent of each
   measured decline, and URLs for more of it than LaTeX.}}
   \label{tab:normalisation}
 \end{table}
@@ -300,10 +327,23 @@ def topic_controls(r: Round, inp: Inputs, out: Output) -> None:
     out.table("topic_controls.tex", tex)
 
 
+def topic_rows(inp: Inputs, p: pd.DataFrame | None = None) -> list[tuple[int, list[str]]]:
+    """(topic, [ID, leading terms, papers, Flesch]) for each row of the topics
+    table, least to most readable: every cell but median citations. topics()
+    writes the table from these, and check_claims.py compares the paper's
+    table with them in every citation mode."""
+    col = f"topic_k{K_PRIMARY}"
+    if p is None:
+        p = pd.read_csv(require(inp.agg("topic_profiles.csv"))).sort_values("flesch")
+    ids = topic_ids(inp)
+    return [(int(row[col]), [ids[int(row[col])], f"{label(row.top_terms):<54}",
+                             thousands(row.n), f"{row.flesch:.1f}"])
+            for _, row in p.iterrows()]
+
+
 def topics(r: Round, inp: Inputs, out: Output) -> None:
     col = f"topic_k{K_PRIMARY}"
     p = pd.read_csv(require(inp.agg("topic_profiles.csv"))).sort_values("flesch")
-    ids = topic_ids(inp)
     r.M("TopicK", str(K_PRIMARY))
     r.M("TopicSpread", f"{p.flesch.max() - p.flesch.min():.1f}")
     r.M("TopicMinFlesch", f"{p.flesch.min():.1f}")
@@ -340,11 +380,8 @@ def topics(r: Round, inp: Inputs, out: Output) -> None:
     p = p.drop(columns=[x for x in ("median_citations",) if x in p.columns])
     p = p.merge(c, on=col, how="left", validate="one_to_one")
 
-    lines = []
-    for _, row in p.iterrows():
-        lab = label(row.top_terms)
-        lines.append(f"    {ids[int(row[col])]} & {lab:<54} & {thousands(row.n)} & "
-                     f"{row.flesch:.1f} & {row.median_citations:.0f} \\\\")
+    cit = dict(zip(p[col].astype(int), p.median_citations))
+    lines = [f"    {' & '.join(cells)} & {cit[t]:.0f} \\\\" for t, cells in topic_rows(inp, p)]
     corr = np.corrcoef(p.flesch, p.median_citations)[0, 1]
     r.M("TopicCitCorr", f"{corr:.2f}")
 
@@ -385,10 +422,10 @@ def hard_topic_share(r: Round, inp: Inputs) -> None:
 
 def round2(inp: Inputs, out: Output) -> Round:
     r = Round(2)
-    normalisation(r, inp, out)
-    topic_controls(r, inp, out)
-    topics(r, inp, out)
-    hard_topic_share(r, inp)
+    section(r, normalisation, inp, out)
+    section(r, topic_controls, inp, out)
+    section(r, topics, inp, out)
+    section(r, hard_topic_share, inp)
     return r
 
 
@@ -526,9 +563,9 @@ def acronyms(r: Round, inp: Inputs, out: Output) -> None:
 
 def round3(inp: Inputs, out: Output) -> Round:
     r = Round(3)
-    topic_trends(r, inp, out)
-    flesch_decomposition(r, inp)
-    acronyms(r, inp, out)
+    section(r, topic_trends, inp, out)
+    section(r, flesch_decomposition, inp)
+    section(r, acronyms, inp, out)
     return r
 
 
@@ -654,9 +691,9 @@ def topic_decomposition(r: Round, inp: Inputs, out: Output) -> None:
 
 def round4(inp: Inputs, out: Output) -> Round:
     r = Round(4)
-    absolute_changes(r, inp)
-    icml_slope(r, inp)
-    topic_decomposition(r, inp, out)
+    section(r, absolute_changes, inp)
+    section(r, icml_slope, inp)
+    section(r, topic_decomposition, inp, out)
     return r
 
 
@@ -687,6 +724,7 @@ def build(data_dir: str, out_dir: str) -> dict:
         "tables": sorted(out.skipped_tables),
         "reason": ("citation outputs absent from aggregate/citations/"
                    if any(r.skipped for r in rounds) or out.skipped_tables else ""),
+        "incomplete": [i for r in rounds for i in r.incomplete],
         "written": {ROUND_FILES[r.n]: len(r.macros) for r in rounds},
         "written_tables": sorted(out.written_tables),
     }
@@ -710,6 +748,8 @@ def main() -> None:
         print(f"  {f:<22} {n:>3} macros" + (f", {len(skipped)} skipped" if skipped else ""))
     print(f"  tables: {len(rec['written_tables'])} written"
           + (f", skipped {rec['tables']}" if rec["tables"] else ""))
+    for i in rec["incomplete"]:
+        print(f"  INCOMPLETE {i['section']}: input absent {i['input']}")
     print(f"wrote {out_dir}")
 
 

@@ -1,0 +1,13 @@
+{
+  "year": 2025,
+  "last_id": "2509.04450",
+  "last_month": "2025-09",
+  "last_month_sequence": 4450,
+  "mean_complete_month_sequence": 22699.4,
+  "complete_months": 8,
+  "cutoff_month_position": 0.196,
+  "cutoff_year_fraction": 0.683,
+  "cutoff_year_fraction_min": 0.6667,
+  "cutoff_year_fraction_max": 0.75,
+  "source": "processed/arxiv/arxiv_2025.json of the paper's arXiv corpus (Kaggle Cornell-University/arxiv snapshot, processed 2026-04); written by src/baselines/arxiv_snapshot.py"
+}

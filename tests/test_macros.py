@@ -158,14 +158,14 @@ def test_check_absent_skips_citation_items(tmp_path):
     tabs = [t for t in mm.TABLES if t not in mm.CITATION_TABLES]
     built, ref = _mini(tmp_path, _no_citations, tabs,
                        skipped={"macros": {"generated_round2.tex": ["CitN"]}, "tables": []})
-    r = cm.check(built, "absent", ref)
+    r = cm.check(built, "absent", ref, shipped_dir=None)
     assert (r.ok, r.bad, r.missing, r.skipped) == (3 + 4, 0, 0, 3 + 2)
 
 
 def test_check_strict_needs_citation_items(tmp_path):
     tabs = [t for t in mm.TABLES if t not in mm.CITATION_TABLES]
     built, ref = _mini(tmp_path, _no_citations, tabs)
-    r = cm.check(built, "strict", ref)
+    r = cm.check(built, "strict", ref, shipped_dir=None)
     assert r.missing == 3 + 2 and r.bad == 0 and r.skipped == 0
 
 
@@ -173,7 +173,7 @@ def test_check_fresh_reports_citation_differences_without_counting(tmp_path):
     def wrong_citations(m):
         return {k: ("other" if k in mm.CITATION_MACROS else v) for k, v in m.items()}
     built, ref = _mini(tmp_path, wrong_citations, mm.TABLES)
-    r = cm.check(built, "fresh", ref)
+    r = cm.check(built, "fresh", ref, shipped_dir=None)
     assert (r.ok, r.bad, r.missing) == (3 + 4, 0, 0)
     assert r.uncounted == 3 + 2
     assert any("(fresh)" in ln for ln in r.lines)
@@ -184,7 +184,7 @@ def test_check_strict_flags_value_and_bytes(tmp_path):
                                             for k, v in m.items()}, mm.TABLES)
     with open(os.path.join(built, "tables", "topics.tex"), "a") as fh:
         fh.write(" ")
-    r = cm.check(built, "strict", ref)
+    r = cm.check(built, "strict", ref, shipped_dir=None)
     assert r.bad == 2
     assert any("Plaina" in ln and "'0'" in ln and "'9'" in ln for ln in r.lines)
     assert any("topics.tex" in ln and "bytes differ" in ln for ln in r.lines)
@@ -192,7 +192,7 @@ def test_check_strict_flags_value_and_bytes(tmp_path):
 
 def test_check_extra_macro_is_a_mismatch(tmp_path):
     built, ref = _mini(tmp_path, lambda m: {**m, "Surplus": "1"}, mm.TABLES)
-    r = cm.check(built, "strict", ref)
+    r = cm.check(built, "strict", ref, shipped_dir=None)
     assert r.bad == 3      # once per round file
 
 
@@ -200,7 +200,7 @@ def test_check_absent_rejects_non_citation_skip(tmp_path):
     built, ref = _mini(tmp_path, _no_citations, mm.TABLES,
                        skipped={"macros": {"generated_round2.tex": ["Plaina"]},
                                 "tables": ["normalisation.tex"]})
-    r = cm.check(built, "absent", ref)
+    r = cm.check(built, "absent", ref, shipped_dir=None)
     assert r.bad == 1
     assert any("skipped.json" in ln and "Plaina" in ln for ln in r.lines)
 
@@ -208,8 +208,8 @@ def test_check_absent_rejects_non_citation_skip(tmp_path):
 def test_check_unbuilt_file(tmp_path):
     built, ref = _mini(tmp_path, lambda m: m, mm.TABLES)
     os.remove(os.path.join(built, "generated_round3.tex"))
-    assert cm.check(built, "absent", ref).missing == 1          # citation one skipped
-    assert cm.check(built, "strict", ref).missing == 2
+    assert cm.check(built, "absent", ref, shipped_dir=None).missing == 1          # citation one skipped
+    assert cm.check(built, "strict", ref, shipped_dir=None).missing == 2
 
 
 def test_check_unknown_mode(tmp_path):
@@ -276,7 +276,8 @@ def test_build_from_reference_inputs_reproduces_paper(tmp_path):
     rec = mm.build(data, os.path.join(data, "tmlr"))
     assert sum(rec["written"].values()) == 163 and rec["tables"] == []
     r = cm.check(os.path.join(data, "tmlr"), "strict")
-    assert (r.ok, r.bad, r.missing, r.skipped) == (169, 0, 0, 0), r.lines
+    assert (r.ok, r.bad, r.missing, r.skipped) == (169 + 169, 0, 0, 0), r.lines
+    assert r.count("ok", "shipped") == 163 + 6
 
 
 def test_build_without_citations_skips_exactly_the_citation_set(tmp_path):
@@ -287,4 +288,86 @@ def test_build_without_citations_skips_exactly_the_citation_set(tmp_path):
     assert set(rec["tables"]) == mm.CITATION_TABLES
     assert sum(rec["written"].values()) == 163 - len(mm.CITATION_MACROS)
     r = cm.check(os.path.join(data, "tmlr"), "absent")
-    assert (r.ok, r.bad, r.missing, r.skipped) == (156, 0, 0, 13), r.lines
+    assert (r.ok, r.bad, r.missing, r.skipped) == (156 + 169, 0, 0, 13), r.lines
+
+
+# ── the paper's own copies (paper/tmlr/source/) ──────────────────────────
+
+def _shipped_copy(tmp_path):
+    dst = tmp_path / "source"
+    shutil.copytree(cm.SHIPPED_DIR, dst)
+    return dst
+
+
+def test_committed_shipped_copies_equal_reference():
+    res = cm.Result()
+    cm.check_shipped(res, cm.REF_DIR, cm.SHIPPED_DIR)
+    assert (res.count("ok", "shipped"), res.bad, res.missing) == (163 + 6, 0, 0), res.lines
+
+
+@pytest.mark.parametrize("mode", ["strict", "fresh", "absent"])
+def test_changed_shipped_value_fails_in_every_mode(tmp_path, mode):
+    """A printed value edited in the paper's copy fails even where the built
+    side is not compared (a citation macro outside strict mode)."""
+    src = _shipped_copy(tmp_path)
+    f = src / "generated_round2.tex"
+    text = f.read_text()
+    assert "\\newcommand{\\CitN}{" in text and "\\newcommand{\\TopicK}{15}" in text
+    f.write_text(text.replace("\\newcommand{\\TopicK}{15}", "\\newcommand{\\TopicK}{16}")
+                     .replace("\\newcommand{\\CitN}{", "\\newcommand{\\CitN}{9"))
+    built = tmp_path / "built"
+    built.mkdir()
+    r = cm.check(str(built), mode, shipped_dir=str(src))
+    bad = [ln for ln in r.lines if "source/generated_round2.tex" in ln]
+    assert r.count("bad", "shipped") == 2 and len(bad) == 2
+    assert any("TopicK" in ln and "'16'" in ln for ln in bad)
+
+
+def test_changed_shipped_table_and_missing_definition_fail(tmp_path):
+    src = _shipped_copy(tmp_path)
+    t = src / "tables" / "topics.tex"
+    t.write_text(t.read_text().replace("3{,}551", "3{,}552"))
+    f = src / "generated_round4.tex"
+    f.write_text("\n".join(ln for ln in f.read_text().split("\n") if "SlopeICML}" not in ln))
+    res = cm.Result()
+    cm.check_shipped(res, cm.REF_DIR, str(src))
+    assert res.bad == 2
+    assert any("source/tables/topics.tex" in ln for ln in res.lines)
+    assert any("SlopeICML" in ln and "not defined" in ln for ln in res.lines)
+
+
+# ── absent inputs: incomplete sections, not a stop ───────────────────────
+
+def test_absent_input_marks_section_incomplete_and_fails_its_macros(tmp_path):
+    data = _reference_inputs(tmp_path, citations=False)
+    os.remove(os.path.join(data, "aggregate", "latex_robustness.csv"))
+    rec = mm.build(data, os.path.join(data, "tmlr"))
+    assert [i["section"] for i in rec["incomplete"]] == ["normalisation"]
+    assert rec["incomplete"][0]["input"].endswith("latex_robustness.csv")
+    assert "normalisation.tex" not in rec["written_tables"]
+    assert "topic_trends.tex" in rec["written_tables"]       # the rest still built
+    r = cm.check(os.path.join(data, "tmlr"), "absent")
+    assert any(ln.startswith("  INCOMPLETE normalisation") for ln in r.lines)
+    # the normalisation section's macros and its table are failures, with the reason
+    assert r.missing > 0 and r.count("missing", "table") == 1
+    assert all("input is absent" in ln for ln in r.lines if "MISSING" in ln)
+    # the citation exemption is not stretched to cover them
+    assert not any("skipped non-citation" in ln for ln in r.lines)
+
+
+def test_markup_range_in_caption_comes_from_the_shares(tmp_path):
+    import pandas as pd
+    data = _reference_inputs(tmp_path, citations=False)
+    path = os.path.join(data, "aggregate", "latex_robustness.csv")
+    d = pd.read_csv(path)
+    # move the last-year normalised score so that markup explains a tenth of
+    # each venue's decline
+    for v in ("neurips", "iclr", "icml"):
+        g = d[(d.venue == v) & d.flesch_keep.notna()].sort_values("year")
+        a, b = g.index[0], g.index[-1]
+        dk = d.loc[b, "flesch_keep"] - d.loc[a, "flesch_keep"]
+        d.loc[b, "flesch_token"] = d.loc[a, "flesch_token"] + 0.9 * dk
+    d.to_csv(path, index=False)
+    mm.build(data, os.path.join(data, "tmlr"))
+    tex = open(os.path.join(data, "tmlr", "tables", "normalisation.tex")).read()
+    assert "Markup accounts for 10 to 10 percent" in " ".join(tex.split())
