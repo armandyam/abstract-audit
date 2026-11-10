@@ -123,10 +123,63 @@ def test_s2_fetch_resumes_and_retries_error_rows(tmp_path):
     t = s2.fetch(papers, str(out), None, get=get, sleep=0)
     assert len(queried) == 2 and t == {"matched": 1, "unmatched": 1}
     rows = read_rows(out)
-    assert [r["paper_id"] for r in rows] == ["done", "err", "err", "new"]
-    assert rows[2]["match_type"] == "title" and rows[2]["n_citations"] == "98765"
-    assert rows[3]["match_type"] == "unmatched"
+    # the retry replaced the error row in place: one row per paper
+    assert [r["paper_id"] for r in rows] == ["done", "err", "new"]
+    assert rows[1]["match_type"] == "title" and rows[1]["n_citations"] == "98765"
+    assert rows[2]["match_type"] == "unmatched"
     assert s2.already_fetched_ids(str(out)) == {"done", "err", "new"}
+
+
+def test_s2_retry_after_error_gives_full_coverage(tmp_path):
+    """One failed request then a success: coverage is 100 percent, not 50."""
+    import citations.coverage as cov
+    out = tmp_path / "neurips_s2.csv"
+    papers = [{"paper_id": "p", "venue": "neurips", "year": 2020,
+               "title": "Attention Is All You Need"}]
+    s2.fetch(papers, str(out), None, get=lambda u, k: None, sleep=0)
+    assert [r["match_type"] for r in read_rows(out)] == ["error"]
+    s2.fetch(papers, str(out), None, get=lambda u, k: fixture("s2_paper_search.json"),
+             sleep=0)
+    assert [r["match_type"] for r in read_rows(out)] == ["title"]
+    row = cov.coverage(["neurips"], cit_dir=str(tmp_path)).iloc[0]
+    assert row["n_papers"] == 1 and row["coverage_pct"] == 100.0 and row["n_error"] == 0
+
+
+def test_s2_compacts_a_file_left_with_repeated_rows(tmp_path):
+    out = tmp_path / "x_s2.csv"
+    with open(out, "w", newline="") as fh:
+        w = csv.DictWriter(fh, fieldnames=s2.FIELDNAMES)
+        w.writeheader()
+        for mt, c in [("error", ""), ("title", 5), ("error", "")]:
+            w.writerow({"paper_id": "a", "year": 2020, "n_citations": c, "match_type": mt})
+        w.writerow({"paper_id": "b", "year": 2020, "match_type": "error"})
+        w.writerow({"paper_id": "b", "year": 2020, "match_type": "error"})
+    assert s2.compact(str(out)) == 3
+    rows = read_rows(out)
+    assert [(r["paper_id"], r["match_type"], r["n_citations"]) for r in rows] == [
+        ("a", "title", "5"), ("b", "error", "")]
+    assert s2.compact(str(out)) == 0
+
+
+def test_analyses_refuse_repeated_paper_ids(tmp_path):
+    import pandas as pd
+    import citations.coverage as cov
+    import citations.enrich as en
+    import citations.references as ref
+    from citations._common import read_citations
+    p = tmp_path / "neurips_s2.csv"
+    p.write_text("paper_id,venue,year,n_citations,n_references,s2_paper_id,match_type\n"
+                 "a,neurips,2020,,,,error\na,neurips,2020,3,4,s,title\n")
+    with pytest.raises(SystemExit, match="repeated paper_id"):
+        read_citations(str(p))
+    with pytest.raises(SystemExit, match="repeated paper_id"):
+        cov.coverage(["neurips"], cit_dir=str(tmp_path))
+    with pytest.raises(SystemExit, match="repeated paper_id"):
+        en.enrich(pd.read_csv(p))
+    with pytest.raises(SystemExit, match="repeated paper_id"):
+        ref.load(str(p))
+    with pytest.raises(SystemExit, match="repeated paper_id"):
+        fb.load_csv(str(p))
 
 
 def test_s2_fetch_years_subset(tmp_path):
@@ -207,7 +260,7 @@ def test_openalex_fetch_writes_merged_and_yearly_and_resumes(tmp_path):
               {"paper_id": "b", "venue": "icml", "year": 2017, "title": "Short"}]
     get = lambda url: fixture("openalex_works_filter.json")  # noqa: E731
     t = oa.fetch(papers, "icml", str(merged), str(yearly), get=get, sleep=0)
-    assert t == {"matched": 1, "unmatched": 1}
+    assert t == {"matched": 1, "unmatched": 1, "error": 0}
     rows = read_rows(merged)
     assert rows[0]["openalex_id"].endswith("W1000000002") and rows[0]["n_references"] == "22"
     assert rows[1]["match_type"] == "unmatched"
@@ -215,13 +268,63 @@ def test_openalex_fetch_writes_merged_and_yearly_and_resumes(tmp_path):
     os.remove(merged)          # the yearly files alone are enough to resume
     t2 = oa.fetch(papers, "icml", str(merged), str(yearly),
                   get=lambda u: pytest.fail("refetched"), sleep=0)
-    assert t2 == {"matched": 0, "unmatched": 0}
+    assert t2 == {"matched": 0, "unmatched": 0, "error": 0}
 
 
-def test_openalex_get_any_http_error_is_empty(monkeypatch):
-    monkeypatch.setattr("urllib.request.urlopen",
-                        lambda req, timeout: (_ for _ in ()).throw(_http_error(503)))
-    assert oa._get(URL) == {}
+@pytest.mark.parametrize("code", [400, 404])
+def test_openalex_get_bad_request_is_a_definitive_empty_result(monkeypatch, code):
+    calls = []
+
+    def urlopen(req, timeout):
+        calls.append(1)
+        raise _http_error(code)
+    monkeypatch.setattr("urllib.request.urlopen", urlopen)
+    assert oa._get(URL) == {} and len(calls) == 1
+
+
+@pytest.mark.parametrize("exc", [_http_error(500), _http_error(503), _http_error(429),
+                                 urllib.error.URLError("down"), TimeoutError()])
+def test_openalex_get_transient_failures_retry_then_report_error(monkeypatch, exc):
+    calls = []
+
+    def urlopen(req, timeout):
+        calls.append(1)
+        raise exc
+    monkeypatch.setattr("urllib.request.urlopen", urlopen)
+    assert oa._get(URL) is None and len(calls) == oa.MAX_RETRIES
+
+
+def test_openalex_get_recovers_after_a_server_error(monkeypatch):
+    seq = [_http_error(500), _http_error(502)]
+
+    def urlopen(req, timeout):
+        if seq:
+            raise seq.pop(0)
+        return _Resp(b'{"results": []}')
+    monkeypatch.setattr("urllib.request.urlopen", urlopen)
+    assert oa._get(URL) == {"results": []}
+
+
+def test_openalex_lookup_error_is_not_a_non_match():
+    title = "Deep Residual Learning for Image Recognition"
+    assert oa.lookup(title, get=lambda u: None) is oa._ERROR
+    assert oa.lookup(title, get=lambda u: {}) is None
+    assert oa.make_row({"paper_id": "a", "year": 2016}, oa._ERROR)["match_type"] == "error"
+
+
+def test_openalex_error_rows_are_retried_and_replaced(tmp_path):
+    merged, yearly = tmp_path / "icml_openalex.csv", tmp_path / "openalex"
+    papers = [{"paper_id": "a", "venue": "icml", "year": 2016,
+               "title": "Deep Residual Learning for Image Recognition"}]
+    t = oa.fetch(papers, "icml", str(merged), str(yearly), get=lambda u: None, sleep=0)
+    assert t == {"matched": 0, "unmatched": 0, "error": 1}
+    assert [r["match_type"] for r in read_rows(merged)] == ["error"]
+    assert oa.already_fetched_ids(str(merged), str(yearly), "icml") == set()
+    t = oa.fetch(papers, "icml", str(merged), str(yearly),
+                 get=lambda u: fixture("openalex_works_filter.json"), sleep=0)
+    assert t == {"matched": 1, "unmatched": 0, "error": 0}
+    for path in (merged, yearly / "icml_2016.csv"):
+        assert [(r["paper_id"], r["match_type"]) for r in read_rows(path)] == [("a", "title")]
 
 
 # ── fallback: fuzzy title and OpenAlex ───────────────────────────────────

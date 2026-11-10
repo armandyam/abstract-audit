@@ -34,7 +34,7 @@ import numpy as np
 import pandas as pd
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
-from citations._common import CIT_DIR, OUT_DIR, READ_DIR, VENUES, require  # noqa: E402
+from citations._common import CIT_DIR, OUT_DIR, READ_DIR, VENUES, read_citations, require  # noqa: E402
 
 READABILITY_METRICS = [
     "flesch_ease", "flesch_kincaid", "gunning_fog", "smog", "dale_chall",
@@ -59,7 +59,7 @@ def load(venues: list[str], max_year: int | None, read_dir: str | None = None,
     frames = []
     for v in venues:
         rd = pd.read_csv(require(os.path.join(read_dir or READ_DIR, f"{v}.csv")))
-        ct = pd.read_csv(require(os.path.join(cit_dir or CIT_DIR, f"{v}_s2.csv")))[
+        ct = read_citations(os.path.join(cit_dir or CIT_DIR, f"{v}_s2.csv"))[
             ["paper_id", "year", "citation_percentile"]]
         m = rd.merge(ct, on=["paper_id", "year"], how="inner").dropna(
             subset=["citation_percentile"])

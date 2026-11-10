@@ -12,9 +12,9 @@ ICLR     2013-2026  16,807 papers
 ICML     2008-2025  15,226 papers
 ```
 
-It reproduces the conference results of two papers, and `verify.py` compares
-the regenerated artefacts against the files behind each paper's figures and
-tables:
+It reproduces the results of two papers, and `verify.py` compares the
+regenerated artefacts against the files behind each paper's figures, tables
+and printed numbers:
 
 - *Machine Learning Research Has Outpaced Its Communication Norms*
   (Transactions on Machine Learning Research, 2026). NeurIPS, ICLR and ICML.
@@ -67,15 +67,19 @@ paper/          UncertaiNLP figure sources and rendered figures.pdf;
                 claim table (claims.csv) that ties every printed number to
                 an output
 judge_scores/   judge scores, six models, by venue
-reference/      expected pipeline outputs, both papers
+baselines/      arXiv and PubMed per-year aggregates for the TMLR paper,
+                documented in baselines/README.md
+reference/      expected pipeline outputs, both papers; MANIFEST.md records
+                their provenance and hashes
 data/           generated, absent from a fresh clone
 ```
 
 `judge_scores/` requires a GPU to regenerate and is therefore distributed. It
 covers 56,805 papers: NeurIPS 1987-2024 (24,772), all of ICLR (16,807) and all
-of ICML (15,226). `reference/` is the comparison target for `verify.py`, and
-also allows the pipeline to run from the aggregation stage onward without
-scraping.
+of ICML (15,226). `baselines/` is distributed because its sources cannot be
+fetched again in the form the paper used. `reference/` is the comparison
+target for `verify.py`, and also allows the pipeline to run from the
+aggregation stage onward without scraping.
 
 ## Execution
 
@@ -112,15 +116,23 @@ as missing.
 ```
 process      raw JSON to canonical records
 validate     every record against the Pydantic schema
-metrics      readability, acronyms, hedging, signposting, narration, hype
+metrics      readability, acronyms, hedging, signposting, narration, hype,
+             Hohmann sentence length
 metrics_nlp  parse depth, NP density, passive rate, TTR, clause and POS counts
 aggregate    per-paper values to per-year mean, standard deviation and count;
              papers per year; judge scores per venue
 export       aggregates to plot-ready CSVs: data/pgfplots/ for the UncertaiNLP
-             figures, data/pgfplots/tmlr/ for the TMLR figures
+             figures, data/pgfplots/tmlr/ for the TMLR figures, with the arXiv
+             and PubMed series from baselines/
 model_avg    per-model z-scores to the six-model average
 analysis     metric against judge Spearman correlation, summary series,
-             Flesch under LaTeX and URL normalisation, readability collinearity
+             Flesch under LaTeX and URL normalisation, readability
+             collinearity, acronym reuse, robustness and concentration,
+             Flesch decomposition, topic clusters, trends, profiles and
+             decomposition
+self_audit   the TMLR paper's own title and abstract
+citations    citation analyses; runs only when the reader's own Semantic
+             Scholar counts are present (see Citations)
 macros       the TMLR paper's 163 inline numbers and six generated tables,
              written to data/tmlr/ by paper/tmlr/make_macros.py
 claims       every other number the TMLR manuscript prints, checked against
@@ -146,15 +158,19 @@ across models. The three prompt templates are in `src/metrics/llm_scores.py`.
 
 ## The TMLR paper
 
-The release reproduces every conference-side series and number in the TMLR
-paper within this scope:
+The release covers every series, table and number in the TMLR paper:
 
-- the readability, acronym density, sensational language and writing style
-  series for NeurIPS, ICLR and ICML, and papers per year;
+- the readability, acronym density, sensational language, writing style and
+  Hohmann sentence length series for NeurIPS, ICLR and ICML, and papers per
+  year, each with the arXiv ML, arXiv non-ML and PubMed columns;
 - the judge series and six-model averages for all three venues;
 - the LaTeX and URL normalisation analysis (`latex_robustness.csv` and the
   derived numbers in `latex_robustness_summary.csv`);
 - the collinearity of the 15 readability formulas;
+- the acronym reuse, robustness and concentration tables;
+- the Flesch decomposition and the topic analyses (clusters, trends,
+  profiles and the topic decomposition);
+- the citation analyses, as scripts only (see Citations);
 - the self-audit of the paper's own abstract:
 
 ```bash
@@ -163,17 +179,52 @@ python src/metrics/audit_self.py \
     --abstract-file paper/tmlr/self_audit_abstract.txt
 ```
 
-The paper's arXiv and PubMed baselines, citation analyses, topic analyses,
-acronym reuse tables and Hohmann sentence length series are not part of this
-release, so the self-audit omits the sentence length row.
+The arXiv and PubMed series are computed from per-year aggregates shipped in
+`baselines/`, because neither source can be fetched again in the form the
+paper used. The scripts that produced them are included and documented there:
+`src/scraping/download_arxiv.py`, `src/processing/process_arxiv.py`,
+`src/processing/fetch_pubmed.py` and `src/processing/clean_pubmed.py` for the
+records, the metric scripts run with `--venues arxiv pubmed` for the
+per-paper values, and `src/baselines/make_baselines.py` for the aggregates. The acronym reuse rows
+for arXiv and PubMed come from `baselines/acronym_histograms.csv`.
+
+## Citations
+
+Citation counts are not distributed. The Semantic Scholar API licence allows
+the data to be used but not redistributed, so `src/citations/fetch_s2.py`
+fetches them into `data/per_paper/citations/` (then `fallback.py` and
+`enrich.py`; see their docstrings). The citations stage and `verify.py` run in
+one of three modes, decided by `src/citations/snapshot.py`:
+
+```
+strict   the three local files match the published snapshot's hashes: every
+         citation output must equal reference/tmlr/citations/ exactly
+fresh    the files exist but differ (a new fetch): outputs are reported, not
+         failed, since counts change daily
+absent   no files: the citations stage does not run and citation checks are
+         skipped
+```
+
+`reference/tmlr/citations/SNAPSHOT.md` records the snapshot.
+
+Citation and reference counts come from Semantic Scholar
+(<https://www.semanticscholar.org/?utm_source=api>), through the Semantic
+Scholar Academic Graph API, under the Semantic Scholar API License Agreement
+(<https://api.semanticscholar.org/license/>). The fallback pass and
+`fetch_openalex.py` use OpenAlex (<https://openalex.org>), whose data is
+released under CC0 1.0.
 
 ## Verification
 
-`verify.py` compares the per-paper metric files of every venue byte for byte,
-the plot-ready CSVs and analysis outputs of both papers numerically at
-`atol=0` (text columns as strings), and the figure PNG byte for byte. It exits
-non-zero on any mismatch and reports the installed package versions against
-those `reference/` was built with.
+`verify.py` compares 167 files against `reference/` in strict citation mode,
+157 otherwise. The 48 per-paper metric files (16 families for each venue) and
+the figure PNG are compared byte for byte. The other 118 files, the
+plot-ready CSVs and the analysis and citation outputs of both papers, are
+compared numerically at `atol=0`, with text columns compared as strings. The
+ten citation outputs count only in strict citation mode. It exits non-zero
+on any mismatch and reports the installed package versions against those
+`reference/` was built with. `python reference/make_manifest.py` checks the
+reference files themselves against the hashes in `reference/MANIFEST.md`.
 
 It also checks the TMLR paper's inline numbers. The paper resolves 163 of
 them through `\newcommand` macros in three generated files and inputs six
@@ -212,15 +263,34 @@ pytest
 ```
 
 The suite covers inputs absent from the corpus, the resume logic over
-partially written output, the error paths, the acronym rule, the judge score
+partially written output (including an interrupted PubMed fetch and retried
+citation requests), the error paths, the acronym rule, the judge score
 parser, the scrapers' parsers for every source, the per-year source dispatch
-in processing, the text normalisation rules, and the self-audit's manuscript
-reader. `tests/README.md` states the coverage criterion.
+in processing, the text normalisation rules, the macro and claim checkers,
+and the self-audit's manuscript reader. `tests/README.md` states the coverage
+criterion.
 
 ## Licence
 
 Copyright 2026 Ajay Mandyam Rangarajan and Jeyashree Krishnan.
 
 Code under `src/` and `paper/`: MIT (`LICENSE`). Derived data under
-`judge_scores/` and `reference/`: CC BY 4.0 (`LICENSE-DATA`). Neither covers
-the conference abstracts, which are not distributed here.
+`judge_scores/`, `reference/` and `baselines/`: CC BY 4.0 (`LICENSE-DATA`).
+Neither covers the source abstracts (NeurIPS, ICLR, ICML, arXiv, PubMed),
+which are not distributed here, or third-party citation counts.
+
+Sources and attribution:
+
+- ICLR 2017-2025: the ICLR dataset by Rita González-Márquez and Dmitry Kobak,
+  MIT licence (<https://github.com/berenslab/iclr-dataset>).
+- arXiv: arXiv metadata, dedicated to the public domain under CC0 1.0 by
+  arXiv.
+- PubMed: courtesy of the U.S. National Library of Medicine. The aggregates in
+  `baselines/` were computed from the 2026 PubMed baseline and do not reflect
+  the most current or accurate data available from NLM. NLM has not endorsed
+  this work.
+- Citation counts: Semantic Scholar
+  (<https://www.semanticscholar.org/?utm_source=api>), under the Semantic
+  Scholar API License Agreement (<https://api.semanticscholar.org/license/>).
+  Not distributed.
+- OpenAlex: CC0 1.0 (<https://openalex.org>).

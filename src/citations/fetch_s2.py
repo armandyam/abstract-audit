@@ -15,7 +15,10 @@ Each row records match_type:
 
 The file is appended to and flushed per row, and a re-run skips every
 paper_id already present except the error rows, so an interrupted fetch
-resumes where it stopped. After the run a provenance sidecar
+resumes where it stopped. A retried paper gets a new row; at the start and
+end of every run the file is compacted to one row per paper_id (the last
+non-error row wins), so a retry replaces the error row and never counts the
+paper twice. The analyses refuse a file with repeated paper_id rows. After the run a provenance sidecar
 {venue}_s2.provenance.json records the retrieval date and row counts.
 
 The order for one venue is fetch_s2.py, then fallback.py (fuzzy title and
@@ -45,7 +48,7 @@ import urllib.request
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 from citations._common import (  # noqa: E402
     CIT_DIR, PROCESSED_DIR, S2_FIELDNAMES, USER_AGENT,
-    load_processed, normalise_title, write_provenance,
+    load_processed, normalise_title, one_row_per_paper, write_provenance,
 )
 
 S2_BASE = "https://api.semanticscholar.org/graph/v1"
@@ -139,6 +142,28 @@ def already_fetched_ids(out_csv: str) -> set[str]:
     return done
 
 
+def compact(out_csv: str) -> int:
+    """Rewrite out_csv with one row per paper_id. Returns the rows removed.
+    The rewrite goes through a temporary file, so an interruption leaves
+    either the old file or the new one."""
+    if not os.path.exists(out_csv):
+        return 0
+    with open(out_csv, newline="", encoding="utf-8") as fh:
+        rd = csv.DictReader(fh)
+        fields = list(rd.fieldnames or FIELDNAMES)
+        rows = list(rd)
+    kept = one_row_per_paper(rows)
+    if len(kept) == len(rows):
+        return 0
+    tmp = out_csv + ".tmp"
+    with open(tmp, "w", newline="", encoding="utf-8") as fh:
+        w = csv.DictWriter(fh, fieldnames=fields, restval="", extrasaction="ignore")
+        w.writeheader()
+        w.writerows(kept)
+    os.replace(tmp, out_csv)
+    return len(rows) - len(kept)
+
+
 def make_row(p: dict, result) -> dict:
     if result is not None and result is not _ERROR:
         return {
@@ -165,6 +190,7 @@ def fetch(papers: list[dict], out_csv: str, api_key: str | None,
     unmatched here, as upstream reported them).
     """
     os.makedirs(os.path.dirname(out_csv) or ".", exist_ok=True)
+    compact(out_csv)
     done = already_fetched_ids(out_csv)
     if years is None:
         years = sorted({p["year"] for p in papers})
@@ -193,6 +219,7 @@ def fetch(papers: list[dict], out_csv: str, api_key: str | None,
                 print(f"  [{year}] done: {matched}/{matched + unmatched} matched", flush=True)
             total["matched"] += matched
             total["unmatched"] += unmatched
+    compact(out_csv)
     return total
 
 

@@ -42,8 +42,14 @@ out, a run recomputes on a new corpus: records are added, corrected and
 withdrawn, and the year counts change. The PubMed numbers in the paper are
 shipped in baselines/ for that reason.
 
-Resumable: the files already parsed are listed in a state file
-(data/processed/pubmed_parsed/.processed_files.json).
+Resumable: each baseline file is parsed into its own shard
+(data/processed/pubmed_parsed/.shards/<file>.jsonl.gz, written atomically)
+before it is listed as done in the state file
+(data/processed/pubmed_parsed/.processed_files.json). The year files are
+rebuilt from the shards at the end of every run, so an interruption loses at
+most the file in progress and a rerun never duplicates records. The state file
+records --baseline-prefix, --start-year and --years; a rerun with other values
+against the same --out-base is refused.
 
 Usage:
   python src/processing/fetch_pubmed.py                    # whole baseline
@@ -266,24 +272,122 @@ def parse_file(gz_path: str, year_filter: set[int] | None,
     return buckets
 
 
-# ── State ────────────────────────────────────────────────────────────────────
+# ── State and shards ─────────────────────────────────────────────────────────
+#
+# Each baseline file is parsed into its own shard, written atomically, before
+# the file is recorded as done. The per-year output is then rebuilt from all
+# completed shards, so an interrupted run loses at most the file in progress
+# and a rerun never duplicates records. The state file also records the
+# extraction settings; a resume with different settings is refused, because
+# the shards already written would not match them.
 
-def load_state(state_file: str) -> set[str]:
-    if os.path.exists(state_file):
-        with open(state_file) as f:
-            return set(json.load(f))
-    return set()
+STATE_VERSION = 2
+SHARD_DIR     = ".shards"
 
 
-def save_state(state_file: str, done: set[str]) -> None:
-    os.makedirs(os.path.dirname(os.path.abspath(state_file)), exist_ok=True)
-    with open(state_file, "w") as f:
-        json.dump(sorted(done), f)
+def extraction_settings(baseline_prefix: str, start_year: int,
+                        years: list[int] | None) -> dict:
+    """The settings that decide which records a shard holds."""
+    return {"baseline_prefix": baseline_prefix,
+            "start_year": int(start_year),
+            "years": sorted({int(y) for y in years}) if years else None}
+
+
+def _atomic_write(path: str, write) -> None:
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    tmp = path + ".tmp"
+    write(tmp)
+    os.replace(tmp, path)
+
+
+def load_state(state_file: str, settings: dict) -> set[str]:
+    """Completed file names, after checking the run's settings match."""
+    if not os.path.exists(state_file):
+        return set()
+    with open(state_file) as f:
+        data = json.load(f)
+    if not isinstance(data, dict) or data.get("version") != STATE_VERSION:
+        sys.exit(f"{state_file} was written by an earlier version of this script, "
+                 "which kept no per-file shards and cannot be resumed safely. "
+                 "Use a new --out-base, or remove that directory and start again.")
+    if data.get("settings") != settings:
+        sys.exit(f"{state_file} was written with settings {data.get('settings')}, "
+                 f"but this run asks for {settings}. Resuming would mix the two. "
+                 "Use a new --out-base, or rerun with the original settings.")
+    return set(data.get("done", []))
+
+
+def save_state(state_file: str, settings: dict, done: set[str]) -> None:
+    payload = {"version": STATE_VERSION, "settings": settings, "done": sorted(done)}
+
+    def write(tmp):
+        with open(tmp, "w") as f:
+            json.dump(payload, f, indent=1)
+    _atomic_write(state_file, write)
+
+
+def shard_path(shard_dir: str, fname: str) -> str:
+    stem = fname[:-len(".xml.gz")] if fname.endswith(".xml.gz") else fname
+    return os.path.join(shard_dir, f"{stem}.jsonl.gz")
+
+
+def write_shard(path: str, buckets: dict[int, list[dict]]) -> None:
+    """One file's kept records as gzipped JSON lines, written atomically."""
+    def write(tmp):
+        with gzip.open(tmp, "wt", encoding="utf-8") as fh:
+            for year in sorted(buckets):
+                for paper in buckets[year]:
+                    fh.write(json.dumps(paper, ensure_ascii=False) + "\n")
+    _atomic_write(path, write)
+
+
+def read_shard(path: str):
+    with gzip.open(path, "rt", encoding="utf-8") as fh:
+        for line in fh:
+            if line.strip():
+                yield json.loads(line)
+
+
+def assemble(out_base: str, shard_dir: str, done: list[str]) -> dict[int, int]:
+    """Rebuild every pubmed_{year}.json from the shards of the completed
+    files, in file order. Each year file is replaced atomically, so a rerun
+    after an interruption here gives the same result."""
+    missing = [f for f in done if not os.path.exists(shard_path(shard_dir, f))]
+    if missing:
+        sys.exit(f"{len(missing)} completed files have no shard in {shard_dir} "
+                 f"(first: {missing[0]}). Remove their names from the state "
+                 "file to parse them again.")
+    spool = os.path.join(out_base, ".assemble")
+    os.makedirs(spool, exist_ok=True)
+    handles = {}
+    try:
+        for fname in done:
+            for paper in read_shard(shard_path(shard_dir, fname)):
+                year = int(paper["year"])
+                if year not in handles:
+                    handles[year] = open(os.path.join(spool, f"{year}.jsonl"),
+                                         "w", encoding="utf-8")
+                handles[year].write(json.dumps(paper, ensure_ascii=False) + "\n")
+    finally:
+        for fh in handles.values():
+            fh.close()
+
+    counts: dict[int, int] = {}
+    for year in sorted(handles):
+        part = os.path.join(spool, f"{year}.jsonl")
+        with open(part, encoding="utf-8") as fh:
+            papers = [json.loads(line) for line in fh if line.strip()]
+        _atomic_write(os.path.join(out_base, f"pubmed_{year}.json"),
+                      lambda tmp: save_processed(papers, tmp))
+        counts[year] = len(papers)
+        os.remove(part)
+    os.rmdir(spool)
+    return counts
 
 
 # ── Main ─────────────────────────────────────────────────────────────────────
 
-def main():
+def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--out-base",   default=OUT_BASE)
@@ -302,14 +406,24 @@ def main():
                         help="Keep the .xml.gz files after parsing")
     parser.add_argument("--no-md5", action="store_true",
                         help="Skip the check against NLM's published md5")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     state_file = args.state_file or os.path.join(args.out_base, STATE_NAME)
+    shard_dir  = os.path.join(args.out_base, SHARD_DIR)
 
     os.makedirs(args.out_base,  exist_ok=True)
     os.makedirs(args.cache_dir, exist_ok=True)
 
-    year_filter = set(args.years) if args.years else None
-    done_files  = load_state(state_file)
+    settings    = extraction_settings(args.baseline_prefix, args.start_year, args.years)
+    year_filter = set(settings["years"]) if settings["years"] else None
+    if not os.path.exists(state_file):
+        stale = [f for f in os.listdir(args.out_base)
+                 if f.startswith("pubmed_") and f.endswith(".json")]
+        if stale:
+            sys.exit(f"{args.out_base} already holds {len(stale)} year files but no "
+                     f"state file; they were not produced from shards and would be "
+                     "overwritten. Use a new --out-base.")
+    done_files = load_state(state_file, settings)
+    save_state(state_file, settings, done_files)
 
     print("Listing PubMed baseline files", flush=True)
     all_files = list_baseline_files(args.baseline_prefix)
@@ -323,20 +437,6 @@ def main():
         to_process = to_process[:args.max_files]
     print(f"{len(to_process)} files to process ({len(done_files)} already done)\n",
           flush=True)
-
-    buckets: dict[int, list[dict]] = defaultdict(list)
-
-    def _flush_year(year: int) -> None:
-        if not buckets[year]:
-            return
-        out_path = os.path.join(args.out_base, f"pubmed_{year}.json")
-        if os.path.exists(out_path):
-            with open(out_path, encoding="utf-8") as fh:
-                combined = json.load(fh) + buckets[year]
-        else:
-            combined = buckets[year]
-        save_processed(combined, out_path)
-        buckets[year].clear()
 
     for i, fname in enumerate(to_process):
         url     = f"{FTP_BASE}/{fname}"
@@ -356,38 +456,29 @@ def main():
                 sys.exit(f"{fname}: md5 {got} does not match NLM's {want}; "
                          "removed, rerun to fetch it again")
 
-        file_buckets = parse_file(gz_path, year_filter, args.start_year)
+        file_buckets = parse_file(gz_path, year_filter, settings["start_year"])
         total_in_file = sum(len(v) for v in file_buckets.values())
         print(f"  {total_in_file:,} papers kept ({len(file_buckets)} years)", flush=True)
 
-        for year, papers in file_buckets.items():
-            buckets[year].extend(papers)
-
-        # Flush every 50 files to bound memory
-        if (i + 1) % 50 == 0:
-            print("  Flushing to disk", flush=True)
-            for year in list(buckets.keys()):
-                _flush_year(year)
-
+        # Data first, then the completion record, then the cache
+        write_shard(shard_path(shard_dir, fname), file_buckets)
         done_files.add(fname)
-        save_state(state_file, done_files)
+        save_state(state_file, settings, done_files)
 
         if not args.keep_cache:
             os.remove(gz_path)
 
-    print("\nFinal flush to disk", flush=True)
-    for year in sorted(buckets.keys()):
-        _flush_year(year)
+    done_in_order = [f for f in all_files if f in done_files]
+    done_in_order += sorted(done_files - set(all_files))
+    print(f"\nAssembling year files from {len(done_in_order)} shards", flush=True)
+    counts = assemble(args.out_base, shard_dir, done_in_order)
 
     print("\nOutput files:")
-    total = 0
-    for fname in sorted(os.listdir(args.out_base)):
-        if fname.startswith("pubmed_") and fname.endswith(".json"):
-            with open(os.path.join(args.out_base, fname), encoding="utf-8") as fh:
-                n = len(json.load(fh))
-            print(f"  {fname}: {n:,}")
-            total += n
-    print(f"\nTotal: {total:,} papers")
+    for year, n in sorted(counts.items()):
+        print(f"  pubmed_{year}.json: {n:,}")
+    print(f"\nTotal: {sum(counts.values()):,} papers")
+    print(f"The shards in {shard_dir} hold the same records; keep them to resume "
+          "or extend this run.")
     print("Next step: python src/processing/clean_pubmed.py")
 
 
