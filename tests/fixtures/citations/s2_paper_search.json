@@ -1,0 +1,16 @@
+{
+  "total": 3,
+  "offset": 0,
+  "next": 3,
+  "data": [
+    {"paperId": "aaaa000000000000000000000000000000000001",
+     "title": "Attention Is All You Need: A Survey",
+     "citationCount": 12, "referenceCount": 40, "year": 2021},
+    {"paperId": "aaaa000000000000000000000000000000000002",
+     "title": "Attention is all you need",
+     "citationCount": 98765, "referenceCount": 41, "year": 2017},
+    {"paperId": "aaaa000000000000000000000000000000000003",
+     "title": "ATTENTION -- is all you need!",
+     "citationCount": 3, "referenceCount": 0, "year": 2018}
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "meta": {"count": 2, "db_response_time_ms": 21, "page": 1, "per_page": 5},
+  "results": [
+    {"id": "https://openalex.org/W1000000001",
+     "title": "Deep Residual Learning for Image Recognition (extended)",
+     "cited_by_count": 50, "referenced_works_count": 30},
+    {"id": "https://openalex.org/W1000000002",
+     "title": "Deep residual learning for image recognition",
+     "cited_by_count": 200000, "referenced_works_count": 22}
+  ],
+  "group_by": []
+}

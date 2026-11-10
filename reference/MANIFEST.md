@@ -229,3 +229,52 @@ ec1eca9a7d8b0165  tmlr/analysis/topic_profiles.csv
 4bc880bfc5745590  tmlr/analysis/topic_terms.csv
 2f678b2b0e37d4e6  tmlr/analysis/topic_trends.csv
 ```
+
+## TMLR paper, citations
+
+Produced from the upstream research repository at commit `eda2733` and the
+citation snapshot described in `tmlr/citations/SNAPSHOT.md` (Semantic Scholar,
+NeurIPS retrieved 2026-05-11, ICLR and ICML 2026-06-11). The snapshot itself
+is not distributed.
+
+Copied byte for byte from upstream, and reproduced byte for byte by
+`src/citations/` from the snapshot:
+
+```
+tmlr/citations/citation_regression.csv                      data/aggregate/citation_regression.csv
+tmlr/citations/citation_readability_top_bottom_combined.csv data/aggregate/citation_readability_top_bottom_combined.csv
+tmlr/citations/references.csv                               data/aggregate/references.csv
+tmlr/citations/references_per_year.csv                      tmlr/data/pgfplots/references_per_year.csv
+tmlr/citations/citation_regression_topics.csv               tmlr/analysis/out/citation_regression_topics.csv
+```
+
+Computed by this repository from the snapshot, because upstream wrote these
+numbers only to LaTeX, to the terminal, or inside a wider file:
+
+- `citation_llm_top_bottom_combined.csv` (`judge_deciles.py`): the 45 numbers
+  of upstream `tmlr/tables/citation_llm_top_bottom_combined.tex`, all equal at
+  the table's two decimals.
+- `citation_cohens_d.csv` (`regression.py`): the pooled Cohen's d upstream
+  `citation_regression.py` printed, equal to full float precision.
+- `topic_citations.csv`, `topic_citation_corr.csv` (`topic_citations.py`):
+  the columns `topic_k15, n, flesch, median_citations, n_with_citations`
+  equal upstream `tmlr/analysis/out/topic_profiles.csv` value for value; the
+  Pearson correlation is the paper's TopicCitCorr, -0.59.
+- `citation_coverage.csv` (`coverage.py`): coverage through 2024 of 99.8,
+  97.0 and 96.3 percent and the 2.1 percent fallback share the paper quotes.
+
+sha256, first 16 hex:
+
+```
+fd2c3ef6d22725a9  tmlr/citations/SNAPSHOT.md
+09744729bddc0a31  tmlr/citations/citation_cohens_d.csv
+d73fdbf40c141f82  tmlr/citations/citation_coverage.csv
+70fde10c229bb6e0  tmlr/citations/citation_llm_top_bottom_combined.csv
+778fa9031fab4d19  tmlr/citations/citation_readability_top_bottom_combined.csv
+ca03a48643809afd  tmlr/citations/citation_regression.csv
+343c1fae5cae36e1  tmlr/citations/citation_regression_topics.csv
+5d6a75f52fb9a80b  tmlr/citations/references.csv
+f568632ce480d5b2  tmlr/citations/references_per_year.csv
+99d68b120d904c70  tmlr/citations/topic_citation_corr.csv
+c7ae017740db495f  tmlr/citations/topic_citations.csv
+```

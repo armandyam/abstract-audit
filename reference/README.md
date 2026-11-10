@@ -37,6 +37,11 @@ covers them. No value was altered.
   `latex_robustness.csv`, and every value matches the paper's macros at the
   paper's rounding.
 
+`tmlr/citations/` holds the TMLR paper's citation outputs and
+`SNAPSHOT.md`, the hashes of the Semantic Scholar files they were computed
+from. Those files are not distributed. The outputs are compared only when
+the local files match the snapshot; see `src/citations/snapshot.py`.
+
 Nothing in this directory is an input to the pipeline. To work from the shipped
 metrics instead of scraping, copy `reference/per_paper/` into `data/per_paper/`
 and run `python main.py --from aggregate`.
