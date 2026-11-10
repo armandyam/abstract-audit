@@ -26,6 +26,10 @@ covers them. No value was altered.
   conference-only upstream and are copied whole. No value was altered.
 - `tmlr/latex_robustness.csv` and `tmlr/readability_collinearity.csv` are
   copied whole.
+- `tmlr/analysis/` holds the acronym reuse, robustness and concentration
+  tables, the Flesch decomposition and the topic analyses, copied whole.
+  Two carry more than this release computes: `acronym_reuse_freq.csv` has the
+  arXiv and PubMed rows, and `topic_profiles.csv` has two citation columns.
 - `tmlr/latex_robustness_summary.csv` holds the derived numbers the paper
   quotes from the normalisation analysis. Upstream computed them inside the
   script that writes the paper's LaTeX macros, so there is no upstream CSV.
