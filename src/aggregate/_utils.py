@@ -1,9 +1,11 @@
 """Shared helper for per-metric aggregation.
 
-Trimmed for this release, which covers NeurIPS only. The upstream version
-also aggregated arXiv by primary category and three further corpora; that
+This release covers the three conferences NeurIPS, ICLR and ICML. The
+upstream version also aggregated arXiv by primary category and PubMed; that
 branch is removed here rather than left dead, so every line in this file
-runs on the shipped data.
+runs on the shipped data. Each venue is aggregated on its own and the venues
+are joined on year, so adding or removing a venue never changes another
+venue's values.
 
 Paths resolve from AA_DATA (default "data") so a caller can redirect the
 whole tree without editing this module.
@@ -19,10 +21,10 @@ import pandas as pd
 DATA_DIR      = os.environ.get("AA_DATA", "data")
 PER_PAPER_DIR = os.path.join(DATA_DIR, "per_paper")
 OUT_DIR       = os.path.join(DATA_DIR, "aggregate")
-# Aggregate only NeurIPS (the shipped corpus). validate.py's VALID_VENUES is
-# broader {"neurips","iclr","icml","arxiv"}; adding a venue there without
-# adding it here will pass validation but silently skip aggregation.
-VENUES        = ["neurips"]
+# The three conferences. validate.py's VALID_VENUES also admits "arxiv";
+# adding a venue there without adding it here will pass validation but
+# silently skip aggregation.
+VENUES        = ["neurips", "iclr", "icml"]
 
 
 def aggregate(

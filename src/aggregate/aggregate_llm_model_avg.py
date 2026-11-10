@@ -109,8 +109,10 @@ def main() -> None:
     args = parser.parse_args()
 
     print(f"Computing model-averaged LLM z-scores (venue={args.venue}) …")
-    for prompt in args.prompts:
-        process_prompt(prompt, args.in_dir, args.out_dir, args.venue)
+    missing = [p for p in args.prompts
+               if not process_prompt(p, args.in_dir, args.out_dir, args.venue)]
+    if missing:
+        sys.exit(f"no model average written for venue={args.venue}, prompts {missing}")
     print("Done.")
 
 
