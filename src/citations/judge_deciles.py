@@ -31,7 +31,7 @@ import numpy as np
 import pandas as pd
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
-from citations._common import CIT_DIR, JUDGE_DIR, OUT_DIR, VENUES, require  # noqa: E402
+from citations._common import CIT_DIR, JUDGE_DIR, OUT_DIR, VENUES, read_citations, require  # noqa: E402
 
 MODELS = [
     "Gemma-3-27B-Instruct", "Gemma-4-31B-Instruct", "Llama-3.1-8B-Instruct",
@@ -84,7 +84,7 @@ def build(venues: list[str], max_year: int | None, judge_dir: str | None = None,
     cells = {}
     for v in venues:
         scores = load_scores(os.path.join(judge_dir or JUDGE_DIR, v), models)
-        cit = pd.read_csv(require(os.path.join(cit_dir or CIT_DIR, f"{v}_s2.csv")))
+        cit = read_citations(os.path.join(cit_dir or CIT_DIR, f"{v}_s2.csv"))
         for prompt, c in venue_cells(scores, cit, max_year, models).items():
             cells[(prompt, v)] = c
     rows = [{"prompt": p, "venue": v, **dict(zip(COLUMNS[2:], cells[(p, v)]))}

@@ -29,7 +29,7 @@ import sys
 import pandas as pd
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
-from citations._common import CIT_DIR, OUT_DIR, VENUES, require  # noqa: E402
+from citations._common import CIT_DIR, OUT_DIR, VENUES, read_citations  # noqa: E402
 
 MAX_YEAR = 2024
 MATCH_TYPES = ["title", "s2_fuzzy", "openalex", "unmatched", "error"]
@@ -61,8 +61,8 @@ def coverage(venues: list[str], cit_dir: str | None = None,
              max_year: int = MAX_YEAR) -> pd.DataFrame:
     rows = []
     for v in venues:
-        df = pd.read_csv(require(os.path.join(cit_dir or CIT_DIR, f"{v}_s2.csv")),
-                         usecols=["year", "n_citations", "match_type"], low_memory=False)
+        df = read_citations(os.path.join(cit_dir or CIT_DIR, f"{v}_s2.csv"),
+                            usecols=["year", "n_citations", "match_type"], low_memory=False)
         rows.append(venue_row(df, v, max_year))
     return pd.DataFrame(rows, columns=COLUMNS)
 

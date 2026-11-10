@@ -74,6 +74,54 @@ def require(path: str) -> str:
     return path
 
 
+def one_row_per_paper(rows: list[dict]) -> list[dict]:
+    """Collapse repeated paper_id rows to one, in first-seen order.
+
+    A fetch appends a fresh row when it retries an error row, so a paper can
+    appear twice until the file is compacted. The last row that is not an
+    error wins; a paper with only error rows keeps its last one.
+    """
+    order: list[str] = []
+    best: dict[str, dict] = {}
+    for r in rows:
+        pid = r["paper_id"]
+        if pid not in best:
+            order.append(pid)
+            best[pid] = r
+        elif r.get("match_type") != "error" or best[pid].get("match_type") == "error":
+            best[pid] = r
+    return [best[pid] for pid in order]
+
+
+def duplicated_ids(ids) -> list[str]:
+    seen, dup = set(), []
+    for pid in ids:
+        if pid in seen:
+            dup.append(pid)
+        seen.add(pid)
+    return dup
+
+
+def require_unique(ids, path: str) -> None:
+    """Exit if a citation CSV holds more than one row for a paper. Coverage,
+    percentiles and every analysis assume one row per paper."""
+    dup = duplicated_ids(ids)
+    if dup:
+        sys.exit(f"{path}: {len(dup)} repeated paper_id rows (first: {dup[0]}). "
+                 "Run fetch_s2.py on it once more, which compacts the file to "
+                 "one row per paper.")
+
+
+def read_citations(path: str, usecols: list[str] | None = None, **kw):
+    """A {venue}_s2.csv as a DataFrame, after checking it has one row per
+    paper_id."""
+    import pandas as pd
+    cols = None if usecols is None else list(dict.fromkeys(["paper_id", *usecols]))
+    df = pd.read_csv(require(path), usecols=cols, **kw)
+    require_unique(df["paper_id"].astype(str), path)
+    return df if usecols is None else df[usecols]
+
+
 def provenance_path(csv_path: str) -> str:
     return os.path.splitext(csv_path)[0] + ".provenance.json"
 

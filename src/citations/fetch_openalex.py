@@ -13,8 +13,22 @@ The published analyses read the Semantic Scholar counts (fetch_s2.py), not
 these. This fetcher is kept as the independent second source the upstream
 project used to cross-check Semantic Scholar. OpenAlex data is CC0.
 
+Each row records match_type:
+
+  title      exact normalised-title match
+  unmatched  the search succeeded and no exact match is in the top five
+  error      the request failed (network, timeout, HTTP 5xx, or 429 after
+             every retry); retried on re-run
+
+A 400 or 404 answer is a definitive empty result. Every other failure is
+retried with backoff within the run, and if it still fails the paper gets an
+error row, never an unmatched one.
+
 Rows are appended and flushed one at a time, to the merged file and to one
-file per year, and a re-run skips every paper_id already present in either.
+file per year. A re-run skips every paper_id that has a non-error row in
+either, and retries the rest. At the start and end of every run both files
+are compacted to one row per paper_id (the last non-error row wins), so a
+retried paper is never counted twice.
 After the run a provenance sidecar records the retrieval date and row counts.
 
 OpenAlex needs no key. An address for its polite pool may be given in the
@@ -42,13 +56,14 @@ import urllib.request
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 from citations._common import (  # noqa: E402
     CIT_DIR, OPENALEX_FIELDNAMES, PROCESSED_DIR, USER_AGENT,
-    load_processed, normalise_title, write_provenance,
+    load_processed, normalise_title, one_row_per_paper, write_provenance,
 )
 
 OPENALEX_BASE = "https://api.openalex.org"
 SLEEP = 0.15    # ~6 req/s
 MAX_RETRIES = 5
 FIELDNAMES = OPENALEX_FIELDNAMES
+_ERROR = object()  # sentinel: lookup failed transiently, retry on a later run
 
 
 def works_url(params: dict, mailto: str | None = None) -> str:
@@ -58,21 +73,26 @@ def works_url(params: dict, mailto: str | None = None) -> str:
     return f"{OPENALEX_BASE}/works?{urllib.parse.urlencode(params)}"
 
 
-def _get(url: str) -> dict:
-    """GET a JSON document; {} on 4xx/5xx or after the last retry."""
+def _get(url: str) -> dict | None:
+    """GET a JSON document.
+
+    Returns {} on 400/404, which OpenAlex answers for a query it cannot
+    satisfy: a definitive empty result. Returns None when every retry failed
+    (network error, timeout, an unreadable body, HTTP 429 or 5xx), which the
+    caller records as an error row and not as a non-match.
+    """
     for attempt in range(MAX_RETRIES):
         try:
             req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
             with urllib.request.urlopen(req, timeout=30) as resp:
                 return json.loads(resp.read().decode())
         except urllib.error.HTTPError as e:
-            if e.code == 429:
-                time.sleep(2 ** (attempt + 1))
-            else:
+            if e.code in (400, 404):
                 return {}
+            time.sleep(2 ** (attempt + 1))
         except Exception:
             time.sleep(2 ** attempt)
-    return {}
+    return None
 
 
 def query_params(title: str) -> dict:
@@ -91,24 +111,60 @@ def match_exact(data: dict, title: str) -> dict | None:
     return None
 
 
-def lookup(title: str, mailto: str | None = None, get=_get) -> dict | None:
+def lookup(title: str, mailto: str | None = None, get=_get):
+    """The matching work, None for a definitive non-match, or the _ERROR
+    sentinel when the request failed."""
     if len(normalise_title(title).split()) < 3:
         return None
-    return match_exact(get(works_url(query_params(title), mailto)), title)
+    data = get(works_url(query_params(title), mailto))
+    if data is None:
+        return _ERROR
+    return match_exact(data, title)
+
+
+def _paths(out_merged: str, out_dir_yearly: str, venue: str) -> list[str]:
+    return [out_merged] + sorted(glob.glob(os.path.join(out_dir_yearly, f"{venue}_*.csv")))
 
 
 def already_fetched_ids(out_merged: str, out_dir_yearly: str, venue: str) -> set[str]:
+    """paper_ids with a non-error row in the merged or a yearly file."""
     done: set[str] = set()
-    for path in [out_merged] + glob.glob(os.path.join(out_dir_yearly, f"{venue}_*.csv")):
+    for path in _paths(out_merged, out_dir_yearly, venue):
         if not os.path.exists(path):
             continue
         with open(path, encoding="utf-8") as fh:
             for row in csv.DictReader(fh):
-                done.add(row["paper_id"])
+                if row.get("match_type") != "error":
+                    done.add(row["paper_id"])
     return done
 
 
-def make_row(p: dict, result: dict | None) -> dict:
+def compact(path: str) -> int:
+    """Rewrite one output file with one row per paper_id, through a
+    temporary file. Returns the rows removed."""
+    if not os.path.exists(path):
+        return 0
+    with open(path, newline="", encoding="utf-8") as fh:
+        rd = csv.DictReader(fh)
+        fields = list(rd.fieldnames or FIELDNAMES)
+        rows = list(rd)
+    kept = one_row_per_paper(rows)
+    if len(kept) == len(rows):
+        return 0
+    tmp = path + ".tmp"
+    with open(tmp, "w", newline="", encoding="utf-8") as fh:
+        w = csv.DictWriter(fh, fieldnames=fields, restval="", extrasaction="ignore")
+        w.writeheader()
+        w.writerows(kept)
+    os.replace(tmp, path)
+    return len(rows) - len(kept)
+
+
+def make_row(p: dict, result) -> dict:
+    if result is _ERROR:
+        return {"paper_id": p["paper_id"], "venue": p.get("venue", "neurips"),
+                "year": p["year"], "n_citations": "", "n_references": "",
+                "openalex_id": "", "match_type": "error"}
     if result:
         return {
             "paper_id": p["paper_id"], "venue": p.get("venue", "neurips"),
@@ -137,10 +193,12 @@ def fetch(papers: list[dict], venue: str, out_merged: str, out_dir_yearly: str,
           get=_get, sleep: float = SLEEP) -> dict:
     os.makedirs(out_dir_yearly, exist_ok=True)
     os.makedirs(os.path.dirname(out_merged) or ".", exist_ok=True)
+    for path in _paths(out_merged, out_dir_yearly, venue):
+        compact(path)
     done = already_fetched_ids(out_merged, out_dir_yearly, venue)
     if years is None:
         years = sorted({p["year"] for p in papers})
-    total = {"matched": 0, "unmatched": 0}
+    total = {"matched": 0, "unmatched": 0, "error": 0}
     mfh, mw = _writer(out_merged)
     try:
         for year in sorted(set(years)):
@@ -152,13 +210,16 @@ def fetch(papers: list[dict], venue: str, out_merged: str, out_dir_yearly: str,
                     row = make_row(p, result)
                     yw.writerow(row); yfh.flush()
                     mw.writerow(row); mfh.flush()
-                    total["matched" if result else "unmatched"] += 1
+                    total["error" if result is _ERROR
+                          else "matched" if result else "unmatched"] += 1
                     if sleep:
                         time.sleep(sleep)
             finally:
                 yfh.close()
     finally:
         mfh.close()
+    for path in _paths(out_merged, out_dir_yearly, venue):
+        compact(path)
     return total
 
 
@@ -183,7 +244,8 @@ def main() -> None:
         sys.exit(f"no processed records in {processed}")
     t = fetch(papers, a.venue, out, yearly, a.years,
               mailto=os.environ.get("OPENALEX_MAILTO"))
-    print(f"  {t['matched']} matched, {t['unmatched']} not matched in this run")
+    print(f"  {t['matched']} matched, {t['unmatched']} not matched, "
+          f"{t['error']} failed (retried on the next run) in this run")
     prov = write_provenance(out, "OpenAlex", f"{OPENALEX_BASE}/works",
                             "src/citations/fetch_openalex.py")
     print(f"  wrote {out}\n  wrote {prov}")

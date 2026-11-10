@@ -29,10 +29,12 @@ import pandas as pd
 from scipy.stats import percentileofscore
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
-from citations._common import CIT_DIR  # noqa: E402
+from citations._common import CIT_DIR, read_citations, require_unique  # noqa: E402
 
 
 def enrich(df: pd.DataFrame) -> pd.DataFrame:
+    if "paper_id" in df.columns:
+        require_unique(df["paper_id"].astype(str), "citation table")
     df = df.copy()
     df["n_citations"] = pd.to_numeric(df["n_citations"], errors="coerce")
     df["citation_percentile"] = np.nan
@@ -61,7 +63,7 @@ def main() -> None:
     path = a.csv or os.path.join(CIT_DIR, f"{a.venue}_s2.csv")
     if not os.path.exists(path):
         sys.exit(f"missing input: {path}")
-    df = enrich(pd.read_csv(path, low_memory=False))
+    df = enrich(read_citations(path, low_memory=False))
     print(f"  {df['citation_percentile'].notna().sum():,} of {len(df):,} rows enriched")
     df.to_csv(path, index=False)
     print(f"  rewrote {path}")

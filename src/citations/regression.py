@@ -39,7 +39,7 @@ import pandas as pd
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 from citations._common import (  # noqa: E402
-    CIT_DIR, OUT_DIR, PROCESSED_DIR, READ_DIR, VENUES, require,
+    CIT_DIR, OUT_DIR, PROCESSED_DIR, READ_DIR, VENUES, read_citations, require,
 )
 
 MAX_YEAR = 2024
@@ -64,8 +64,8 @@ def load(venue: str, read_dir: str | None = None, cit_dir: str | None = None,
     read = pd.read_csv(
         require(os.path.join(read_dir or READ_DIR, f"{venue}.csv")),
         usecols=["paper_id", "year", "flesch_ease", "avg_sentence_length", "word_count"])
-    cit = pd.read_csv(require(os.path.join(cit_dir or CIT_DIR, f"{venue}_s2.csv")),
-                      usecols=["paper_id", "year", "n_citations"])
+    cit = read_citations(os.path.join(cit_dir or CIT_DIR, f"{venue}_s2.csv"),
+                         usecols=["paper_id", "year", "n_citations"])
     df = read.merge(cit.drop(columns=["year"]), on="paper_id", how="inner")
     df = df.merge(author_counts(venue, processed_dir), on="paper_id", how="left")
     df["venue"] = venue

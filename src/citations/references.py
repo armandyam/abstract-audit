@@ -31,7 +31,7 @@ import sys
 from collections import defaultdict
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
-from citations._common import CIT_DIR, OUT_DIR, VENUES, require  # noqa: E402
+from citations._common import CIT_DIR, OUT_DIR, VENUES, require, require_unique  # noqa: E402
 
 MIN_PAPERS = 20
 
@@ -41,16 +41,18 @@ def load(path: str) -> tuple[dict[int, list[float]], dict[int, int]]:
     kept: dict[int, list[float]] = defaultdict(list)
     seen: dict[int, int] = defaultdict(int)
     with open(require(path), newline="", encoding="utf-8") as fh:
-        for row in csv.DictReader(fh):
-            year = int(row["year"])
-            seen[year] += 1
-            raw = (row.get("n_references") or "").strip()
-            if not raw:
-                continue
-            value = float(raw)
-            if value <= 0:
-                continue
-            kept[year].append(value)
+        rows = list(csv.DictReader(fh))
+    require_unique([r["paper_id"] for r in rows], path)
+    for row in rows:
+        year = int(row["year"])
+        seen[year] += 1
+        raw = (row.get("n_references") or "").strip()
+        if not raw:
+            continue
+        value = float(raw)
+        if value <= 0:
+            continue
+        kept[year].append(value)
     return kept, seen
 
 

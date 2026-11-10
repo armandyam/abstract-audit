@@ -41,7 +41,7 @@ import urllib.request
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 from citations._common import (  # noqa: E402
     CIT_DIR, PROCESSED_DIR, S2_FIELDNAMES, USER_AGENT,
-    load_processed, normalise_title, update_provenance,
+    load_processed, normalise_title, require_unique, update_provenance,
 )
 
 S2_BASE = "https://api.semanticscholar.org/graph/v1"
@@ -176,7 +176,9 @@ def run(rows: list[dict], titles: dict[str, str], api_key: str | None,
 def load_csv(path: str) -> tuple[list[str], list[dict]]:
     with open(path, newline="", encoding="utf-8") as fh:
         rd = csv.DictReader(fh)
-        return list(rd.fieldnames or S2_FIELDNAMES), list(rd)
+        fields, rows = list(rd.fieldnames or S2_FIELDNAMES), list(rd)
+    require_unique([r["paper_id"] for r in rows], path)
+    return fields, rows
 
 
 def save_csv(path: str, fieldnames: list[str], rows: list[dict]) -> None:
