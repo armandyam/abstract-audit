@@ -333,9 +333,7 @@ def _slope(s: pd.Series, y0, y1) -> float:
 
 @check
 def rises_over(ctx, metric, col, y0, y1):
-    """True when the OLS slope of one series over y0..y1 is positive: "The
-    NeurIPS series ... rises through the 1990s" is rises_over(Flesch,
-    neurips, 1990, 1999)."""
+    """True when the OLS slope of one series over y0..y1 is positive."""
     return _slope(ctx.pg(metric)[col], y0, y1) > 0
 
 
@@ -911,8 +909,7 @@ def _judge_post_change(ctx, venue, split) -> list[float]:
 def judge_post_small(ctx, venue="iclr", compare="neurips+icml", split=2022):
     """True when a venue's post-`split` movement is small: the largest
     absolute change from `split` to its last scored year, over the three
-    prompts, is below the smallest such change at the venues in `compare`
-    ("ICLR shows no comparable rise ... its post-2022 movement is small")."""
+    prompts, is below the smallest such change at the venues in `compare`."""
     own = max(abs(x) for x in _judge_post_change(ctx, venue, split))
     other = min(x for v in _list(compare) for x in _judge_post_change(ctx, v, split))
     return own < other

@@ -117,12 +117,14 @@ def check(built_dir: str, mode: str, paper: str | None) -> Result:
             built = fh.read()
         want = table_source(paper, name)
         a, b = tabular_rows(want), tabular_rows(built)
-        cap = "" if caption(want) == caption(built) else "(caption text differs; not counted)"
-        if a == b:
-            res.add(name, "MATCH", cap, counted)
+        cap_ok = caption(want) == caption(built)
+        if a == b and cap_ok:
+            res.add(name, "MATCH", "", counted)
         else:
-            res.add(name, "MISMATCH", first_difference(a, b) + (f" {cap}" if cap else ""),
-                    counted)
+            why = first_difference(a, b) if a != b else ""
+            if not cap_ok:
+                why = (why + " " if why else "") + "(caption text differs)"
+            res.add(name, "MISMATCH", why, counted)
     if paper is None:
         res.lines.append(f"  SKIP      every table: {SKIP_REASON}")
     return res

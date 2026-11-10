@@ -115,7 +115,7 @@ def test_a_changed_cell_and_an_absent_table_fail(mini):
     assert any("topic_trends.tex" in ln and "'topic_trends.tex & 1'" in ln for ln in r.lines)
 
 
-def test_a_changed_caption_is_reported_not_counted(mini):
+def test_a_changed_caption_is_a_mismatch(mini):
     paper, built = mini
     p = os.path.join(built, "prompts.tex")
     with open(p) as fh:
@@ -123,7 +123,7 @@ def test_a_changed_caption_is_reported_not_counted(mini):
     with open(p, "w") as fh:
         fh.write(text.replace("Cap.", "Other."))
     r = ct.check(built, "strict", paper)
-    assert r.bad == 0 and any("caption text differs" in ln for ln in r.lines)
+    assert r.bad == 1 and any("caption text differs" in ln for ln in r.lines)
 
 
 def test_citation_tables_follow_the_mode(mini):

@@ -62,8 +62,8 @@ def test_pairs_join_like_numbers_only():
     assert toks("roughly 88 to 90 percent, 2015--2025, three to five") == \
         [("88 to 90", "pair"), ("2015--2025", "pair"), ("three to five", "pair")]
     # a year and a decimal are two numbers, not a range
-    assert texts("rises from 2.55 in 1990 to 4.41 in 2025") == ["2.55", "1990 to 4.41"][:1] + \
-        ["1990", "4.41", "2025"]
+    assert texts("grows from 3.25 in 1994 to 6.75 in 2021") == ["3.25", "1994 to 6.75"][:1] + \
+        ["1994", "6.75", "2021"]
 
 
 def test_fractions_and_spelled_quantities():
