@@ -513,11 +513,15 @@ def run(data_dir: str, mode: str, claims_path: str = CLAIMS,
         lines = {i: o.line for i, o in rep.coverage.matched.items()}
     ctx = C.Ctx(data_dir, mode, paper=paper)
     for i, r in enumerate(rows):
-        if r["printed"] and r["check"] and C.is_citation_check(r["check"],
-                                                                parse_args(r["args"])):
+        citation = bool(r["check"]) and C.is_citation_check(r["check"], parse_args(r["args"]))
+        if r["printed"] and citation:
             rep.errors.append(f"row {i + 2} of claims.csv ({r['id']}) stores a citation "
                               "value; blank its printed field, it comes from the "
                               "manuscript")
+            continue
+        if not r["printed"] and not citation:
+            rep.errors.append(f"row {i + 2} of claims.csv ({r['id']}) has no printed "
+                              "value; only citation rows take theirs from the manuscript")
             continue
         if not r["printed"] and rep.coverage and i in rep.coverage.matched:
             # a citation row: the printed value is the manuscript's

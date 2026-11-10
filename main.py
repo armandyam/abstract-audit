@@ -43,7 +43,7 @@ Stages (each runs over NeurIPS, ICLR and ICML):
   figures    make_heatmap             the judge-vs-metric heatmap PNG
              build_figures            renders every figure to paper/figures.pdf
              tmlr/build_figures       every TMLR figure and table to
-                                      paper/tmlr/figures.pdf
+                                      data/tmlr/figures.pdf (not distributed)
   verify     verify                   every output against reference/
 
 Dependencies. A command whose inputs are absent is not run: main.py prints

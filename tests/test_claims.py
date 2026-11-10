@@ -650,3 +650,15 @@ def test_reclassified_rows_carry_a_check():
     for i in ids:
         assert rows[i]["category"] == "computed" and rows[i]["check"] in C.REGISTRY, i
         assert rows[i]["rule"] == "true"
+
+
+def test_a_blank_non_citation_row_is_an_error_even_with_the_manuscript(tmp_path, monkeypatch):
+    """Only citation rows may take their printed value from the manuscript."""
+    import check_claims as cc
+    row = {"id": "x-1", "file": "main.tex", "line": "1", "printed": "", "kind": "number",
+           "category": "computed", "check": "corpus_size", "args": "group=neurips",
+           "rule": "auto", "known": "", "source": "", "note": "", "context_sha256": "0"}
+    path = tmp_path / "claims.csv"
+    cc.save([row], str(path))
+    rep = cc.run(str(tmp_path), "absent", claims_path=str(path))
+    assert any("has no printed value" in e for e in rep.errors)

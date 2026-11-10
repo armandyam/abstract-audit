@@ -8,9 +8,8 @@ Scope. This licence covers the data files in these directories:
 
   judge_scores/   LLM judge scores per paper, six models, by venue
   reference/      expected pipeline outputs: per-paper metrics, per-year
-                  series, analysis tables, statistics computed from citation
-                  counts, and the TMLR paper's macro files and generated
-                  tables
+                  series, analysis tables, and the expected values of the
+                  TMLR paper's macros that do not depend on citation counts
   baselines/      per-year arXiv and PubMed aggregates and pooled acronym
                   frequency histograms
 
