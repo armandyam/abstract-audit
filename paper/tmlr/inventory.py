@@ -10,7 +10,7 @@ printed number here. Comments are ignored.
 
 What counts as a number (each is one occurrence):
 
-  numerals        30,595  2{,}823{,}623  0.68  -16.14  +0.56  7  2025
+  numerals        30,595  2{,}823{,}623  0.91  -12.34  +0.87  7  2025
                   with an attached \\% or %, ordinal suffix (89.0th, 100th),
                   decade s (1990s), trailing + (1000+), or -fold
   dates           2026-05-11, 2026-04

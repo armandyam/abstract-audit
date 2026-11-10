@@ -7,7 +7,8 @@ it, but none of the text around it. The check therefore runs in two parts:
 
   values    every row's check function (claims.py) recomputes the number
             from the pipeline's outputs and compares it with the printed
-            value stored in the row. Needs no manuscript.
+            value stored in the row. Needs no manuscript, except for the
+            citation rows: their printed value is not stored (see below).
   coverage  with a local copy of the manuscript ($AA_PAPER or --paper-dir,
             see manuscript.py), inventory.py finds every number it prints,
             macro invocations excepted (check_macros.py compares the 163
@@ -25,7 +26,16 @@ claims.csv columns:
   line            the line the number was on when the row was last synced
                   (informational; --sync-lines rewrites it)
   printed         the number as printed, whitespace collapsed ("30,595",
-                  "41 to 47", "7 of the 9", "three quarters")
+                  "41 to 47", "7 of the 9", "three quarters"). Blank for
+                  every row whose check reads citation outputs (category
+                  citation, and the generated cells of the citation tables,
+                  claims.is_citation_check): the citation counts and every
+                  statistic computed from them are not distributed, so the
+                  printed value is taken from the manuscript, from the
+                  occurrence the row's context_sha256 ties it to. Without
+                  the manuscript such a row is skipped. A blank printed value
+                  on any other row, and a stored one on a citation row, are
+                  errors.
   kind            number, date, word, pair or fraction (inventory.py)
   category        computed     measured, recomputed by `check`
                   citation     measured from citation counts: recomputed and
@@ -84,6 +94,8 @@ reported as SKIP with its reason:
   design, literature   rows without a check
   citation counts      absent: the counts are not distributed, so citation
                        claims are skipped
+  citation printed     without the manuscript: the printed value of a
+                       citation claim is not stored, so the claim is skipped
   manuscript absent    the self-audit measures the paper's own abstract,
                        which the release does not ship; its claims are
                        skipped when AA_PAPER is unset and the self-audit
@@ -100,7 +112,9 @@ After the paper text changes (needs AA_PAPER):
                                                   context goes to stderr, for
                                                   the author only); paste the
                                                   rows and fill in category,
-                                                  check and args
+                                                  check and args, and blank
+                                                  the printed value of a
+                                                  citation row
   3. delete the stale rows a new row replaces, then
      python paper/tmlr/check_claims.py --sync-lines
 
@@ -133,9 +147,12 @@ CATEGORIES = {"computed", "citation", "generated", "literature", "design",
               "unverifiable"}
 CIT_ABSENT = "citation counts absent"
 CIT_FRESH = "citation counts are a fresh fetch: compared, not counted"
+FROM_PAPER = "printed value comes from the manuscript"
+NOT_IN_PAPER = ("printed value comes from the manuscript, and the row ties to no "
+                "number there (see STALE)")
 # Skip reasons verify.py reports as counts; any other reason lists its claims.
 PAPER_ABSENT = f"manuscript absent: {C.PAPER_EXEMPT}"
-COUNTED_SKIPS = {"design", "literature", CIT_ABSENT, CIT_FRESH, PAPER_ABSENT}
+COUNTED_SKIPS = {"design", "literature", CIT_ABSENT, CIT_FRESH, PAPER_ABSENT, FROM_PAPER}
 
 
 # ============================================================ claims.csv ===
@@ -179,7 +196,8 @@ def match(rows: list[dict], occ: list[inv.Occurrence],
           norms: dict[str, inv.Normalised]) -> Coverage:
     """Tie each row to the occurrence with its file and context hash; collect
     the rows that tie to none or whose printed value differs (stale) and the
-    occurrences no row ties to (uncovered)."""
+    occurrences no row ties to (uncovered). A blank printed value (a
+    citation row) is taken from the manuscript, so only the hash ties it."""
     cov = Coverage()
     hashes = inv.context_hashes(occ, norms)
     by_hash = {(o.file, h): (i, o) for i, (o, h) in enumerate(zip(occ, hashes))}
@@ -194,7 +212,7 @@ def match(rows: list[dict], occ: list[inv.Occurrence],
                                  "number changed, or the number was removed"))
             continue
         k, o = hit
-        if o.text != r["printed"]:
+        if r["printed"] and o.text != r["printed"]:
             cov.stale.append((i, f"printed {r['printed']!r}, manuscript has {o.text!r}"))
             continue
         if k in owner:
@@ -431,8 +449,14 @@ def evaluate(row: dict, ctx: C.Ctx, line: int | str | None = None) -> dict:
         return rec
     kw = parse_args(row["args"])
     citation = C.is_citation_check(row["check"], kw)
+    if not citation and not row["printed"]:
+        rec.update(verdict="ERROR", why="no printed value")
+        return rec
     if citation and ctx.citation_mode == "absent":
         rec.update(verdict="SKIP", why=CIT_ABSENT)
+        return rec
+    if not row["printed"]:
+        rec.update(verdict="SKIP", why=FROM_PAPER if ctx.paper is None else NOT_IN_PAPER)
         return rec
     try:
         val = fn(ctx, **kw)
@@ -489,6 +513,15 @@ def run(data_dir: str, mode: str, claims_path: str = CLAIMS,
         lines = {i: o.line for i, o in rep.coverage.matched.items()}
     ctx = C.Ctx(data_dir, mode, paper=paper)
     for i, r in enumerate(rows):
+        if r["printed"] and r["check"] and C.is_citation_check(r["check"],
+                                                                parse_args(r["args"])):
+            rep.errors.append(f"row {i + 2} of claims.csv ({r['id']}) stores a citation "
+                              "value; blank its printed field, it comes from the "
+                              "manuscript")
+            continue
+        if not r["printed"] and rep.coverage and i in rep.coverage.matched:
+            # a citation row: the printed value is the manuscript's
+            r = {**r, "printed": rep.coverage.matched[i].text}
         rep.records.append(evaluate(r, ctx, lines.get(i)))
     return rep
 

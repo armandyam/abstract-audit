@@ -10,9 +10,7 @@ Per venue, from {venue}_s2.csv (one row per paper of the processed corpus):
   n_{title,s2_fuzzy,openalex,unmatched,error}
                               rows per match_type over all years
   supplemented_pct            (s2_fuzzy + openalex) / n_papers, in percent:
-                              the share recovered by the fallback pass. The
-                              paper quotes 2.1 for NeurIPS, (385 + 266) /
-                              30,595.
+                              the share recovered by the fallback pass.
 
 Reads:  $AA_DATA/per_paper/citations/{venue}_s2.csv
 Writes: $AA_DATA/aggregate/citations/citation_coverage.csv

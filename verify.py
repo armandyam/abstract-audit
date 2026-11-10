@@ -14,14 +14,16 @@ Comparisons, for the UncertaiNLP paper (reference/) and the TMLR paper
                              equal as strings
   TMLR analysis CSVs         as plot-ready CSVs
   TMLR inline numbers        the 163 \newcommand macros by name and value
-                             against reference/tmlr/macros.csv
+                             against reference/tmlr/macros.csv, the eleven
+                             citation macros against the manuscript's values
                              (paper/tmlr/check_macros.py)
   TMLR tables                every table the release builds against the
                              paper's own, cell by cell
                              (paper/tmlr/check_tables.py)
   TMLR printed numbers       every other number the manuscript prints,
                              recomputed and compared with the printed value in
-                             paper/tmlr/claims.csv (paper/tmlr/check_claims.py);
+                             paper/tmlr/claims.csv, or for a citation number
+                             in the manuscript (paper/tmlr/check_claims.py);
                              a mismatch, a missing input and an error each
                              count as a failure; skips are listed by reason;
                              author-accepted discrepancies are listed as KNOWN
@@ -38,6 +40,8 @@ Citations. The citation counts and every statistic computed from them are not
 distributed. With the published snapshot of the counts (strict mode) the
 citation macros, tables and claims are compared like everything else; after a
 fresh fetch they are reported, not counted; without counts they are skipped.
+Their printed values are not stored in the repository either: they are read
+from the manuscript, so without AA_PAPER they are skipped too.
 
 Incomplete analyses. main.py does not run a command whose inputs are absent
 (the --from aggregate route has no processed abstracts) and records it in

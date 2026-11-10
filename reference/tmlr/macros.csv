@@ -1,11 +1,4 @@
 file,name,value
-generated_round2.tex,AttenMax,32
-generated_round2.tex,AttenMin,13
-generated_round2.tex,BetaNoTopic,0.049
-generated_round2.tex,BetaTopicMax,0.042
-generated_round2.tex,BetaTopicMin,0.033
-generated_round2.tex,CitClusters,67
-generated_round2.tex,CitN,"43{,}696"
 generated_round2.tex,CompositionShare,17
 generated_round2.tex,FixedMixBaseYear,2015
 generated_round2.tex,FixedMixDecline,-9.1
@@ -39,10 +32,6 @@ generated_round2.tex,RawICLRDecline,-13.48
 generated_round2.tex,RawICMLDecline,-12.81
 generated_round2.tex,RawMixDecline,-10.9
 generated_round2.tex,RawNeurIPSDecline,-16.14
-generated_round2.tex,RtwoNoTopic,0.066
-generated_round2.tex,RtwoTopicMax,0.166
-generated_round2.tex,RtwoTopicMin,0.148
-generated_round2.tex,TopicCitCorr,-0.59
 generated_round2.tex,TopicK,15
 generated_round2.tex,TopicMaxFlesch,21.9
 generated_round2.tex,TopicMaxName,regret

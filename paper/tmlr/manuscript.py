@@ -13,7 +13,9 @@ tables/*.tex and figs/*.tex. Nothing is copied from it into the repository.
 
 Without AA_PAPER those checks are skipped and reported as skipped. Every
 check that compares a recomputed value with a printed one still runs, from
-the numbers stored in paper/tmlr/claims.csv and reference/tmlr/macros.csv.
+the numbers stored in paper/tmlr/claims.csv and reference/tmlr/macros.csv,
+except the citation numbers: their printed values are not stored, only read
+from the manuscript, so they are skipped too.
 """
 from __future__ import annotations
 

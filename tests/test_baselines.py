@@ -361,7 +361,7 @@ def test_full_metric_ignores_local_baseline_columns(tmp_path, monkeypatch):
     pd.DataFrame({"year": [2019, 2020], "neurips_m_mean": [1.0, 2.0],
                   "pubmed_m_mean": [99.0, 99.0], "pubmed_m_count": [1, 1],
                   "arxiv_m_mean": [98.0, 98.0]}).to_csv(agg / "fam.csv", index=False)
-    cat_frame().assign(m_mean=97.0).to_csv(agg / "fam_arxiv_by_category.csv", index=False)
+    cat_frame().assign(m_mean=93.0).to_csv(agg / "fam_arxiv_by_category.csv", index=False)
     monkeypatch.setattr(export, "AGG", str(agg))
     base = baselines_dir(tmp_path)
     export.export_metric_full("fam", "m", "fam", base, str(tmp_path / "o"))
@@ -370,7 +370,7 @@ def test_full_metric_ignores_local_baseline_columns(tmp_path, monkeypatch):
     assert list(df.columns) == ["year", "neurips", "arxiv_ml", "arxiv_nonml", "pubmed"]
     p = df.set_index("year")["pubmed"]
     assert p[2020] == 5.0 and p[2025] == 6.0          # from the baselines, not 99
-    assert 97.0 not in df["arxiv_ml"].tolist() and 98.0 not in df["arxiv_ml"].tolist()
+    assert 93.0 not in df["arxiv_ml"].tolist() and 98.0 not in df["arxiv_ml"].tolist()
     # pointing --baselines at a full aggregate directory does not leak
     # conference columns in from that side either
     full = tmp_path / "full"

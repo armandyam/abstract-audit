@@ -41,16 +41,18 @@ covers them. No value was altered.
   `latex_robustness.csv`, and every value matches the paper's macros at the
   paper's rounding.
 
-`tmlr/macros.csv` holds the values the paper prints through its 163 macros
-(file, name, value), written from the manuscript's macro files by
+`tmlr/macros.csv` holds the values the paper prints through 152 of its 163
+macros (file, name, value), written from the manuscript's macro files by
 `paper/tmlr/check_macros.py --write-reference`. `paper/tmlr/check_macros.py`
-compares the built macros with it.
+compares the built macros with it. The other eleven are the citation macros,
+whose values are not held here.
 
 No citation output is held here. The citation counts are not distributed and
-neither is any statistic computed from them; the citation numbers the paper
-prints are checked against the printed values (`paper/tmlr/claims.csv`,
-`macros.csv`) when the reader's counts are the published snapshot (see
-`src/citations/snapshot.py`).
+neither is any statistic computed from them, including the values the paper
+prints: neither `macros.csv` nor `paper/tmlr/claims.csv` stores one. The
+citation numbers are checked against the manuscript's own values (`AA_PAPER`)
+when the reader's counts are the published snapshot (see
+`src/citations/snapshot.py`), and skipped without the manuscript.
 
 The manuscript itself is not held here either. The checks that read it take
 a local copy at run time (`AA_PAPER`, see the top-level README).

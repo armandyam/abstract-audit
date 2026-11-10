@@ -5,8 +5,9 @@ full corpus. What is tested here is what that run cannot isolate: the
 \\newcommand parser on input the generator never writes (nested and escaped
 braces, comments, other definition forms, malformed definitions), the
 comparison logic for missing, extra, differing and skipped names, the
-citation modes, the comparison of macros.csv with a manuscript's own macro
-files, and the generator's own guards. Two tests run the generator on the
+citation modes, the citation macros' printed values read from a manuscript
+(macros.csv does not hold them), the comparison of macros.csv with a
+manuscript's own macro files, and the generator's own guards. Two tests run the generator on the
 committed reference inputs, which reproduces the paper's printed values
 without any pipeline run.
 """
@@ -30,8 +31,8 @@ REF = os.path.join(ROOT, "reference", "tmlr")
 # ── parser ───────────────────────────────────────────────────────────────
 
 def test_parse_simple_and_sorted_file():
-    text = ("% header\n\\newcommand{\\A}{1}\n\\newcommand{\\Bee}{43{,}696}\n")
-    assert cm.parse_newcommands(text) == {"A": "1", "Bee": "43{,}696"}
+    text = ("% header\n\\newcommand{\\A}{1}\n\\newcommand{\\Bee}{12{,}345}\n")
+    assert cm.parse_newcommands(text) == {"A": "1", "Bee": "12{,}345"}
 
 
 def test_parse_nested_braces_kept_whole():
@@ -91,10 +92,11 @@ def test_parse_malformed(text, msg):
         cm.parse_newcommands(text)
 
 
-def test_reference_holds_163_printed_values_and_no_prose():
+def test_reference_holds_152_printed_values_no_citation_value_and_no_prose():
     ref = cm.load_reference()
-    assert sum(len(m) for m in ref.values()) == 163
+    assert sum(len(m) for m in ref.values()) == 163 - len(mm.CITATION_MACROS) == 152
     assert set(ref) == set(mm.ROUND_FILES.values())
+    assert not mm.CITATION_MACROS & {n for m in ref.values() for n in m}
     for m in ref.values():
         for name, value in m.items():
             # numbers, or a computed label: a topic's leading term, a number
@@ -138,8 +140,9 @@ def _write_macros(path, m):
 
 
 def _mini(tmp_path, built_macros, skipped=None):
-    """A macros.csv holding one citation macro and one ordinary macro per
-    round file, and a built tree as given."""
+    """The printed values `refm` of one citation macro and one ordinary macro
+    per round file, a macros.csv holding the ordinary ones only (citation
+    values are not stored), and a built tree as given."""
     cit = sorted(mm.CITATION_MACROS)
     refm = {f: {"Plain" + "abc"[i]: str(i), cit[i]: f"c{i}"}
             for i, f in enumerate(mm.ROUND_FILES.values())}
@@ -147,7 +150,8 @@ def _mini(tmp_path, built_macros, skipped=None):
     with open(ref, "w", newline="") as fh:
         w = csv.writer(fh)
         w.writerow(["file", "name", "value"])
-        w.writerows((f, k, v) for f, m in refm.items() for k, v in m.items())
+        w.writerows((f, k, v) for f, m in refm.items() for k, v in m.items()
+                    if k not in mm.CITATION_MACROS)
     built = tmp_path / "built"
     built.mkdir()
     for f in mm.ROUND_FILES.values():
@@ -166,22 +170,48 @@ def test_check_absent_skips_citation_items(tmp_path):
                           skipped={"macros": {"generated_round2.tex": ["CitN"]},
                                    "tables": ["topics.tex"]})
     r = cm.check(built, "absent", ref)
-    assert (r.ok, r.bad, r.missing, r.skipped) == (3, 0, 0, 3)
+    assert (r.ok, r.bad, r.missing, r.skipped) == (3, 0, 0, len(mm.CITATION_MACROS))
+    assert any("SKIP" in ln and cm.CIT_ABSENT in ln for ln in r.summary())
     assert any("skipped" in ln and "AA_PAPER" in ln for ln in r.summary())
 
 
+def test_check_citation_macros_skipped_without_the_manuscript(tmp_path):
+    """Their printed values are not distributed: without the manuscript there
+    is nothing to compare them with, in strict mode as in fresh."""
+    for mode in ("strict", "fresh"):
+        (tmp_path / mode).mkdir()
+        built, ref, _ = _mini(tmp_path / mode, lambda m: m)
+        r = cm.check(built, mode, ref)
+        assert (r.ok, r.bad, r.missing, r.skipped) == (3, 0, 0, len(mm.CITATION_MACROS))
+        assert any("SKIP" in ln and cm.CIT_PAPER in ln for ln in r.summary())
+
+
 def test_check_strict_needs_citation_items(tmp_path):
-    built, ref, _ = _mini(tmp_path, _no_citations)
-    r = cm.check(built, "strict", ref)
+    built, ref, refm = _mini(tmp_path, _no_citations)
+    paper = _manuscript(tmp_path, refm)
+    r = cm.check(built, "strict", ref, paper=str(paper))
     assert r.missing == 3 and r.bad == 0 and r.skipped == 0
+
+
+def test_check_strict_compares_citation_macros_with_the_manuscript(tmp_path):
+    built, ref, refm = _mini(tmp_path, lambda m: m)
+    paper = _manuscript(tmp_path, refm)
+    r = cm.check(built, "strict", ref, paper=str(paper))
+    assert (r.ok, r.bad, r.missing, r.skipped) == (6 + 3, 0, 0, 0)    # 3 paper:, 6 built
+    cit = sorted(mm.CITATION_MACROS)[0]
+    _write_macros(paper / "generated_round2.tex", {"Plaina": "0", cit: "other"})
+    r = cm.check(built, "strict", ref, paper=str(paper))
+    assert r.bad == 1
+    assert any(cit in ln and "'other'" in ln and "'c0'" in ln for ln in r.lines)
 
 
 def test_check_fresh_reports_citation_differences_without_counting(tmp_path):
     def wrong_citations(m):
         return {k: ("other" if k in mm.CITATION_MACROS else v) for k, v in m.items()}
-    built, ref, _ = _mini(tmp_path, wrong_citations)
-    r = cm.check(built, "fresh", ref)
-    assert (r.ok, r.bad, r.missing) == (3, 0, 0)
+    built, ref, refm = _mini(tmp_path, wrong_citations)
+    paper = _manuscript(tmp_path, refm)
+    r = cm.check(built, "fresh", ref, paper=str(paper))
+    assert (r.count("ok", "macro"), r.bad, r.missing) == (3, 0, 0)
     assert r.uncounted == 3
     assert any("(fresh)" in ln for ln in r.lines)
 
@@ -210,10 +240,19 @@ def test_check_absent_rejects_non_citation_skip(tmp_path):
 
 
 def test_check_unbuilt_file(tmp_path):
-    built, ref, _ = _mini(tmp_path, lambda m: m)
+    built, ref, refm = _mini(tmp_path, lambda m: m)
+    paper = _manuscript(tmp_path, refm)
     os.remove(os.path.join(built, "generated_round3.tex"))
     assert cm.check(built, "absent", ref).missing == 1          # citation one skipped
-    assert cm.check(built, "strict", ref).missing == 2
+    assert cm.check(built, "strict", ref).missing == 1          # no manuscript: skipped
+    assert cm.check(built, "strict", ref, paper=str(paper)).missing == 2
+
+
+def test_reference_with_a_citation_macro_is_refused(tmp_path):
+    ref = tmp_path / "macros.csv"
+    ref.write_text(f"file,name,value\ngenerated_round2.tex,{sorted(mm.CITATION_MACROS)[0]},1\n")
+    with pytest.raises(ValueError, match="citation macro"):
+        cm.load_reference(str(ref))
 
 
 def test_check_unknown_mode(tmp_path):
@@ -234,15 +273,17 @@ def _manuscript(tmp_path, refm):
 
 @pytest.mark.parametrize("mode", ["strict", "fresh", "absent"])
 def test_manuscript_value_changed_fails_in_every_mode(tmp_path, mode):
-    """A printed value that differs from macros.csv fails even where the
-    built side is not compared (a citation macro outside strict mode)."""
+    """A printed value that differs from macros.csv fails in every mode. The
+    citation macros are not in macros.csv, so only the ordinary ones are
+    compared with it."""
     built, ref, refm = _mini(tmp_path, lambda m: m)
     paper = _manuscript(tmp_path, refm)
     r = cm.check(built, mode, ref, paper=str(paper))
-    assert r.count("ok", "paper") == 6 and r.count("bad", "paper") == 0
+    assert r.count("ok", "paper") == 3 and r.count("bad", "paper") == 0
     cit = sorted(mm.CITATION_MACROS)[0]
     _write_macros(paper / "generated_round2.tex", {"Plaina": "7", cit: "c0"})
-    _write_macros(paper / "generated_round3.tex", {"Plainb": "1"})          # one dropped
+    _write_macros(paper / "generated_round3.tex",
+                  {sorted(mm.CITATION_MACROS)[1]: "c1"})                    # Plainb dropped
     r = cm.check(built, mode, ref, paper=str(paper))
     bad = [ln for ln in r.lines if "paper:" in ln]
     assert r.count("bad", "paper") == 2 and len(bad) == 2
@@ -254,8 +295,8 @@ def test_write_reference_round_trips(tmp_path):
     _, _, refm = _mini(tmp_path, lambda m: m)
     paper = _manuscript(tmp_path, refm)
     out = tmp_path / "out.csv"
-    assert cm.write_reference(str(paper), str(out)) == 6
-    assert cm.load_reference(str(out)) == refm
+    assert cm.write_reference(str(paper), str(out)) == 3      # citation macros left out
+    assert cm.load_reference(str(out)) == {f: _no_citations(m) for f, m in refm.items()}
 
 
 # ── generator guards ─────────────────────────────────────────────────────

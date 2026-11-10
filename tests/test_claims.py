@@ -42,7 +42,7 @@ def texts(text, is_main=False):
 def test_numerals_thousands_decimals_percent_and_signs():
     assert texts(r"NeurIPS (30,595 papers) and 2{,}823{,}623 at 31.2\% and 5%") == \
         ["30,595", "2{,}823{,}623", "31.2\\%", "5%"]
-    assert texts(r"& $-16.14$ & \textbf{+1.79} & -0.01 \\") == ["-16.14", "+1.79", "-0.01"]
+    assert texts(r"& $-12.34$ & \textbf{+5.67} & -0.09 \\") == ["-12.34", "+5.67", "-0.09"]
 
 
 def test_suffixes_ordinals_decades_plus_and_dates():
@@ -206,7 +206,10 @@ def test_committed_claims_hold_no_manuscript_text():
     form = re.compile(rf"(?i)(?:{number})(?:(?: to |--|–| of (?:the )?)(?:{number}))?")
     for r in rows:
         assert re.fullmatch(r"[0-9a-f]{64}", r["context_sha256"]), r["id"]
-        assert form.fullmatch(r["printed"]), (r["id"], r["printed"])
+        # a citation-derived value is never stored: it comes from the manuscript
+        citation = bool(r["check"]) and C.is_citation_check(r["check"], cc.parse_args(r["args"]))
+        assert (r["printed"] == "") == citation, (r["id"], r["printed"])
+        assert citation or form.fullmatch(r["printed"]), (r["id"], r["printed"])
         assert r["category"] in cc.CATEGORIES, r["id"]
         assert not r["check"] or r["check"] in C.REGISTRY, r["id"]
         # only literature and design may go unchecked
@@ -238,7 +241,7 @@ def test_parse_printed_forms():
     assert parts("three quarters", "word")[0].value == 0.75
     assert parts("twelvefold", "word")[0].value == 12
     assert parts("89.0th")[0].value == 89.0 and parts("89.0th")[0].decimals == 1
-    assert parts("-0.52")[0].sign and parts("31.2\\%")[0].value == 31.2
+    assert parts("-0.87")[0].sign and parts("31.2\\%")[0].value == 31.2
 
 
 def test_compare_rules():
@@ -246,14 +249,14 @@ def test_compare_rules():
     assert not cc.compare("auto", 79.55, parts("79"))
     assert cc.compare("auto", 2823623, parts("2.8 million"))
     assert cc.compare("auto", (10.41, 12.49), parts("10 to 12", "pair"))
-    assert cc.compare("abs", -1.0701, parts("1.07"))
+    assert cc.compare("abs", -3.4501, parts("3.45"))
     assert cc.compare("gt", 3339, parts("3,000")) and not cc.compare("lt", 3339, parts("3,000"))
     assert cc.compare("nearest:10", 79.27, parts("80"))
-    assert cc.compare("nearest:0.5", (0.52, 0.62), parts("half", "word"))
+    assert cc.compare("nearest:0.5", (0.54, 0.63), parts("half", "word"))
     assert cc.compare("approx:1", 9.21, parts("ten", "word"))
     assert cc.compare("round:-2", 5823, parts("5,800"))
-    assert cc.compare("within", (57.5, 60.71), parts("57 to 61", "pair"))
-    assert not cc.compare("within", (56.9, 60.71), parts("57 to 61", "pair"))
+    assert cc.compare("within", (41.5, 46.71), parts("41 to 47", "pair"))
+    assert not cc.compare("within", (40.9, 46.71), parts("41 to 47", "pair"))
     assert cc.compare("claim:a+b", "a+b", parts("2015")) and not cc.compare("claim:a", "b", parts("1"))
     assert cc.compare("true", True, parts("2025")) and not cc.compare("true", 1, parts("2025"))
     assert cc.compare("exact", "2026-05-11", parts("2026-05-11"))
@@ -365,6 +368,56 @@ def test_citation_checks_read_the_local_outputs_and_skip_without_counts(tmp_path
     assert cc.evaluate(r, ctx)["verdict"] == "MATCH"
     fresh = cc.evaluate(dict(r, printed="2023"), C.Ctx(str(tmp_path), "fresh"))
     assert (fresh["verdict"], fresh["why"]) == ("SKIP", cc.CIT_FRESH) and fresh["flag"]
+
+
+def test_citation_printed_value_comes_from_the_manuscript(mini_source, tmp_path):
+    """A citation row stores no printed value: the coverage tie supplies the
+    manuscript's, without the manuscript the row is skipped, and a stored
+    citation value is an error."""
+    rows, _, _ = rows_for(mini_source)
+    k = next(i for i, r in enumerate(rows) if r["printed"] == "2015")
+    rows[k].update(printed="", category="citation", check="cit_max_year", rule="exact")
+    claims = tmp_path / "claims.csv"
+    cc.save(rows, str(claims))
+    data = tmp_path / "data"
+    cit = data / "aggregate" / "citations"
+    cit.mkdir(parents=True)
+    pd.DataFrame({"venue": C.CONFS, "max_year": [2015] * 3}).to_csv(
+        cit / "citation_coverage.csv", index=False)
+
+    rep = cc.run(str(data), "strict", str(claims), paper=mini_source)
+    rec = rep.records[k]
+    assert (rec["verdict"], rec["printed"]) == ("MATCH", "2015")
+    assert rep.failures == 0 and not rep.coverage.stale
+
+    rep = cc.run(str(data), "strict", str(claims))
+    assert (rep.records[k]["verdict"], rep.records[k]["why"]) == ("SKIP", cc.FROM_PAPER)
+    assert rep.failures == 0
+    rep = cc.run(str(data), "absent", str(claims))
+    assert (rep.records[k]["verdict"], rep.records[k]["why"]) == ("SKIP", cc.CIT_ABSENT)
+
+    pd.DataFrame({"venue": C.CONFS, "max_year": [2014] * 3}).to_csv(
+        cit / "citation_coverage.csv", index=False)
+    rep = cc.run(str(data), "strict", str(claims), paper=mini_source)
+    assert rep.records[k]["verdict"] == "MISMATCH"
+
+    rows[k]["printed"] = "2015"
+    cc.save(rows, str(claims))
+    rep = cc.run(str(data), "strict", str(claims))
+    assert rep.failures == 1 and "stores a citation value" in rep.errors[0]
+
+
+def test_blank_printed_value(tmp_path):
+    ctx = C.Ctx(str(tmp_path), "strict")
+    r = row("main.tex", "", cat="citation", check="cit_max_year", rule="exact")
+    assert (cc.evaluate(r, ctx)["verdict"], cc.evaluate(r, ctx)["why"]) == \
+        ("SKIP", cc.FROM_PAPER)
+    rec = cc.evaluate(r, C.Ctx(str(tmp_path), "strict", paper=str(tmp_path)))
+    assert (rec["verdict"], rec["why"]) == ("SKIP", cc.NOT_IN_PAPER)
+    # only a citation row may leave it blank
+    r = row("main.tex", "", cat="computed", check="series",
+            args="metric=readability_flesch_ease;col=neurips;year=2015")
+    assert cc.evaluate(r, ctx)["verdict"] == "ERROR"
 
 
 def test_evaluate_absent_input_fails_unless_exempt(tmp_path):
@@ -570,7 +623,7 @@ def test_comoves_collinearity_and_topics(tmp_path):
     write_series(str(tmp_path), "acronyms_title", years, {"neurips": [1 + i for i in range(10)]})
     agg = tmp_path / "aggregate"
     agg.mkdir()
-    pd.DataFrame({"venue": ["neurips", "iclr"], "pc1_var_explained": [0.72, 0.49]}) \
+    pd.DataFrame({"venue": ["neurips", "iclr"], "pc1_var_explained": [0.72, 0.45]}) \
       .to_csv(agg / "readability_collinearity.csv", index=False)
     pd.DataFrame({"flesch_change": [-1, -2], "hype_change": [0.1, 0.2],
                   "acr_abstract_change": [0.3, -0.1], "acr_title_change": [1, 1]}) \

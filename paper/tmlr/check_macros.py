@@ -2,19 +2,25 @@
 """Compare the built TMLR macros with the values the paper prints.
 
 make_macros.py writes three macro files under $AA_DATA/tmlr/. The paper
-resolves 163 inline numbers through the same macro names. Their printed
-values are stored in reference/tmlr/macros.csv (file, name, value): computed
-numbers and the few computed labels (a topic's leading term, the ten
-commonest acronyms), never text from the manuscript. This module compares:
+resolves 163 inline numbers through the same macro names. The printed
+values of the 152 that need no citation counts are stored in
+reference/tmlr/macros.csv (file, name, value): computed numbers and the few
+computed labels (a topic's leading term, the ten commonest acronyms), never
+text from the manuscript. The eleven citation macros
+(make_macros.CITATION_MACROS) are not stored: the citation counts and every
+statistic computed from them are not distributed, so their printed values
+are read from the manuscript itself. This module compares:
 
   built     every \\newcommand of each built file, parsed with full brace
-            matching, against macros.csv by name and exact value. A missing,
-            an extra and a differing macro are each a mismatch.
+            matching, against macros.csv by name and exact value, and each
+            citation macro against the manuscript's value. A missing, an
+            extra and a differing macro are each a mismatch.
   paper     with a local copy of the manuscript ($AA_PAPER or --paper-dir,
             see manuscript.py), macros.csv against the paper's own
             generated_round{2,3,4}.tex, by name and exact value, in every
             citation mode. Without it this comparison is reported as
-            skipped.
+            skipped, and so are the citation macros, whose printed values
+            only the manuscript holds.
 
 The generated tables are compared by check_tables.py.
 
@@ -26,13 +32,15 @@ with that reason, and count as failures.
 The eleven macros that need citation outputs (make_macros.CITATION_MACROS)
 follow the citation mode of src/citations/snapshot.py:
 
-  strict   compared like everything else
+  strict   compared with the manuscript's values like everything else
+           (skipped without the manuscript)
   fresh    compared and reported, not counted: a new fetch gives new numbers
   absent   not compared, reported as skipped. make_macros.py must then have
            skipped exactly the citation items (its skipped.json), and
            nothing else.
 
-macros.csv is written from the manuscript, once per manuscript revision:
+macros.csv is written from the manuscript, once per manuscript revision,
+without the citation macros:
 
     python paper/tmlr/check_macros.py --write-reference --paper-dir path/to/manuscript
 
@@ -60,6 +68,8 @@ from manuscript import SKIP_REASON, paper_dir  # noqa: E402
 
 REF = os.path.join(REPO, "reference", "tmlr", "macros.csv")
 STRICT, FRESH, ABSENT = "strict", "fresh", "absent"
+CIT_ABSENT = "citation counts absent"
+CIT_PAPER = "printed values come from the manuscript, not distributed"
 
 
 # ================================================================= parser ===
@@ -196,13 +206,19 @@ class Result:
     records: list[tuple[str, str, str, bool]] = field(default_factory=list)
     lines: list[str] = field(default_factory=list)
     paper_checked: bool = False
+    skip_reasons: dict[str, int] = field(default_factory=dict)
 
     def add(self, verdict: str, name: str, detail: str = "", counted: bool = True) -> None:
         """verdict is ok, bad, missing or skipped. An uncounted record is a
-        citation item compared in fresh mode: reported, never a failure."""
+        citation item compared in fresh mode: reported, never a failure. The
+        detail of a skipped record is its reason."""
         kind = "paper" if name.startswith("paper:") else "macro"
         self.records.append((kind, verdict, name, counted))
-        if verdict in ("ok", "skipped"):
+        if verdict == "skipped":
+            why = detail or "not compared"
+            self.skip_reasons[why] = self.skip_reasons.get(why, 0) + 1
+            return
+        if verdict == "ok":
             return
         tag = "(fresh)  " if not counted else ("MISSING  " if verdict == "missing"
                                                else "MISMATCH ")
@@ -238,6 +254,7 @@ class Result:
         out = [f"  macros: {n[0]} matched, {n[1]} mismatched, {n[2]} missing, "
                f"{n[3]} skipped" + (f", {u} compared but not counted "
                                     "(fresh citations)" if u else "")]
+        out += [f"  SKIP {n:>4}  {why}" for why, n in sorted(self.skip_reasons.items())]
         if self.paper_checked:
             p = [self.count(v, "paper") for v in ("ok", "bad")]
             out.append(f"  macros.csv against the manuscript's macro files: {p[0]} equal, "
@@ -248,10 +265,14 @@ class Result:
 
 
 def load_reference(path: str = REF) -> dict[str, dict[str, str]]:
-    """macros.csv as {round file: {name: value}}."""
+    """macros.csv as {round file: {name: value}}. It holds no citation macro:
+    one listed there is an error (their values are not distributed)."""
     out: dict[str, dict[str, str]] = {f: {} for f in ROUND_FILES.values()}
     with open(path, newline="", encoding="utf-8") as fh:
         for r in csv.DictReader(fh):
+            if r["name"] in CITATION_MACROS:
+                raise ValueError(f"{r['name']} is a citation macro; its printed value "
+                                 f"comes from the manuscript and must not be in {path}")
             if r["name"] in out.setdefault(r["file"], {}):
                 raise ValueError(f"{r['name']} listed twice in {path}")
             out[r["file"]][r["name"]] = r["value"]
@@ -268,10 +289,10 @@ def paper_macros(paper: str) -> dict[str, dict[str, str]]:
 
 
 def write_reference(paper: str, path: str = REF) -> int:
-    """Write macros.csv from the manuscript's macro files. Returns the number
-    of macros written."""
+    """Write macros.csv from the manuscript's macro files, without the
+    citation macros. Returns the number of macros written."""
     rows = [(f, name, value) for f, m in paper_macros(paper).items()
-            for name, value in sorted(m.items())]
+            for name, value in sorted(m.items()) if name not in CITATION_MACROS]
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", newline="", encoding="utf-8") as fh:
         w = csv.writer(fh, lineterminator="\n")
@@ -280,12 +301,14 @@ def write_reference(paper: str, path: str = REF) -> int:
     return len(rows)
 
 
-def check_paper(res: Result, ref: dict[str, dict[str, str]], paper: str) -> None:
-    """macros.csv against the manuscript's macro files: every macro by name
-    and value. Counted in every citation mode."""
+def check_paper(res: Result, ref: dict[str, dict[str, str]],
+                pm: dict[str, dict[str, str]]) -> None:
+    """macros.csv against the manuscript's macro files `pm`: every macro by
+    name and value, except the citation macros, which macros.csv does not
+    hold. Counted in every citation mode."""
     res.paper_checked = True
-    for fname, got in paper_macros(paper).items():
-        d = compare_macros(got, ref.get(fname, {}))
+    for fname, got in pm.items():
+        d = compare_macros(got, ref.get(fname, {}), CITATION_MACROS)
         for name in d.matched:
             res.add("ok", f"paper:{fname} \\{name}")
         for name, want, value in d.mismatched:
@@ -309,13 +332,21 @@ def check(built_dir: str, mode: str, ref_path: str = REF,
           paper: str | None = None) -> Result:
     """Compare every macro under built_dir with macros.csv, under one
     citation mode (strict, fresh or absent), and, given the manuscript
-    directory `paper`, macros.csv with the manuscript's own files."""
+    directory `paper`, macros.csv with the manuscript's own files. The
+    citation macros are compared with the manuscript's values; without the
+    manuscript they are skipped."""
     if mode not in (STRICT, FRESH, ABSENT):
         raise ValueError(f"unknown citation mode {mode!r}")
     res = Result()
     reference = load_reference(ref_path)
-    if paper is not None:
-        check_paper(res, reference, paper)
+    pm = paper_macros(paper) if paper is not None else None
+    if pm is not None:
+        check_paper(res, reference, pm)
+        if mode != ABSENT:
+            # The printed citation values, from the manuscript only.
+            reference = {f: {**m, **{n: v for n, v in pm.get(f, {}).items()
+                                     if n in CITATION_MACROS}}
+                         for f, m in reference.items()}
     sk = read_skipped(built_dir)
     why_missing = "(not built)"
     if sk and sk.get("incomplete"):
@@ -331,19 +362,20 @@ def check(built_dir: str, mode: str, ref_path: str = REF,
         if other:
             res.add("bad", "tmlr/skipped.json", f"skipped non-citation items {other}")
 
+    cit_compared = mode != ABSENT and pm is not None
+    if not cit_compared:
+        for name in sorted(CITATION_MACROS):
+            res.add("skipped", f"\\{name}", CIT_ABSENT if mode == ABSENT else CIT_PAPER)
     for fname in ROUND_FILES.values():
         ref = reference.get(fname, {})
         path = os.path.join(built_dir, fname)
         if not os.path.exists(path):
             for name in ref:
-                if mode == ABSENT and name in CITATION_MACROS:
-                    res.add("skipped", f"\\{name}")
-                else:
-                    res.add("missing", f"{fname} \\{name}", why_missing,
-                            counted=not (mode == FRESH and name in CITATION_MACROS))
+                res.add("missing", f"{fname} \\{name}", why_missing,
+                        counted=not (mode == FRESH and name in CITATION_MACROS))
             continue
         built = parse_newcommands(open(path).read())
-        skip = CITATION_MACROS if mode == ABSENT else frozenset()
+        skip = frozenset() if cit_compared else CITATION_MACROS
         d = compare_macros(built, ref, skip)
         for name in d.matched:
             res.add("ok", f"\\{name}", counted=not (mode == FRESH and name in CITATION_MACROS))
@@ -356,8 +388,6 @@ def check(built_dir: str, mode: str, ref_path: str = REF,
                     counted=not (mode == FRESH and name in CITATION_MACROS))
         for name in d.extra:
             res.add("bad", f"{fname} \\{name}", "(built, not in macros.csv)")
-        for name in d.skipped:
-            res.add("skipped", f"\\{name}")
     return res
 
 

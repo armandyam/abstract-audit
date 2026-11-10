@@ -218,15 +218,20 @@ python main.py --from self_audit       # or: python verify.py
 
 ```
 self_audit     the paper's own title and abstract, measured by audit_self.py
-check_macros   reference/tmlr/macros.csv against the paper's macro files
+check_macros   reference/tmlr/macros.csv against the paper's macro files,
+               and the citation macros against the paper's values
 check_tables   every generated table against the paper's table, cell by cell
 check_claims   coverage: every number the paper prints has a row in
-               claims.csv, and every row still marks a number
+               claims.csv, and every row still marks a number; it also
+               supplies the printed values of the citation claims
 ```
 
 Without `AA_PAPER` the self-audit stage is skipped, those checks are
 reported as skipped, and everything else runs: every printed value stored in
-`claims.csv` and `macros.csv` is still recomputed and compared.
+`claims.csv` and `macros.csv` is still recomputed and compared. The citation
+numbers are the exception: their printed values are not stored (see
+Citations), so without the manuscript the citation macros and claims are
+reported as skipped.
 
 ## Citations
 
@@ -246,8 +251,12 @@ absent   no files: the citations stage does not run and citation checks are
          skipped
 ```
 
-No statistic computed from the counts is distributed either: the citation
-checks compare the recomputed outputs with the values the paper prints.
+No statistic computed from the counts is distributed either, not even the
+values the paper prints: `reference/tmlr/macros.csv` leaves out the eleven
+citation macros, and `paper/tmlr/claims.csv` leaves the printed value blank
+on every citation row. The citation checks read those printed values from
+the manuscript (`AA_PAPER`) and compare the recomputed outputs with them;
+without it they are skipped.
 `src/citations/snapshot.py` holds the snapshot's SHA-256 hashes and
 retrieval dates.
 
@@ -275,14 +284,16 @@ The paper resolves 163 inline numbers through `\newcommand` macros in three
 generated files. `paper/tmlr/make_macros.py` writes them from the pipeline's
 outputs with the formatting code of the upstream generators, and
 `paper/tmlr/check_macros.py` compares them by name and exact value with the
-printed values in `reference/tmlr/macros.csv`.
+printed values in `reference/tmlr/macros.csv`, which holds 152 of them. The
+eleven citation macros are compared with the manuscript's own macro files.
 
 `paper/tmlr/check_tables.py` compares every table the release builds (the
 thirteen generated tables and the two static ones) with the paper's own
 table, cell by cell.
 
 Every other printed number has a row in `paper/tmlr/claims.csv`: the value
-as printed, whether it is measured, quoted from the literature, a design
+as printed (blank for a citation number, which is read from the manuscript),
+whether it is measured, quoted from the literature, a design
 constant or unverifiable, and the function in `paper/tmlr/claims.py` that
 recomputes it from the pipeline's outputs. The file holds no text from the
 manuscript; each row is tied to its place in the paper by a SHA-256 hash of
@@ -297,9 +308,10 @@ docstring says how to update `claims.csv` after the manuscript changes.
 
 Citation numbers (eleven macros, two tables and the citation claims) are
 compared when the local counts are the published snapshot, reported but not
-counted after a fresh fetch, and skipped when there are none. Without
-`AA_PAPER` the comparisons with the manuscript are skipped and reported (see
-The manuscript).
+counted after a fresh fetch, and skipped when there are none. Their printed
+values come from the manuscript, so they are also skipped without `AA_PAPER`.
+Without `AA_PAPER` the comparisons with the manuscript are skipped and
+reported (see The manuscript).
 
 Two dependencies determine the values and are pinned exactly. The `textstat`
 implementations have changed across releases. The spaCy model version

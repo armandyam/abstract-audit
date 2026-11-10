@@ -15,9 +15,8 @@ place with its original columns, so run enrich.py afterwards: a recovered row
 has no percentile until it is re-enriched.
 
 The upstream project ran this pass once, for NeurIPS, before the 2026-05-11
-snapshot: it recovered 385 papers by fuzzy title and 266 by OpenAlex, 2.1
-percent of the 30,595 NeurIPS papers. ICLR and ICML were not passed through
-it, and their published counts are exact-title matches only.
+snapshot. ICLR and ICML were not passed through it, and their published
+counts are exact-title matches only.
 
 The Semantic Scholar key is read from S2_API_KEY; an OpenAlex polite-pool
 address from OPENALEX_MAILTO. Both are optional.

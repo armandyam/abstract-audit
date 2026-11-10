@@ -184,10 +184,10 @@ def test_citation_llm_bold_marks_only_a_positive_gap(tmp_path):
     cit = tmp_path / "aggregate" / "citations"
     cit.mkdir(parents=True)
     pd.DataFrame({"prompt": ["simple", "simple"], "venue": ["neurips", "iclr"],
-                  "top_mean": [2.5, 2.0], "top_ci": [0.1, 0.1], "bottom_mean": [2.2, 2.1],
-                  "bottom_ci": [0.1, 0.1], "delta": [0.3, -0.1], "n_models": [6, 6]}) \
+                  "top_mean": [2.7, 1.9], "top_ci": [0.1, 0.1], "bottom_mean": [2.2, 2.4],
+                  "bottom_ci": [0.1, 0.1], "delta": [0.5, -0.5], "n_models": [6, 6]}) \
         .to_csv(cit / "citation_llm_top_bottom_combined.csv", index=False)
     pd.DataFrame({"venue": C.CONFS, "max_year": [2024] * 3}).to_csv(
         cit / "citation_coverage.csv", index=False)
     rows = ms.tabular_rows(mt.citation_llm(C.Ctx(str(tmp_path), "strict")))
-    assert rows[2][-1] == r"\textbf{+0.30}" and rows[3][-1] == "-0.10"
+    assert rows[2][-1] == r"\textbf{+0.50}" and rows[3][-1] == "-0.50"

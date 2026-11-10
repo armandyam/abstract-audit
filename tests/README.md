@@ -1,6 +1,6 @@
 # tests
 
-668 tests covering what the pipeline run cannot (one runs only with
+673 tests covering what the pipeline run cannot (one runs only with
 the manuscript, `AA_PAPER`).
 
 ## What these are for
@@ -39,8 +39,9 @@ So these tests target what an end-to-end run structurally cannot reach:
   published citation data from a fresh fetch.
 - **Macro checking.** The `\newcommand` parser on nested and escaped
   braces, comments and malformed definitions; missing, extra, differing and
-  skipped names; the three citation modes; `macros.csv` against a
-  manuscript's own macro files. The generator is also run on the committed
+  skipped names; the three citation modes; the citation macros compared
+  with a manuscript's values, and skipped without one (`macros.csv` must not
+  hold them); `macros.csv` against a manuscript's own macro files. The generator is also run on the committed
   reference inputs, which reproduces every printed value except the eleven
   citation ones.
 - **Table checking.** The tabular parser on the markup the paper's tables
@@ -52,9 +53,10 @@ So these tests target what an end-to-end run structurally cannot reach:
   not numbers, masked LaTeX structure and figure code); coverage on
   deliberately broken claims (uncovered, stale, a changed printed value,
   duplicate) tied by context hash; the comparison rules; the KNOWN and
-  citation verdicts; check functions on synthetic series with a known
-  answer. One test checks that the committed `claims.csv` holds no
-  manuscript text; one ties it to the manuscript when `AA_PAPER` points at a
+  citation verdicts; a citation row's printed value taken from the
+  manuscript, skipped without it, and an error when stored; check functions
+  on synthetic series with a known answer. One test checks that the
+  committed `claims.csv` holds no manuscript text and no citation value; one ties it to the manuscript when `AA_PAPER` points at a
   local copy, and is skipped otherwise.
 - **Source dispatch.** Each ICLR and ICML year reads one raw source, and the
   early sources pass their text through unchanged.

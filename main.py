@@ -33,6 +33,7 @@ Stages (each runs over NeurIPS, ICLR and ICML):
                                       six generated tables -> data/tmlr/
              paper/tmlr/make_tables   its seven other data-driven tables
              paper/tmlr/check_macros  compared with reference/tmlr/macros.csv
+                                      (citation macros: with the manuscript)
              paper/tmlr/check_tables  every table compared with the paper's,
                                       given $AA_PAPER (both report only;
                                       verify is the gate)

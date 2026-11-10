@@ -254,17 +254,19 @@ a09886514aa191f1  tmlr/pgfplots_full/signposting.csv
 
 ## TMLR inline numbers
 
-`tmlr/macros.csv` holds the 163 values the paper prints through its three
-macro files (`generated_round{2,3,4}.tex`): one row per macro, with the file,
-the macro name and the printed value. Every value is a computed number or a
-computed label (a topic's leading term, the ten commonest acronyms); none is
-text from the manuscript. Eleven of them are printed values computed from
-the citation snapshot. It was written from the manuscript at upstream commit
+`tmlr/macros.csv` holds 152 of the 163 values the paper prints through its
+three macro files (`generated_round{2,3,4}.tex`): one row per macro, with the
+file, the macro name and the printed value. Every value is a computed number
+or a computed label (a topic's leading term, the ten commonest acronyms);
+none is text from the manuscript. The eleven citation macros
+(`make_macros.CITATION_MACROS`) are left out: they are computed from the
+citation snapshot, which is not distributed, and the check reads their
+printed values from the manuscript. It was written from the manuscript at upstream commit
 `1cc4809` by `python paper/tmlr/check_macros.py --write-reference` (the
 macro files are unchanged since `eda2733`).
 
 sha256, first 16 hex:
 
 ```
-2d1e10ca41cd2b58  tmlr/macros.csv
+7062123daec4f2b5  tmlr/macros.csv
 ```
