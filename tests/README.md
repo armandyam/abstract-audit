@@ -1,13 +1,15 @@
 # tests
 
-604 tests covering what the pipeline run cannot.
+628 tests covering what the pipeline run cannot.
 
 ## What these are for
 
-`verify.py` already compares 140 artefacts against `reference/`, 46 of them
-byte-for-byte, over 62,628 real papers. As a regression test that is stronger
-than any unit test could be, and tests that re-walk the same happy path would
-add lines without adding information.
+`verify.py` already compares 167 files against `reference/` (in strict
+citation mode), 49 of them byte for byte, over 62,628 real papers, and checks
+the TMLR paper's 163 macros, six generated tables and the 1,169 numbers its
+manuscript prints. As a regression test that is stronger than any unit test
+could be, and tests that re-walk the same happy path would add lines without
+adding information.
 
 So these tests target what an end-to-end run structurally cannot reach:
 
@@ -18,7 +20,10 @@ So these tests target what an end-to-end run structurally cannot reach:
 - **Stateful resume logic.** A partially written output CSV. The docstring in
   `schema.py` records the bug this replaced: a year with any rows at all was
   treated as finished, so an interrupted run dropped the rest of that year
-  permanently and looked complete.
+  permanently and looked complete. The PubMed fetch is interrupted at each
+  point between parsing a file and recording it, and resumed with the same
+  and with different settings. The citation fetchers retry failed requests
+  without counting a paper twice.
 - **Error paths.** A missing venue file, a missing column, a malformed record.
 - **Domain logic that is not self-evident.** The acronym rule, and the judge
   score parser.
@@ -45,6 +50,9 @@ So these tests target what an end-to-end run structurally cannot reach:
   committed `claims.csv` to the committed source without any data.
 - **Source dispatch.** Each ICLR and ICML year reads one raw source, and the
   early sources pass their text through unchanged.
+- **Reference provenance.** `reference/MANIFEST.md` lists every file in
+  `reference/` with its current hash, and the checker fails on a missing,
+  unlisted, duplicated or changed file.
 
 ## What is deliberately not tested
 
@@ -55,11 +63,11 @@ abstract is scored at all.
 
 ## Coverage
 
-About 54% of `src/` by statement. That number is low on purpose and the shape
-matters more: the pure logic sits between 74% and 97%, and nearly all of the
-remainder is `main()` functions, file-reading loops, the GPU scoring path and
-network fetching. Those are exercised by a full pipeline run, which checks
-them against 140 reference artefacts rather than against a mock.
+About 68% of `src/` by statement. That number is low on purpose and the shape
+matters more: nearly all of the remainder is `main()` functions, file-reading
+loops, the GPU scoring path and network fetching. Those are exercised by a
+full pipeline run, which checks them against the reference files rather than
+against a mock.
 
 The criterion held here is not a percentage but this: every branch that
 handles malformed or edge-case input has a test, because those are exactly

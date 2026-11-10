@@ -1,10 +1,12 @@
 # baselines/
 
-Per-year aggregates for the two comparison corpora of the TMLR paper: arXiv,
-split into machine learning and the rest by primary category, and PubMed.
-They are inputs to the TMLR export
-(`src/plotting/export_pgfplots_data.py --baselines`), which merges them with
-the conference aggregates into the paper's six-column figure data.
+Per-year aggregates and pooled acronym frequency histograms for the two
+comparison corpora of the TMLR paper: arXiv, split into machine learning and
+the rest by primary category, and PubMed. The aggregates are inputs to the
+TMLR export (`src/plotting/export_pgfplots_data.py --baselines`), which merges
+them with the conference aggregates into the paper's six-column figure data.
+The histograms are inputs to the acronym reuse table
+(`src/analysis/acronym_reuse.py`).
 
 They are shipped because they cannot be rebuilt in the form the paper used.
 The per-paper metric files they come from run to 13 GB, the arXiv snapshot was
@@ -37,6 +39,19 @@ the same over every other category.
 
 PubMed years run to 2027. The 2026 and 2027 rows are ahead-of-print records,
 which belong to no publication year, and the export cuts PubMed at 2025.
+
+## Using locally computed baselines
+
+The export takes arXiv and PubMed only from the directory given to
+`--baselines`, and ignores any `arxiv_*` and `pubmed_*` columns in
+`data/aggregate/` (written there when `AA_BASELINES` is set). To plot
+baselines computed from local per-paper files, write them to a directory of
+their own and point the export at it:
+
+```bash
+python src/baselines/make_baselines.py --out-dir data/baselines_local
+python src/plotting/export_pgfplots_data.py --baselines data/baselines_local
+```
 
 ## Two PubMed denominators
 
@@ -82,7 +97,9 @@ year limit.
 ## Licence and attribution
 
 The files in this directory are derived data, licensed under CC BY 4.0
-(`LICENSE-DATA`). They hold yearly aggregates only, no abstract text.
+(`LICENSE-DATA`). They hold per-year aggregates and acronym frequency
+histograms pooled over each group's abstracts. They hold no abstract text and
+no per-paper value.
 
 PubMed data courtesy of the U.S. National Library of Medicine. These
 aggregates were computed from the 2026 PubMed baseline and do not reflect the

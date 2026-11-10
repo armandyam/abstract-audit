@@ -1,9 +1,31 @@
-The derived data in data/ and reference/ is licensed under
+The derived data distributed in this repository is licensed under
 Creative Commons Attribution 4.0 International (CC BY 4.0).
 https://creativecommons.org/licenses/by/4.0/
 
 Copyright (c) 2026 Ajay Mandyam Rangarajan and Jeyashree Krishnan
 
-This covers the computed metrics and judge scores only. It does not cover the
-NeurIPS abstracts those metrics were computed from, which are not distributed
-in this repository and remain with their authors and publisher.
+Scope. This licence covers the data files in these directories:
+
+  judge_scores/   LLM judge scores per paper, six models, by venue
+  reference/      expected pipeline outputs: per-paper metrics, per-year
+                  series, analysis tables, statistics computed from citation
+                  counts, and the TMLR paper's macro files and generated
+                  tables
+  baselines/      per-year arXiv and PubMed aggregates and pooled acronym
+                  frequency histograms
+
+data/ is not distributed. It holds what a local run of the pipeline
+generates.
+
+Exclusions. This licence does not cover:
+
+  - the source records the metrics were computed from: the titles,
+    abstracts and metadata of NeurIPS, ICLR, ICML, arXiv and PubMed papers.
+    None is distributed in this repository. They remain with their authors
+    and publishers and under the terms of the services that provide them;
+  - third-party citation and reference counts (Semantic Scholar, OpenAlex).
+    Per-paper counts are not distributed. The statistics computed from them
+    in reference/tmlr/citations/ carry the provider attribution given in
+    reference/tmlr/citations/SNAPSHOT.md.
+
+Attribution for the sources is given in README.md and baselines/README.md.
