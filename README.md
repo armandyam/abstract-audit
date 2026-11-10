@@ -107,9 +107,11 @@ mkdir -p data/per_paper && cp -R reference/per_paper/. data/per_paper/
 python main.py --from aggregate
 ```
 
-That route skips the `papers_per_year` count and the LaTeX robustness
-analysis, which read the processed abstracts, so `verify.py` reports those
-as missing.
+That route has no abstracts, so every analysis that reads them is skipped
+and listed as incomplete: the paper counts, the LaTeX robustness analysis, the
+topic analyses, the citation regressions, and the macro sections built from
+them. `verify.py` reports their outputs as missing and exits non-zero. Every
+other artefact is still checked.
 
 ## Stages
 

@@ -151,6 +151,12 @@ def md5(path: str) -> str:
 
 # ── XML parsing ──────────────────────────────────────────────────────────────
 
+# Known limitation, kept on purpose: both helpers read one level of child
+# elements, so text nested two levels deep (e.g. <i>a <b>b</b> c</i>) loses
+# its inner part. The published PubMed baselines were computed with exactly
+# this parser, so changing it would stop the regeneration from reproducing
+# them. A fresh study should use "".join(node.itertext()).
+
 def _text(elem, path: str) -> str:
     node = elem.find(path)
     if node is None:
