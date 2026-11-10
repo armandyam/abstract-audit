@@ -2,8 +2,11 @@
 % figure and table sources in this repository can be built and checked
 % without the manuscript, which is not distributed.
 %
-%   python paper/tmlr/build_figures.py
-%   (or: cd paper/tmlr && pdflatex -interaction=nonstopmode figures.tex)
+%   python paper/tmlr/build_figures.py            # full render, data/tmlr/figures.pdf
+%   python paper/tmlr/build_figures.py --public   # the tracked figures.pdf
+%
+% Build through build_figures.py only: it writes the full render outside the
+% repository and switches the citation content off for the tracked copy.
 %
 % Data comes from ../../data: pgfplots/tmlr/ for the figures (export stage),
 % tmlr/ for the macros and the generated tables (make_macros.py and

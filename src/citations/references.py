@@ -5,9 +5,8 @@ Aggregates the n_references column of {venue}_s2.csv (the length of each
 matched paper's Semantic Scholar reference list) to a mean per venue-year.
 
 A missing or zero n_references is excluded. Semantic Scholar has not ingested
-the reference lists of a large share of recent papers (27 percent of NeurIPS
-2025 at the 2026-06 snapshot), and those rows carry a literal 0 rather than a
-null. Averaging them in would manufacture a recent decline. A paper with a
+the reference lists of a large share of recent papers, and those rows carry a
+literal 0 rather than a null. Averaging them in would manufacture a recent decline. A paper with a
 genuinely empty bibliography does not occur in these proceedings, so a zero
 is always a missing measurement. A venue-year with fewer than --min-papers
 usable papers is suppressed.

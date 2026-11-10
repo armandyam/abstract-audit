@@ -189,10 +189,13 @@ the template: six by `make_macros.py` with the paper's macros, seven by
 `make_tables.py` (acronym reuse, the two citation decile tables, corpus
 sizes, the self-audit, the judge prompts and the text normalisation rules).
 The two tables that carry no computed value are committed in `tables/`.
-`paper/tmlr/build_figures.py` renders all of them to `paper/tmlr/figures.pdf`
+`paper/tmlr/build_figures.py` renders all of them to `data/tmlr/figures.pdf`
 (the figures stage), with a note in place of any figure or table whose input
 was not built: the citation figure and tables without the reader's citation
-counts, the self-audit without the manuscript.
+counts, the self-audit without the manuscript. The tracked
+`paper/tmlr/figures.pdf` is built with `--public`, which always replaces the
+citation figure and tables by notes, since no citation-derived value is
+distributed.
 
 The arXiv and PubMed series are computed from per-year aggregates shipped in
 `baselines/`, because neither source can be fetched again in the form the
