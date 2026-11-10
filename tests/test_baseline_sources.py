@@ -196,3 +196,110 @@ def test_clean_refuses_to_clean_in_place(tmp_path, monkeypatch):
                                      "--out-dir", str(tmp_path)])
     with pytest.raises(SystemExit, match="must differ"):
         clean.main()
+
+
+# ── PubMed resume: shards, interruption, settings ────────────────────────────
+
+def _baseline(tmp_path, monkeypatch, files):
+    """A fake baseline: each name maps to a list of (pmid, year) records,
+    written into the cache so no download happens."""
+    cache = tmp_path / "cache"
+    cache.mkdir(exist_ok=True)
+    for name, recs in files.items():
+        with gzip.open(cache / name, "wt", encoding="utf-8") as fh:
+            fh.write("<PubmedArticleSet>" + "".join(_article(p, y) for p, y in recs)
+                     + "</PubmedArticleSet>")
+    monkeypatch.setattr(fetch, "list_baseline_files", lambda prefix: sorted(files))
+    monkeypatch.setattr(fetch, "_download",
+                        lambda url, dest: pytest.fail("unexpected download"))
+    out = tmp_path / "out"
+    return ["--out-base", str(out), "--cache-dir", str(cache), "--no-md5",
+            "--keep-cache"], out
+
+
+def _ids(out):
+    got = {}
+    for f in sorted(out.glob("pubmed_*.json")):
+        got[f.name] = [p["paper_id"] for p in json.loads(f.read_text())]
+    return got
+
+
+FILES = {"pubmed26n0001.xml.gz": [(1, 2020), (2, 2021)],
+         "pubmed26n0002.xml.gz": [(3, 2020)],
+         "pubmed26n0003.xml.gz": [(4, 2021), (5, 2019)]}
+
+
+def test_pubmed_interrupted_run_resumes_without_loss_or_duplicates(tmp_path, monkeypatch):
+    argv, out = _baseline(tmp_path, monkeypatch, FILES)
+    real_parse = fetch.parse_file
+
+    def crash_on_third(path, *a):
+        if path.endswith("0003.xml.gz"):
+            raise KeyboardInterrupt
+        return real_parse(path, *a)
+    monkeypatch.setattr(fetch, "parse_file", crash_on_third)
+    with pytest.raises(KeyboardInterrupt):
+        fetch.main(argv)
+
+    # The two finished files are on disk before the state lists them
+    state = json.loads((out / fetch.STATE_NAME).read_text())
+    assert state["done"] == ["pubmed26n0001.xml.gz", "pubmed26n0002.xml.gz"]
+    assert sorted(p.name for p in (out / fetch.SHARD_DIR).iterdir()) == [
+        "pubmed26n0001.jsonl.gz", "pubmed26n0002.jsonl.gz"]
+
+    monkeypatch.setattr(fetch, "parse_file", real_parse)
+    fetch.main(argv)
+    expected = {"pubmed_2019.json": ["pmid_5"],
+                "pubmed_2020.json": ["pmid_1", "pmid_3"],
+                "pubmed_2021.json": ["pmid_2", "pmid_4"]}
+    assert _ids(out) == expected
+    fetch.main(argv)            # nothing left to parse: same output, no duplicates
+    assert _ids(out) == expected
+
+
+def test_pubmed_crash_after_shard_before_state_reparses_that_file(tmp_path, monkeypatch):
+    argv, out = _baseline(tmp_path, monkeypatch, FILES)
+    real_save = fetch.save_state
+    calls = {"n": 0}
+
+    def crash_on_second_save(*a):
+        calls["n"] += 1
+        if calls["n"] == 3:     # initial save, file 1, then file 2's record
+            raise KeyboardInterrupt
+        return real_save(*a)
+    monkeypatch.setattr(fetch, "save_state", crash_on_second_save)
+    with pytest.raises(KeyboardInterrupt):
+        fetch.main(argv)
+    monkeypatch.setattr(fetch, "save_state", real_save)
+    fetch.main(argv)
+    assert _ids(out)["pubmed_2020.json"] == ["pmid_1", "pmid_3"]
+
+
+@pytest.mark.parametrize("extra", [["--start-year", "2021"], ["--years", "2020"],
+                                   ["--baseline-prefix", "pubmed25n"]])
+def test_pubmed_resume_with_other_settings_is_refused(tmp_path, monkeypatch, extra):
+    argv, out = _baseline(tmp_path, monkeypatch, FILES)
+    fetch.main(argv + ["--max-files", "1"])
+    with pytest.raises(SystemExit, match="settings"):
+        fetch.main(argv + extra)
+
+
+def test_pubmed_years_subset_is_fingerprinted(tmp_path, monkeypatch):
+    argv, out = _baseline(tmp_path, monkeypatch, FILES)
+    fetch.main(argv + ["--years", "2021", "2020"])
+    assert set(_ids(out)) == {"pubmed_2020.json", "pubmed_2021.json"}
+    fetch.main(argv + ["--years", "2020", "2021"])     # same set, other order: fine
+    with pytest.raises(SystemExit, match="settings"):
+        fetch.main(argv + ["--years", "2019"])
+
+
+def test_pubmed_legacy_state_and_unexplained_year_files_are_refused(tmp_path, monkeypatch):
+    argv, out = _baseline(tmp_path, monkeypatch, FILES)
+    out.mkdir()
+    (out / fetch.STATE_NAME).write_text(json.dumps(["pubmed26n0001.xml.gz"]))
+    with pytest.raises(SystemExit, match="earlier version"):
+        fetch.main(argv)
+    (out / fetch.STATE_NAME).unlink()
+    (out / "pubmed_2020.json").write_text("[]")
+    with pytest.raises(SystemExit, match="no state file"):
+        fetch.main(argv)
