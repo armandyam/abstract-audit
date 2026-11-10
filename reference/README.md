@@ -24,6 +24,11 @@ covers them. No value was altered.
   carried arXiv and PubMed columns, which this release does not cover, so
   those columns and the rows only they fill are dropped. The judge series are
   conference-only upstream and are copied whole. No value was altered.
+- `tmlr/pgfplots_full/` holds the same per-metric series and papers per year
+  untrimmed, with the arXiv ML, arXiv non-ML and PubMed columns and all rows
+  (1987-2027), plus the sentence length series. They are byte copies of the
+  upstream files. The export builds them when the baselines in `baselines/`
+  are merged in (`export_pgfplots_data.py --baselines`).
 - `tmlr/latex_robustness.csv` and `tmlr/readability_collinearity.csv` are
   copied whole.
 - `tmlr/latex_robustness_summary.csv` holds the derived numbers the paper

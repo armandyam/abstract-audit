@@ -179,3 +179,60 @@ e4df969913a51278  tmlr/pgfplots/sensational_utility.csv
 505dad21d478ee8f  tmlr/pgfplots/verbs.csv
 d519a7059d8b673d  tmlr/readability_collinearity.csv
 ```
+
+## TMLR paper, untrimmed figure data
+
+`tmlr/pgfplots_full/` holds the 41 files of the upstream `tmlr/data/pgfplots/`
+whose header is `year,neurips,iclr,icml,arxiv_ml,arxiv_nonml,pubmed`, copied
+byte for byte from upstream commit `eda2733` (`git show eda2733:<path>`). They
+are the untrimmed versions of the per-metric series and `papers_per_year.csv`
+in `tmlr/pgfplots/`, plus `sentence_length.csv`, and carry every year any of
+the five corpora covers (1987-2027). They are the comparison target for
+`src/plotting/export_pgfplots_data.py --baselines`, which builds them from the
+conference aggregates and `baselines/`.
+
+sha256, first 16 hex:
+
+```
+d07de27c1153dd39  tmlr/pgfplots_full/acronyms_abstract.csv
+90b84d9bef5ef680  tmlr/pgfplots_full/acronyms_title.csv
+83d1a9c0307b041a  tmlr/pgfplots_full/active_narration.csv
+b26de28c5bbb1393  tmlr/pgfplots_full/clauses_per_sent.csv
+000b6abeb1326451  tmlr/pgfplots_full/hedging.csv
+eead30699fb087ad  tmlr/pgfplots_full/noun_chunks.csv
+18b357bf49c890a9  tmlr/pgfplots_full/nouns.csv
+aed9ad3df11a75d1  tmlr/pgfplots_full/np_density.csv
+7ac795cabe3c6bd2  tmlr/pgfplots_full/numbers.csv
+c943607945aa28fc  tmlr/pgfplots_full/papers_per_year.csv
+9e15c3e8c0418e17  tmlr/pgfplots_full/parse_depth.csv
+4f496b90b294bfc5  tmlr/pgfplots_full/passive_rate.csv
+2fe7dac4e84dd4d8  tmlr/pgfplots_full/readability_ari.csv
+4d7fdd1dde1a5291  tmlr/pgfplots_full/readability_avg_sentence_length.csv
+5c093815e658ed98  tmlr/pgfplots_full/readability_avg_syllables_per_word.csv
+aa5cbdce1fd9de77  tmlr/pgfplots_full/readability_coleman_liau.csv
+023525172164d891  tmlr/pgfplots_full/readability_dale_chall.csv
+ec255156482a56dc  tmlr/pgfplots_full/readability_flesch_ease.csv
+f11a35f5a7e5e5fa  tmlr/pgfplots_full/readability_flesch_kincaid.csv
+888587e64c438f0d  tmlr/pgfplots_full/readability_forcast.csv
+5ac0d7a24de5c5ec  tmlr/pgfplots_full/readability_gunning_fog.csv
+15ec6501be8959ce  tmlr/pgfplots_full/readability_linsear_write.csv
+fbf2db9ac778e1ae  tmlr/pgfplots_full/readability_lix.csv
+2d62750521dc0631  tmlr/pgfplots_full/readability_powers_sumner_kearl.csv
+3759c786a0cae842  tmlr/pgfplots_full/readability_rix.csv
+0321a2d9c6f8de82  tmlr/pgfplots_full/readability_smog.csv
+bcc9b051a47488f8  tmlr/pgfplots_full/readability_spache.csv
+eccbe1c4b8f9f9f6  tmlr/pgfplots_full/sensational_additional.csv
+5bf0a9109dad1a06  tmlr/pgfplots_full/sensational_attitude.csv
+19019704f65f53cb  tmlr/pgfplots_full/sensational_importance.csv
+c3bde1c450d7c0d3  tmlr/pgfplots_full/sensational_novelty.csv
+69b1b77099dc3d65  tmlr/pgfplots_full/sensational_problem.csv
+52f887d3f78a4bab  tmlr/pgfplots_full/sensational_quality.csv
+85af2d9299c39db3  tmlr/pgfplots_full/sensational_rigor.csv
+41c7c27266d64812  tmlr/pgfplots_full/sensational_scale.csv
+b9b9d4636da88743  tmlr/pgfplots_full/sensational_total.csv
+d6a51f9c63cb5062  tmlr/pgfplots_full/sensational_utility.csv
+d70aca46527f2000  tmlr/pgfplots_full/sentence_length.csv
+a09886514aa191f1  tmlr/pgfplots_full/signposting.csv
+28f97df9873a2fab  tmlr/pgfplots_full/ttr.csv
+1bf5a67df8bc7862  tmlr/pgfplots_full/verbs.csv
+```
