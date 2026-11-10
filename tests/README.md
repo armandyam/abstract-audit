@@ -1,6 +1,6 @@
 # tests
 
-653 tests covering what the pipeline run cannot.
+656 tests covering what the pipeline run cannot.
 
 ## What these are for
 

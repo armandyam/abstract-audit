@@ -380,3 +380,30 @@ def test_full_metric_ignores_local_baseline_columns(tmp_path, monkeypatch):
     df2 = pd.read_csv(tmp_path / "o" / "fam2.csv")
     assert list(df2.columns) == ["year", "neurips", "pubmed"]
     assert df2["neurips"].tolist() == [1.0, 2.0] and df2["pubmed"].tolist() == [99.0, 99.0]
+
+
+def test_full_metric_drops_years_only_a_local_baseline_covers(tmp_path, monkeypatch):
+    """A local opt-in aggregate can carry a PubMed-only year (e.g. 2028). The
+    baselines decide the baseline years; that local row must not survive as
+    an empty row, or the row count no longer matches the paper's file."""
+    agg = tmp_path / "agg"
+    agg.mkdir()
+    pd.DataFrame({"year": [2019, 2020, 2028], "neurips_m_mean": [1.0, 2.0, None],
+                  "pubmed_m_mean": [99.0, 99.0, 99.0]}).to_csv(agg / "fam.csv", index=False)
+    monkeypatch.setattr(export, "AGG", str(agg))
+    base = baselines_dir(tmp_path)
+    export.export_metric_full("fam", "m", "fam", base, str(tmp_path / "o"))
+    years = pd.read_csv(tmp_path / "o" / "fam.csv")["year"].tolist()
+    assert 2028 not in years
+
+
+def test_full_papers_per_year_uses_conference_years_only(tmp_path, monkeypatch):
+    agg = tmp_path / "agg"
+    agg.mkdir()
+    pd.DataFrame({"year": [1991, 2019, 2020], "neurips": [0, 10, 12], "iclr": [0, 0, 5],
+                  "icml": [0, 3, 4], "arxiv": [5, 9, 9]}).to_csv(
+        agg / "papers_per_year.csv", index=False)
+    monkeypatch.setattr(export, "AGG", str(agg))
+    out = tmp_path / "o"
+    export.export_papers_per_year_full(str(tmp_path / "no_baselines"), str(out))
+    assert pd.read_csv(out / "papers_per_year.csv")["year"].tolist() == [2019, 2020]

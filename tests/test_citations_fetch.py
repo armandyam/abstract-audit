@@ -456,3 +456,26 @@ def test_update_provenance_without_sidecar(tmp_path):
     update_provenance(str(p), "fallback", {}, today=dt.date(2026, 1, 1))
     rec = json.load(open(provenance_path(str(p))))
     assert rec["file"] == "iclr_s2.csv" and rec["n_rows"] == 0
+
+
+def test_openalex_resume_restores_a_row_written_only_to_the_yearly_file(tmp_path):
+    """An interruption between the yearly and the merged write leaves the row
+    in the yearly file only; the next run must not drop it from the merged file."""
+    import csv
+    merged = tmp_path / "neurips_openalex.csv"
+    yearly = tmp_path / "openalex"
+    yearly.mkdir()
+    row = {"paper_id": "p1", "venue": "neurips", "year": "2020", "n_citations": "5",
+           "n_references": "10", "openalex_id": "W1", "match_type": "exact"}
+    with open(yearly / "neurips_2020.csv", "w", newline="") as fh:
+        w = csv.DictWriter(fh, fieldnames=oa.FIELDNAMES)
+        w.writeheader()
+        w.writerow(row)
+    with open(merged, "w", newline="") as fh:
+        csv.DictWriter(fh, fieldnames=oa.FIELDNAMES).writeheader()
+    calls = []
+    oa.fetch([{"paper_id": "p1", "year": 2020, "title": "T"}], "neurips",
+             str(merged), str(yearly), get=lambda *a, **k: calls.append(1), sleep=0)
+    assert calls == []                                  # not fetched again
+    with open(merged, newline="") as fh:
+        assert [r["paper_id"] for r in csv.DictReader(fh)] == ["p1"]

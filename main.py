@@ -100,6 +100,10 @@ NEEDS: dict[str, list[str]] = {
     "src/analysis/topic_trends.py": [TOPIC_ASSIGN],
     "src/analysis/topic_profiles.py": [TOPIC_ASSIGN],
     "src/analysis/topic_decomposition.py": [TOPIC_ASSIGN],
+    # The regressions control for team size, read from the processed records.
+    "src/citations/regression.py": [PROCESSED],
+    "src/citations/regression_topics.py": [PROCESSED, TOPIC_ASSIGN],
+    "src/citations/topic_citations.py": [TOPIC_ASSIGN, TOPIC_PROFILE],
     "paper/analysis/make_heatmap.py": [f"{D}/pgfplots/judge_metric_corr.csv"],
     # The figure sources read ../data/pgfplots/ relative to paper/: the
     # repository's data/ directory, whatever $AA_DATA says.

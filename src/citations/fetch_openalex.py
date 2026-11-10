@@ -160,6 +160,32 @@ def compact(path: str) -> int:
     return len(rows) - len(kept)
 
 
+def reconcile(out_merged: str, out_dir_yearly: str, venue: str) -> int:
+    """Rebuild the merged file from itself and every yearly file, one row per
+    paper_id, through a temporary file. A run interrupted between writing a
+    yearly row and the merged row leaves that row only in the yearly file;
+    this puts it back in the merged file. Returns the rows added."""
+    rows: list[dict] = []
+    for path in _paths(out_merged, out_dir_yearly, venue):
+        if os.path.exists(path):
+            with open(path, newline="", encoding="utf-8") as fh:
+                rows.extend(csv.DictReader(fh))
+    if not rows:
+        return 0
+    before = 0
+    if os.path.exists(out_merged):
+        with open(out_merged, newline="", encoding="utf-8") as fh:
+            before = sum(1 for _ in csv.DictReader(fh))
+    kept = one_row_per_paper(rows)
+    tmp = out_merged + ".tmp"
+    with open(tmp, "w", newline="", encoding="utf-8") as fh:
+        w = csv.DictWriter(fh, fieldnames=FIELDNAMES, restval="", extrasaction="ignore")
+        w.writeheader()
+        w.writerows(kept)
+    os.replace(tmp, out_merged)
+    return len(kept) - before
+
+
 def make_row(p: dict, result) -> dict:
     if result is _ERROR:
         return {"paper_id": p["paper_id"], "venue": p.get("venue", "neurips"),
@@ -195,6 +221,7 @@ def fetch(papers: list[dict], venue: str, out_merged: str, out_dir_yearly: str,
     os.makedirs(os.path.dirname(out_merged) or ".", exist_ok=True)
     for path in _paths(out_merged, out_dir_yearly, venue):
         compact(path)
+    reconcile(out_merged, out_dir_yearly, venue)
     done = already_fetched_ids(out_merged, out_dir_yearly, venue)
     if years is None:
         years = sorted({p["year"] for p in papers})
@@ -220,6 +247,7 @@ def fetch(papers: list[dict], venue: str, out_merged: str, out_dir_yearly: str,
         mfh.close()
     for path in _paths(out_merged, out_dir_yearly, venue):
         compact(path)
+    reconcile(out_merged, out_dir_yearly, venue)
     return total
 
 

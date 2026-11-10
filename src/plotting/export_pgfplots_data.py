@@ -284,6 +284,11 @@ def export_metric_full(metric_name: str, col: str, out_name: str,
         return
     local = pd.read_csv(main_csv)
     df = _columns_from(local, tuple(f"{v}_" for v in VENUES))
+    # Years only a local arXiv/PubMed aggregate covers carry no conference
+    # value; the baseline years come from `baselines` alone.
+    conf_cols = [c for c in df.columns if c != "year"]
+    if conf_cols:
+        df = df.dropna(how="all", subset=conf_cols)
     ignored = [c for c in local.columns if c.startswith(BASELINE_PREFIXES)]
     if ignored:
         print(f"  note: {main_csv} has {len(ignored)} arXiv/PubMed columns; "
@@ -323,7 +328,10 @@ def export_papers_per_year_full(baselines: str, out: str) -> None:
     df = pd.read_csv(src)
     base_csv = os.path.join(baselines, "papers_per_year.csv")
     base = pd.read_csv(base_csv) if os.path.exists(base_csv) else None
-    years = set(df["year"])
+    # Conference years only: a local count with the arXiv opt-in also lists
+    # arXiv years, which the baselines below supply instead.
+    conf = [v for v in VENUES if v in df.columns]
+    years = set(df.loc[(df[conf].fillna(0) > 0).any(axis=1), "year"]) if conf else set()
     if base is not None:
         arxiv_years = base.loc[base[["arxiv_ml", "arxiv_nonml"]].notna().any(axis=1), "year"]
         years |= set(arxiv_years)
