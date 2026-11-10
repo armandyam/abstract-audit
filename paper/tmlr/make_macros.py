@@ -613,8 +613,8 @@ def absolute_changes(r: Round, inp: Inputs) -> None:
 def icml_slope(r: Round, inp: Inputs) -> None:
     """ICML and control Flesch slopes over ICML's own window.
 
-    The two round to the same value at two decimals, which made the
-    "marginally shallower" sentence in Section 2.1 unreadable.
+    The two round to the same value at two decimals, so both are written
+    with three.
     """
     f = read_flesch(inp)
     w = f[(f.year <= LAST) & f.icml.notna()]
