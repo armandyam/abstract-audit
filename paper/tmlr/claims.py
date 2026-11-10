@@ -79,18 +79,22 @@ REGISTRY: dict[str, "Check"] = {}
 
 
 class Check:
-    def __init__(self, fn, citation: bool):
+    def __init__(self, fn, citation: bool, exempt: str | None = None):
         self.fn, self.citation, self.name = fn, citation, fn.__name__
+        self.exempt = exempt
 
     def __call__(self, ctx, **kw):
         return self.fn(ctx, **kw)
 
 
-def check(fn=None, *, citation: bool = False):
+def check(fn=None, *, citation: bool = False, exempt: str | None = None):
     """Register a check function. citation=True marks one that reads
-    citation outputs (ctx.cit)."""
+    citation outputs (ctx.cit). exempt, when given, is the documented reason
+    why an absent input may be skipped rather than failed (see
+    check_claims.py, Missing inputs); every other check fails on an absent
+    input."""
     def wrap(f):
-        REGISTRY[f.__name__] = Check(f, citation)
+        REGISTRY[f.__name__] = Check(f, citation, exempt)
         return f
     return wrap(fn) if fn is not None else wrap
 
@@ -314,6 +318,68 @@ def steepest_fall_year(ctx, metric="readability_flesch_ease", cols="neurips+iclr
     return min(years)
 
 
+def _slope(s: pd.Series, y0, y1) -> float:
+    """OLS slope per year of a yearly series over y0..y1 inclusive (years
+    without a value left out)."""
+    s = s.loc[int(y0):int(y1)].dropna()
+    if len(s) < 2:
+        raise ValueError(f"fewer than two years in {y0}..{y1}")
+    return float(np.polyfit(s.index.values.astype(float), s.values, 1)[0])
+
+
+@check
+def rises_over(ctx, metric, col, y0, y1):
+    """True when the OLS slope of one series over y0..y1 is positive: "The
+    NeurIPS series ... rises through the 1990s" is rises_over(Flesch,
+    neurips, 1990, 1999)."""
+    return _slope(ctx.pg(metric)[col], y0, y1) > 0
+
+
+@check
+def inflection(ctx, metrics, venues, split, before, after=LAST):
+    """True when, for every metric and venue, the OLS slope over split..after
+    exceeds the slope over before..split: an inflection at `split` (the
+    trend steepens there). "Our data show a post-2022 inflection in jargon and
+    sensational language" is inflection(acronym density in titles and
+    abstracts, sensational total; the four ML venues; split 2022, before
+    2015). The magnitude ("sharply") is not part of the rule; where the
+    paper quantifies it, that number has its own row."""
+    for m in _list(metrics):
+        df = ctx.pg(m)
+        for v in _list(venues):
+            if not _slope(df[v], split, after) > _slope(df[v], before, split):
+                return False
+    return True
+
+
+@check
+def divergence_accelerates(ctx, metric, split=2022, before=FIRST, after=LAST,
+                           ml="neurips+iclr+icml+arxiv_ml", control="arxiv_nonml"):
+    """True when the ML minus non-ML gap widens faster after `split` than
+    before it: gap(y) = mean of the ML venues in y minus the control in y,
+    and the OLS slope of gap over split..after exceeds that over
+    before..split. "The divergence between ML and non-ML venues accelerates
+    after 2022"."""
+    df = ctx.pg(metric)
+    gap = df[_list(ml)].mean(axis=1) - df[control]
+    return _slope(gap, split, after) > _slope(gap, before, split)
+
+
+@check
+def comoves(ctx, falling="readability_flesch_ease",
+            rising="acronyms_abstract+acronyms_title", venue="neurips"):
+    """True when, over a venue's years, papers per year has a negative
+    Spearman correlation with every series in `falling` and a positive one
+    with every series in `rising`: volume and the readability and acronym
+    trends "move together in our data"."""
+    n = ctx.pg("papers_per_year")[venue]
+    for m, sign in [(m, -1) for m in _list(falling)] + [(m, 1) for m in _list(rising)]:
+        j = pd.concat([n, ctx.pg(m)[venue]], axis=1).dropna()
+        if not sign * j.corr(method="spearman").iloc[0, 1] > 0:
+            return False
+    return True
+
+
 # ======================================================= readability ===
 
 def _change(ctx, m, v, y0=FIRST, y1=LAST):
@@ -380,6 +446,32 @@ def collinearity(ctx, venue, col, scale=1.0):
 def latex_summary(ctx, key):
     """A value of aggregate/latex_robustness_summary.csv."""
     return ctx.summary(key)
+
+
+@check
+def latex_summary_pair(ctx, keys):
+    """Two values of aggregate/latex_robustness_summary.csv, as a printed
+    range: "Markup accounts for 5 to 6 percent" is (markup_share_min_pct,
+    markup_share_max_pct), each compared at the printed precision (whole
+    percent). latex_robustness.py computes the shares; the caption phrase
+    make_macros.py writes is not used."""
+    a, b = _list(keys)
+    return ctx.summary(a), ctx.summary(b)
+
+
+@check
+def collinearity_one_signal(ctx, threshold=0.5):
+    """True when the first principal component of the 15 standardised
+    readability metrics carries more than `threshold` of their variance at
+    every venue (aggregate/readability_collinearity.csv): "the 15 classical
+    metrics carry roughly one common signal".
+
+    The rule is a majority of the variance on one component. By the Kaiser
+    criterion (eigenvalue above 1) a second component also qualifies: it
+    carries about 17 percent of 15 units of variance, an eigenvalue near 2.5,
+    which is the "primarily two surface quantities" of Section 3.1."""
+    df = ctx.agg("readability_collinearity.csv")
+    return bool((df.pc1_var_explained > float(threshold)).all())
 
 
 # ======================================================== style suite ===
@@ -535,6 +627,18 @@ def papers_min(ctx, groups, year):
 
 
 @check
+def arxiv_year_fraction(ctx, key="cutoff_year_fraction"):
+    """The share of calendar year 2025 the arXiv snapshot covers, from its
+    cutoff (baselines/arxiv_snapshot.json, written by
+    src/baselines/arxiv_snapshot.py from the last arXiv identifier): "The
+    arXiv 2025 row covers approximately three quarters of the calendar
+    year". key=cutoff_year_fraction_min or _max gives the bounds the month
+    of the last identifier alone allows."""
+    with open(os.path.join(ctx.repo, "baselines", "arxiv_snapshot.json")) as fh:
+        return float(json.load(fh)[key])
+
+
+@check
 def pubmed_ahead_of_print(ctx):
     """PubMed records dated after 2025 (ahead-of-print)."""
     b = ctx.base("papers_per_year.csv").set_index("year")
@@ -563,7 +667,12 @@ def mean_authors_ratio(ctx, venue, y0, y1):
     return mean_authors(ctx, venue, y1) / mean_authors(ctx, venue, y0)
 
 
-@check
+RAW_EXEMPT = ("raw scrape absent: the count re-reads data/raw/neurips, which "
+              "the --from aggregate route does not have; no series or table "
+              "depends on it")
+
+
+@check(exempt=RAW_EXEMPT)
 def neurips_fallback_count(ctx, max_year=None):
     """NeurIPS records whose abstract comes from the full-text fallback of
     process_neurips.best_abstract: the abstract field, after an "Abstract
@@ -771,6 +880,59 @@ def judge_n_models(ctx):
 
 
 @check
+def judge_rises_after(ctx, venues="neurips+icml", split=2022, ratio=10):
+    """True when the six-model average "rises sharply after `split`" at every
+    venue in `venues`, for each of the three prompts: the final scored year
+    exceeds every year up to `split`, and the OLS slope over split..last is
+    positive and at least `ratio` times the absolute slope over first..split.
+    With the paper's data the post-2022 slope is 11 to 120 times the
+    baseline slope."""
+    for venue in _list(venues):
+        for p in PROMPTS:
+            s = _judge(ctx, venue, p).dropna()
+            last = int(s.index.max())
+            pre, post = _slope(s, s.index.min(), split), _slope(s, split, last)
+            if not (s.iloc[-1] > s.loc[:int(split)].max() and post > 0
+                    and post >= float(ratio) * abs(pre)):
+                return False
+    return True
+
+
+def _judge_post_change(ctx, venue, split) -> list[float]:
+    out = []
+    for p in PROMPTS:
+        s = _judge(ctx, venue, p).dropna()
+        out.append(float(s.iloc[-1] - s.loc[int(split)]))
+    return out
+
+
+@check
+def judge_post_small(ctx, venue="iclr", compare="neurips+icml", split=2022):
+    """True when a venue's post-`split` movement is small: the largest
+    absolute change from `split` to its last scored year, over the three
+    prompts, is below the smallest such change at the venues in `compare`
+    ("ICLR shows no comparable rise ... its post-2022 movement is small")."""
+    own = max(abs(x) for x in _judge_post_change(ctx, venue, split))
+    other = min(x for v in _list(compare) for x in _judge_post_change(ctx, v, split))
+    return own < other
+
+
+@check
+def judge_post_unsettled(ctx, venue="iclr", split=2022):
+    """True when a venue's post-`split` judge series "does not settle into a
+    consistent trend across the three prompts": for every prompt the yearly
+    series from `split` on both rises and falls (it is not monotone), and the
+    change from `split` to the last year does not have one sign across the
+    prompts."""
+    for p in PROMPTS:
+        d = _judge(ctx, venue, p).dropna().loc[int(split):].diff().dropna()
+        if (d > 0).all() or (d < 0).all():
+            return False
+    signs = {np.sign(x) for x in _judge_post_change(ctx, venue, split)}
+    return len(signs) > 1
+
+
+@check
 def judge_prompts(ctx):
     """The number of prompt templates in src/metrics/llm_scores.py."""
     from metrics.llm_scores import PROMPTS as P
@@ -885,6 +1047,16 @@ def topic_families_all_same(ctx, what="same"):
         if (np.sign(df[col]) == sign).all():
             same += 1
     return same if what == "same" else len(fam) - same
+
+
+@check
+def topics_all_move(ctx, families="flesch+hype+acr_abstract"):
+    """True when every topic in aggregate/topic_trends.csv moves the
+    field-wide way in each family: Flesch falls, sensational language and
+    acronym density rise ("in every one of the \\TopicsAll{} topics")."""
+    df = ctx.agg("topic_trends.csv")
+    sign = {"flesch": -1, "hype": 1, "acr_abstract": 1, "acr_title": 1}
+    return all(bool((np.sign(df[f"{f}_change"]) == sign[f]).all()) for f in _list(families))
 
 
 @check
@@ -1092,6 +1264,23 @@ def generated_table(ctx, table):
     with open(os.path.join(ctx.source, "tables", table), encoding="utf-8") as fh:
         s = fh.read()
     return b.rstrip("\n") == s.rstrip("\n")
+
+
+@check
+def topics_table_cells(ctx, table="topics.tex"):
+    """True when every cell of the paper's topics table other than median
+    citations (ID, leading terms, papers, Flesch) equals the cell
+    make_macros.topic_rows builds from the regenerated
+    $AA_DATA/aggregate/topic_profiles.csv, in every citation mode. The
+    median-citation column is the only one generated_table's citation
+    exemption covers."""
+    sys.path.insert(0, HERE)
+    from make_macros import Inputs, topic_rows
+    built = [cells for _, cells in topic_rows(Inputs(ctx.data))]
+    with open(os.path.join(ctx.source, "tables", table), encoding="utf-8") as fh:
+        rows = [ln for ln in fh.read().split("\n") if re.match(r"\s*T\d+ &", ln)]
+    printed = [[c.strip() for c in ln.split("&")][:4] for ln in rows]
+    return printed == [[c.strip() for c in b] for b in built]
 
 
 def is_citation_check(name: str, kw: dict) -> bool:

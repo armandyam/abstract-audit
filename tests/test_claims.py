@@ -354,15 +354,197 @@ def test_citation_checks_read_the_frozen_reference_outside_strict_mode(tmp_path)
     assert C.is_citation_check("generated_table", {"table": "topics.tex"})
 
 
-def test_evaluate_reports_absent_input_as_skip(tmp_path):
+def test_evaluate_absent_input_fails_unless_exempt(tmp_path):
     ctx = C.Ctx(str(tmp_path), "absent")
     occ = inv.Occurrence("main.tex", 1, 0, "67", "number", "")
+    # the one documented exemption: the raw scrape
     r = row("main.tex", "<<67>>", "computed", check="neurips_fallback_count", rule="exact")
     rec = cc.evaluate(r, occ, ctx)
-    assert rec["verdict"] == "SKIP" and "raw/neurips" in rec["why"]
+    assert rec["verdict"] == "SKIP" and rec["why"].startswith("exempt input absent")
+    assert "raw/neurips" in rec["why"]
+    # any other absent input is a failure, never a skip
+    for check, args in [("self_audit", "metric=flesch_ease"),
+                        ("series", "metric=readability_flesch_ease;col=neurips;year=2015"),
+                        ("generated_table", "table=topic_trends.tex"),
+                        ("topics_table_cells", "")]:
+        r = row("main.tex", "<<67>>", "computed", check=check, args=args, rule="true")
+        rec = cc.evaluate(r, occ, ctx)
+        assert rec["verdict"] == "MISSING", (check, rec)
+        assert rec["why"].startswith("required input absent")
     r = row("main.tex", "<<67>>", "computed", check="no_such_check")
     assert cc.evaluate(r, occ, ctx)["verdict"] == "ERROR"
     r = row("main.tex", "<<67>>", "computed")
     assert cc.evaluate(r, occ, ctx)["verdict"] == "ERROR"
     r = row("main.tex", "<<67>>", "unverifiable", note="why")
     assert cc.evaluate(r, occ, ctx)["verdict"] == "UNVERIFIABLE"
+
+
+def test_missing_counts_as_failure_and_skips_are_listed_by_reason():
+    rep = cc.Report()
+    base = {"file": "main.tex", "line": 1, "printed": "1", "category": "computed",
+            "check": "c", "computed": ""}
+    rep.records = [dict(base, verdict="MISSING", why="required input absent: x"),
+                   dict(base, verdict="SKIP", why="design"),
+                   dict(base, verdict="SKIP", why="design"),
+                   dict(base, verdict="SKIP", why="exempt input absent: raw"),
+                   dict(base, verdict="MATCH", why="")]
+    assert rep.missing == 1 and rep.failures == 1
+    lines = rep.skip_lines()
+    assert "  SKIP    2  design" in lines
+    i = lines.index("  SKIP    1  exempt input absent: raw")
+    assert "main.tex:1" in lines[i + 1]                      # listed, not just counted
+    assert any("MISSING" in ln for ln in rep.lines())
+    assert "1 missing input" in rep.summary()[0]
+
+
+def test_only_documented_checks_are_exempt():
+    assert {n for n, c in C.REGISTRY.items() if c.exempt} == {"neurips_fallback_count"}
+
+
+# ── topics table: non-citation cells in every mode ──────────────────────
+
+def _topic_inputs(tmp_path):
+    agg = tmp_path / "aggregate"
+    agg.mkdir(parents=True, exist_ok=True)
+    src = os.path.join(ROOT, "reference", "tmlr", "analysis", "topic_profiles.csv")
+    df = pd.read_csv(src)
+    df.to_csv(agg / "topic_profiles.csv", index=False)
+    return df, agg
+
+
+@pytest.mark.parametrize("mode", ["strict", "fresh", "absent"])
+def test_topics_table_cells_checked_against_regenerated_profiles(tmp_path, mode):
+    df, agg = _topic_inputs(tmp_path)
+    ctx = C.Ctx(str(tmp_path), mode)
+    assert not C.is_citation_check("topics_table_cells", {"table": "topics.tex"})
+    assert C.topics_table_cells(ctx) is True
+    df.loc[df.flesch.idxmin(), "n"] += 1                   # one paper count off
+    df.to_csv(agg / "topic_profiles.csv", index=False)
+    assert C.topics_table_cells(C.Ctx(str(tmp_path), mode)) is False
+
+
+def test_topics_rows_split_papers_and_flesch_from_median_citations():
+    rows = cc.load()
+    t = [r for r in rows if r["file"] == "tables/topics.tex"]
+    cells = [r for r in t if r["check"] == "topics_table_cells"]
+    cit = [r for r in t if r["check"] == "generated_table"]
+    assert len(cells) == 30 and len(cit) == 15
+    assert all(r["quote"].rstrip().endswith("\\\\") or "\\\\ T" in r["quote"]
+               or "\\bottomrule" in r["quote"] for r in cit)
+
+
+# ── dedicated checks for numbers the generator used to type ─────────────
+
+def test_markup_range_is_checked_from_the_summary(tmp_path):
+    agg = tmp_path / "aggregate"
+    agg.mkdir()
+    pd.DataFrame({"name": ["markup_share_min_pct", "markup_share_max_pct"],
+                  "value": [5.16, 6.37]}).to_csv(agg / "latex_robustness_summary.csv", index=False)
+    ctx = C.Ctx(str(tmp_path), "absent")
+    v = C.latex_summary_pair(ctx, "markup_share_min_pct+markup_share_max_pct")
+    assert cc.compare("auto", v, cc.parse_printed("5 to 6", "pair"))
+    assert not cc.compare("auto", v, cc.parse_printed("5 to 7", "pair"))
+    r = [x for x in cc.load() if x["id"] == "normalisation-3751f743"][0]
+    assert (r["category"], r["check"]) == ("computed", "latex_summary_pair")
+
+
+def test_arxiv_cutoff_from_the_last_identifier():
+    sys.path.insert(0, os.path.join(ROOT, "src", "baselines"))
+    import arxiv_snapshot as snap
+    text = ('{"paper_id": "2501.00007"}, {"paper_id": "2501.20000"}, '
+            '{"paper_id": "2502.20000v2"}, {"paper_id": "2503.05000"}, '
+            '{"paper_id": "hep-th/9901001"}, {"paper_id": "2412.30000"}')
+    m = snap.month_maxima(text, 2025)
+    assert m == {1: 20000, 2: 20000, 3: 5000}
+    rec = snap.cutoff(m, 2025)
+    assert rec["last_id"] == "2503.05000"
+    assert rec["cutoff_year_fraction"] == pytest.approx((2 + 0.25) / 12, abs=1e-4)
+    assert rec["cutoff_year_fraction_min"] <= rec["cutoff_year_fraction"] <= rec["cutoff_year_fraction_max"]
+    # the committed record, from the paper's corpus
+    ctx = C.Ctx("unused", "absent")
+    assert C.arxiv_year_fraction(ctx) == pytest.approx(0.683, abs=1e-3)
+    assert C.arxiv_year_fraction(ctx, "cutoff_year_fraction_max") == 0.75
+    r = [x for x in cc.load() if x["id"] == "main-68916d9a"][0]
+    assert r["check"] == "arxiv_year_fraction"
+
+
+# ── empirical statements once filed as design ───────────────────────────
+
+def _line(years, f):
+    return [f(y) for y in years]
+
+
+def test_inflection_and_divergence(tmp_path):
+    years = list(range(2005, 2026))
+    kink = {"neurips": _line(years, lambda y: 1 + 0.01 * (y - 2005) + 0.2 * max(0, y - 2022)),
+            "arxiv_nonml": _line(years, lambda y: 1 + 0.01 * (y - 2005))}
+    for v in ("iclr", "icml", "arxiv_ml"):
+        kink[v] = kink["neurips"]
+    write_series(str(tmp_path), "sensational_total", years, kink)
+    ctx = C.Ctx(str(tmp_path), "absent")
+    assert C.inflection(ctx, "sensational_total", "neurips+arxiv_ml", 2022, 2015)
+    assert not C.inflection(ctx, "sensational_total", "arxiv_nonml", 2022, 2015)
+    assert C.divergence_accelerates(ctx, "sensational_total")
+    assert not C.divergence_accelerates(ctx, "sensational_total", ml="arxiv_nonml")
+    assert C.rises_over(ctx, "sensational_total", "neurips", 2005, 2010)
+
+
+def _judge_series(root, venue, values_by_prompt, years):
+    for p, vals in values_by_prompt.items():
+        name = f"llm_scores_model_avg_{p}" if venue == "neurips" else \
+            f"llm_scores_model_avg_{venue}_{p}"
+        write_series(root, name, years, {"avg_z": vals, "n_models": [6] * len(years)})
+
+
+def test_judge_rise_small_and_unsettled(tmp_path):
+    years = list(range(2010, 2026))
+    flat = [0.0 + 0.01 * ((i % 3) - 1) for i in range(len(years) - 3)]
+    sharp = flat + [1.0, 2.0, 3.0]
+    for v in ("neurips", "icml"):
+        _judge_series(str(tmp_path), v, {p: sharp for p in C.PROMPTS}, years)
+    zig = {"simple": flat + [-0.3, 0.2, -0.1], "ascb": flat + [0.3, -0.2, 0.4],
+           "own_reasoning": flat + [-0.2, 0.3, -0.3]}
+    _judge_series(str(tmp_path), "iclr", zig, years)
+    ctx = C.Ctx(str(tmp_path), "absent")
+    assert C.judge_rises_after(ctx, "neurips+icml")
+    assert not C.judge_rises_after(ctx, "iclr")
+    assert C.judge_post_small(ctx, "iclr")
+    assert C.judge_post_unsettled(ctx, "iclr")
+    assert not C.judge_post_unsettled(ctx, "neurips")      # monotone after 2022
+
+
+def test_comoves_collinearity_and_topics(tmp_path):
+    years = list(range(1990, 2000))
+    write_series(str(tmp_path), "papers_per_year", years, {"neurips": [100 + 10 * i for i in range(10)]})
+    write_series(str(tmp_path), "readability_flesch_ease", years, {"neurips": [30 - i for i in range(10)]})
+    write_series(str(tmp_path), "acronyms_abstract", years, {"neurips": [1 + i for i in range(10)]})
+    write_series(str(tmp_path), "acronyms_title", years, {"neurips": [1 + i for i in range(10)]})
+    agg = tmp_path / "aggregate"
+    agg.mkdir()
+    pd.DataFrame({"venue": ["neurips", "iclr"], "pc1_var_explained": [0.72, 0.49]}) \
+      .to_csv(agg / "readability_collinearity.csv", index=False)
+    pd.DataFrame({"flesch_change": [-1, -2], "hype_change": [0.1, 0.2],
+                  "acr_abstract_change": [0.3, -0.1], "acr_title_change": [1, 1]}) \
+      .to_csv(agg / "topic_trends.csv", index=False)
+    ctx = C.Ctx(str(tmp_path), "absent")
+    assert C.comoves(ctx)
+    assert C.comoves(ctx, falling="acronyms_abstract", rising="") is False
+    assert not C.collinearity_one_signal(ctx)              # iclr below a half
+    assert C.collinearity_one_signal(ctx, threshold=0.4)
+    assert C.topics_all_move(ctx, "flesch+hype")
+    assert not C.topics_all_move(ctx, "flesch+hype+acr_abstract")
+
+
+def test_reclassified_rows_carry_a_check():
+    """The empirical statements once filed as design constants (a post-2022
+    inflection, a post-2015 inflection, one common signal, ...) are computed
+    rows now; none may slip back to an unchecked category."""
+    ids = {"main-78d661a5", "main-8e45b1be", "main-b1055726", "main-0aa7b868",
+           "main-74a1a6c0", "main-7f0a9e16", "main-d003780e", "main-3f277c1c",
+           "main-8270d9e3", "main-b4c4ae9b", "main-44cb42f2", "main-ad6a360d",
+           "metric_families-c8e41c85", "fig_sensational_total-7c4cde7b",
+           "fig_llm-e4eb1103", "fig_llm-20305e51", "fig_sensational-ad6a360d"}
+    rows = {r["id"]: r for r in cc.load()}
+    for i in ids:
+        assert rows[i]["category"] == "computed" and rows[i]["check"] in C.REGISTRY, i
+        assert rows[i]["rule"] == "true"

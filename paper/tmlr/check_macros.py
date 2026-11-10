@@ -13,6 +13,21 @@ byte from upstream commit eda2733. This module compares them:
            generated: upstream's generators, rerun on upstream's inputs,
            write all six byte-identical to the paper's copies.
 
+The paper's own copies. paper/tmlr/source/ holds the macro files and tables
+the manuscript text actually inputs (import_source.py copies them with the
+comments removed). Every macro there is compared with reference/tmlr/tex/ by
+name and exact value, and every generated table byte for byte after the same
+comment removal, in every citation mode and always counted. With the built
+files compared with the same reference, a printed value is tied to the
+recomputed one: shipped == reference == built. A changed shipped value is a
+mismatch even where the built value is not compared (citation items outside
+strict mode), since the printed paper must still equal the frozen snapshot.
+
+A section make_macros.py could not run for lack of an input (the --from
+aggregate route has no processed abstracts) is listed in skipped.json under
+"incomplete" with the input it missed. Its macros and tables are then
+reported missing, with that reason, and count as failures.
+
 The eleven macros and two tables that need citation outputs
 (make_macros.CITATION_MACROS, CITATION_TABLES) follow the citation mode of
 src/citations/snapshot.py:
@@ -43,6 +58,7 @@ sys.path.insert(0, os.path.join(REPO, "src"))
 from make_macros import CITATION_MACROS, CITATION_TABLES, ROUND_FILES, TABLES  # noqa: E402
 
 REF_DIR = os.path.join(REPO, "reference", "tmlr", "tex")
+SHIPPED_DIR = os.path.join(HERE, "source")
 STRICT, FRESH, ABSENT = "strict", "fresh", "absent"
 
 
@@ -183,7 +199,8 @@ class Result:
     def add(self, verdict: str, name: str, detail: str = "", counted: bool = True) -> None:
         """verdict is ok, bad, missing or skipped. An uncounted record is a
         citation item compared in fresh mode: reported, never a failure."""
-        kind = "table" if name.startswith("tmlr/tables/") else "macro"
+        kind = ("shipped" if name.startswith("source/") else
+                "table" if name.startswith("tmlr/tables/") else "macro")
         self.records.append((kind, verdict, name, counted))
         if verdict in ("ok", "skipped"):
             return
@@ -217,7 +234,12 @@ class Result:
 
     def summary(self) -> list[str]:
         out = []
-        for kind in ("macro", "table"):
+        for kind in ("macro", "table", "shipped"):
+            if kind == "shipped":
+                n = [self.count(v, kind) for v in ("ok", "bad", "missing")]
+                out.append(f"  paper's copies (source/) against reference: {n[0]} equal, "
+                           f"{n[1]} differ, {n[2]} missing")
+                continue
             n = [self.count(v, kind) for v in ("ok", "bad", "missing", "skipped")]
             u = sum(1 for k, *_, c in self.records if k == kind and not c)
             out.append(f"  {kind}s: {n[0]} matched, {n[1]} mismatched, {n[2]} missing, "
@@ -234,13 +256,56 @@ def read_skipped(built_dir: str) -> dict | None:
         return json.load(fh)
 
 
-def check(built_dir: str, mode: str, ref_dir: str = REF_DIR) -> Result:
+def check_shipped(res: Result, ref_dir: str, shipped_dir: str) -> None:
+    """The paper's copies against the reference: every macro by name and
+    value, every generated table byte for byte after comment removal.
+    Counted in every citation mode (see the module docstring)."""
+    from import_source import scrub
+    for fname in ROUND_FILES.values():
+        ref = parse_newcommands(open(os.path.join(ref_dir, fname)).read())
+        path = os.path.join(shipped_dir, fname)
+        if not os.path.exists(path):
+            res.add("missing", f"source/{fname}", "(the paper's copy is absent)")
+            continue
+        d = compare_macros(parse_newcommands(open(path).read()), ref)
+        for name in d.matched:
+            res.add("ok", f"source/{fname} \\{name}")
+        for name, want, got in d.mismatched:
+            res.add("bad", f"source/{fname} \\{name}",
+                    f"reference {want!r}, paper prints {got!r}")
+        for name in d.missing:
+            res.add("bad", f"source/{fname} \\{name}", "(not defined in the paper's copy)")
+        for name in d.extra:
+            res.add("bad", f"source/{fname} \\{name}", "(in the paper's copy, not in reference)")
+    for t in TABLES:
+        path = os.path.join(shipped_dir, "tables", t)
+        if not os.path.exists(path):
+            res.add("missing", f"source/tables/{t}", "(the paper's copy is absent)")
+            continue
+        with open(os.path.join(ref_dir, "tables", t), encoding="utf-8") as fh:
+            want = scrub(fh.read()).rstrip("\n")
+        with open(path, encoding="utf-8") as fh:
+            got = fh.read().rstrip("\n")
+        res.add("ok" if got == want else "bad", f"source/tables/{t}",
+                "" if got == want else "differs from reference")
+
+
+def check(built_dir: str, mode: str, ref_dir: str = REF_DIR,
+          shipped_dir: str | None = SHIPPED_DIR) -> Result:
     """Compare every macro and table under built_dir with ref_dir, under one
-    citation mode (strict, fresh or absent)."""
+    citation mode (strict, fresh or absent), and the paper's copies under
+    shipped_dir with ref_dir (None skips that, for tests of the built side)."""
     if mode not in (STRICT, FRESH, ABSENT):
         raise ValueError(f"unknown citation mode {mode!r}")
     res = Result()
+    if shipped_dir is not None:
+        check_shipped(res, ref_dir, shipped_dir)
     sk = read_skipped(built_dir)
+    why_missing = "(not built)"
+    if sk and sk.get("incomplete"):
+        for item in sk["incomplete"]:
+            res.lines.append(f"  INCOMPLETE {item['section']}: input absent {item['input']}")
+        why_missing = "(not built: a section's input is absent, see INCOMPLETE above)"
     if mode == ABSENT and sk is not None:
         # The generator may skip citation items only: any other omission
         # would hide a bug behind the citation exemption. (It may also have
@@ -258,7 +323,7 @@ def check(built_dir: str, mode: str, ref_dir: str = REF_DIR) -> Result:
                 if mode == ABSENT and name in CITATION_MACROS:
                     res.add("skipped", f"\\{name}")
                 else:
-                    res.add("missing", f"{fname} \\{name}", "(not built)",
+                    res.add("missing", f"{fname} \\{name}", why_missing,
                             counted=not (mode == FRESH and name in CITATION_MACROS))
             continue
         built = parse_newcommands(open(path).read())
@@ -270,7 +335,8 @@ def check(built_dir: str, mode: str, ref_dir: str = REF_DIR) -> Result:
             res.add("bad", f"{fname} \\{name}", f"reference {want!r}, built {got!r}",
                     counted=not (mode == FRESH and name in CITATION_MACROS))
         for name in d.missing:
-            res.add("missing", f"{fname} \\{name}", "(not in built file)",
+            res.add("missing", f"{fname} \\{name}",
+                    "(not in built file)" if why_missing == "(not built)" else why_missing,
                     counted=not (mode == FRESH and name in CITATION_MACROS))
         for name in d.extra:
             res.add("bad", f"{fname} \\{name}", "(built, not in reference)")
@@ -286,7 +352,7 @@ def check(built_dir: str, mode: str, ref_dir: str = REF_DIR) -> Result:
         built = os.path.join(built_dir, "tables", t)
         counted = not (mode == FRESH and cit)
         if not os.path.exists(built):
-            res.add("missing", name, "(not built)", counted=counted)
+            res.add("missing", name, why_missing, counted=counted)
             continue
         with open(built, "rb") as a, open(os.path.join(ref_dir, "tables", t), "rb") as b:
             same = a.read() == b.read()

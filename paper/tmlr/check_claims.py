@@ -58,10 +58,32 @@ claims.csv columns:
             is; otherwise where the value comes from
   note      anything else, such as a known disagreement awaiting a text fix
 
-Results: MATCH, MISMATCH, SKIP(reason) and UNVERIFIABLE. The coverage check
-fails if the inventory finds a number no row claims, or a row's quote no
-longer marks a number in the source (stale). verify.py counts mismatches,
-errors, uncovered numbers and stale rows as failures.
+Results: MATCH, MISMATCH, MISSING, SKIP(reason) and UNVERIFIABLE. The
+coverage check fails if the inventory finds a number no row claims, or a row's
+quote no longer marks a number in the source (stale). verify.py counts
+mismatches, missing inputs, errors, uncovered numbers and stale rows as
+failures.
+
+Missing inputs. A computed, citation or generated claim whose input file is
+absent is MISSING, a failure: the number has not been checked, and an absent
+analysis must not look like a pass. The exemptions are explicit and few, and
+each is reported as SKIP with its reason:
+
+  design, literature   rows without a check (a design constant, scope count,
+                       window bound or label, or a value quoted from the
+                       literature); nothing to recompute
+  citation, outside    the counts are not distributed. The claim is compared
+  strict mode          with the frozen published outputs in
+                       reference/tmlr/citations/ (shipped, so never absent)
+                       and a match is reported as "recomputation skipped"
+  exempt input         a check registered with exempt=<reason> in claims.py.
+                       One exists: neurips_fallback_count re-reads the raw
+                       NeurIPS scrape, which the --from aggregate route does
+                       not have (claims.RAW_EXEMPT)
+
+Everything else that is absent (the processed abstracts, an analysis the
+pipeline did not run, a generated table) fails. verify.py lists the skips by
+reason.
 
 After the paper text changes:
 
@@ -102,6 +124,9 @@ FIELDS = ["id", "file", "line", "quote", "category", "check", "args", "rule",
 CATEGORIES = {"computed", "citation", "generated", "literature", "design",
               "unverifiable"}
 OPEN, CLOSE = "<<", ">>"
+FROZEN_SKIP = "recomputation skipped, frozen reference matches"
+# Skip reasons verify.py reports as counts; any other reason lists its claims.
+COUNTED_SKIPS = {"design", "literature", FROZEN_SKIP}
 
 
 # ============================================================ claims.csv ===
@@ -348,15 +373,37 @@ class Report:
         return sum(1 for r in self.records if r["verdict"] == verdict)
 
     @property
+    def missing(self) -> int:
+        """Claims whose required input is absent (counted as failures)."""
+        return self.count("MISSING")
+
+    @property
     def failures(self) -> int:
         cov = self.coverage
-        return (self.count("MISMATCH") + self.count("ERROR") + len(self.errors)
+        return (self.count("MISMATCH") + self.count("ERROR") + self.missing + len(self.errors)
                 + (len(cov.stale) + len(cov.uncovered) + len(cov.duplicate) if cov else 0))
+
+    def skip_lines(self) -> list[str]:
+        """Every skip, grouped by reason. The large documented groups
+        (design and literature rows, citation claims compared with the frozen
+        reference) are counted; any other reason lists its claims."""
+        by: dict[str, list[dict]] = {}
+        for r in self.records:
+            if r["verdict"] == "SKIP":
+                by.setdefault(r["why"], []).append(r)
+        out = []
+        for why in sorted(by):
+            out.append(f"  SKIP {len(by[why]):>4}  {why}")
+            if why in COUNTED_SKIPS:
+                continue
+            out += [f"             {r['file']}:{r['line']}  {r['printed']!r}  [{r['check']}]"
+                    for r in by[why]]
+        return out
 
     def lines(self, verbose: bool = False) -> list[str]:
         out = []
         for r in self.records:
-            if verbose or r["verdict"] in ("MISMATCH", "ERROR", "UNVERIFIABLE"):
+            if verbose or r["verdict"] in ("MISMATCH", "MISSING", "ERROR", "UNVERIFIABLE"):
                 tag = r["verdict"] if r["verdict"] != "SKIP" else f"SKIP({r['why']})"
                 out.append(f"  {tag:<12} {r['file']}:{r['line']}  {r['printed']!r}"
                            f"  computed {r['computed']}  [{r['check']}]"
@@ -378,6 +425,7 @@ class Report:
         skips = Counter(r["why"] for r in self.records if r["verdict"] == "SKIP")
         cov = self.coverage
         out = [f"  claims: {v['MATCH']} match, {v['MISMATCH']} mismatch, "
+               f"{v['MISSING']} missing input, "
                f"{v['SKIP']} skipped, {v['UNVERIFIABLE']} unverifiable, "
                f"{v['ERROR']} errors"]
         out.append("  by category: " + ", ".join(f"{k} {n}" for k, n in sorted(cats.items())))
@@ -417,7 +465,10 @@ def evaluate(row: dict, occ: inv.Occurrence, ctx: C.Ctx) -> dict:
         val = fn(ctx, **kw)
     except FileNotFoundError as e:
         what = os.path.relpath(e.filename, ctx.data) if e.filename else str(e)
-        rec.update(verdict="SKIP", why=f"input absent: {what}")
+        if fn.exempt:
+            rec.update(verdict="SKIP", why=f"exempt input absent: {fn.exempt}")
+        else:
+            rec.update(verdict="MISSING", why=f"required input absent: {what}")
         return rec
     except Exception as e:  # noqa: BLE001 - reported, counted as a failure
         rec.update(verdict="ERROR", why=f"{type(e).__name__}: {e}")
@@ -431,7 +482,7 @@ def evaluate(row: dict, occ: inv.Occurrence, ctx: C.Ctx) -> dict:
     frozen = citation and ctx.citation_mode != "strict"
     if ok:
         if frozen:
-            rec.update(verdict="SKIP", why="recomputation skipped, frozen reference matches")
+            rec.update(verdict="SKIP", why=FROZEN_SKIP)
         else:
             rec["verdict"] = "MATCH"
     else:
@@ -498,7 +549,7 @@ def main() -> None:
     m = a.mode or citation_mode(a.data_dir)
     rep = run(a.data_dir, m, a.claims, a.source)
     print(f"TMLR claims, citation mode {m}")
-    for line in rep.lines(a.verbose) + rep.summary():
+    for line in rep.lines(a.verbose) + rep.skip_lines() + rep.summary():
         print(line)
     if rep.failures and not a.report_only:
         sys.exit(1)
