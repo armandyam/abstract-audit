@@ -87,6 +87,7 @@ def check_csv(name: str, built: str, ref: str) -> None:
 EXPECTED = {
     "pandas": "3.0.2", "numpy": "2.4.4", "matplotlib": "3.10.8",
     "textstat": "0.7.13", "spacy": "3.8.13", "thinc": "8.3.13", "blis": "1.3.3",
+    "scikit-learn": "1.9.0",
 }
 
 
@@ -116,6 +117,36 @@ def environment_report() -> None:
               "published numbers exactly.")
 
 
+def citations_section() -> None:
+    """Citation outputs, checked only against the authors' snapshot.
+
+    The counts are not distributed. With no local files the section is
+    skipped. With files whose hashes match reference/tmlr/citations/SNAPSHOT.md
+    every output must match exactly. With any other files (a new fetch) the
+    differences are reported but not counted: citation counts change daily, so
+    a fresh fetch recomputes the analysis rather than reproducing it.
+    """
+    global ok, fail, missing
+    sys.path.insert(0, os.path.join(HERE, "src"))
+    from citations.snapshot import mode
+    print("\nTMLR citations")
+    m = mode(os.path.join(DATA, "per_paper", "citations"))
+    refs = sorted(glob.glob(os.path.join(REF, "tmlr", "citations", "*.csv")))
+    if m == "absent":
+        print("  skipped: no citation counts in data/per_paper/citations/ (see README)")
+        return
+    if m == "fresh":
+        print("  local citation counts differ from the published snapshot; differences "
+              "below are reported, not counted")
+        saved = (ok, fail, missing)
+    for r in refs:
+        base = os.path.basename(r)
+        check_csv(f"tmlr/citations/{base}",
+                  os.path.join(DATA, "aggregate", "citations", base), r)
+    if m == "fresh":
+        ok, fail, missing = saved
+
+
 def main() -> None:
     print("verifying against reference/\n")
 
@@ -132,16 +163,26 @@ def main() -> None:
         base = os.path.basename(ref_path)
         check_csv(f"pgfplots/{base}", os.path.join(DATA, "pgfplots", base), ref_path)
 
-    print("\nTMLR plot-ready data")
+    print("\nTMLR figure data: judge series")
     for ref_path in sorted(glob.glob(os.path.join(REF, "tmlr", "pgfplots", "*.csv"))):
         base = os.path.basename(ref_path)
         check_csv(f"tmlr/pgfplots/{base}", os.path.join(DATA, "pgfplots", "tmlr", base),
                   ref_path)
 
-    print("\nTMLR analyses")
-    for ref_path in sorted(glob.glob(os.path.join(REF, "tmlr", "*.csv"))):
+    print("\nTMLR figure data: per-metric series with the arXiv and PubMed baselines")
+    for ref_path in sorted(glob.glob(os.path.join(REF, "tmlr", "pgfplots_full", "*.csv"))):
         base = os.path.basename(ref_path)
-        check_csv(f"tmlr/{base}", os.path.join(DATA, "aggregate", base), ref_path)
+        check_csv(f"tmlr/pgfplots_full/{base}",
+                  os.path.join(DATA, "pgfplots", "tmlr", base), ref_path)
+
+    print("\nTMLR analyses")
+    for ref_path in sorted(glob.glob(os.path.join(REF, "tmlr", "*.csv"))
+                           + glob.glob(os.path.join(REF, "tmlr", "analysis", "*.csv"))):
+        base = os.path.basename(ref_path)
+        rel = os.path.relpath(ref_path, REF)
+        check_csv(rel, os.path.join(DATA, "aggregate", base), ref_path)
+
+    citations_section()
 
     print("\nfigures")
     check_bytes("paper/figs/fig_judge_metric_heatmap.png",

@@ -145,6 +145,28 @@ def build_table(rows: list[dict]) -> pd.DataFrame:
     return pd.DataFrame([*rows, bd_row()], columns=["venue", "n_unique", *LABELS])
 
 
+# Group names in baselines/acronym_histograms.csv and their table labels, in
+# the paper's row order.
+BASELINE_GROUPS = [("arxiv_ml", "arXiv ML"), ("arxiv_nonml", "arXiv non-ML"),
+                   ("pubmed", "PubMed")]
+
+
+def read_baseline_histograms(path: str) -> list[tuple[str, dict[int, int]]]:
+    """(label, histogram) per baseline corpus from the shipped
+    `group,occurrences,acronym_types` file, in BASELINE_GROUPS order."""
+    df = pd.read_csv(path)
+    missing = {"group", "occurrences", "acronym_types"} - set(df.columns)
+    if missing:
+        raise ValueError(f"{path}: missing columns {sorted(missing)}")
+    out = []
+    for group, label in BASELINE_GROUPS:
+        g = df[df["group"] == group]
+        if g.empty:
+            continue
+        out.append((label, {int(c): int(n) for c, n in zip(g["occurrences"], g["acronym_types"])}))
+    return out
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -153,10 +175,17 @@ def main() -> None:
                     metavar=("LABEL", "CSV"),
                     help="add a row from a count,n_types histogram; repeatable, "
                          "rows follow the conferences in the order given")
+    ap.add_argument("--baselines", default=None,
+                    help="baselines/acronym_histograms.csv: add the arXiv ML, arXiv "
+                         "non-ML and PubMed rows from the shipped histograms")
     ap.add_argument("--out", default=OUT_CSV)
     args = ap.parse_args()
 
     rows = conference_rows(args.acr_dir)
+    if args.baselines:
+        for label, h in read_baseline_histograms(args.baselines):
+            rows.append(reuse_row(label, h))
+            print(f"  {label}: {sum(h.values()):,} unique acronyms (baselines)")
     for label, path in args.histogram:
         h = read_histogram(path)
         rows.append(reuse_row(label, h))

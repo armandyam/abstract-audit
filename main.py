@@ -45,13 +45,20 @@ PY_  = sys.executable
 
 VENUES = ["neurips", "iclr", "icml"]
 METRICS = ("readability", "acronyms", "hedging", "signposting",
-           "active_narration", "sensational_language")
+           "active_narration", "sensational_language", "sentence_length")
 AGGREGATES = ("readability", "acronyms", "active_narration", "clauses_per_sentence",
               "hedging", "noun_chunks", "nouns", "np_density", "numbers",
               "parse_depth", "passive_rate", "sensational_language",
-              "signposting", "ttr", "verbs", "papers_per_year")
+              "signposting", "ttr", "verbs", "sentence_length", "papers_per_year")
 D = os.environ.get("AA_DATA", "data")
 TMLR_PG = f"{D}/pgfplots/tmlr"
+AGG = f"{D}/aggregate"
+TOPIC_ASSIGN = f"{AGG}/topic_assignments.csv"
+TOPIC_PROFILE = f"{AGG}/topic_profiles.csv"
+# Citation counts are fetched by the reader (src/citations/fetch_s2.py) and
+# are not distributed; the citations stage runs only when all three exist.
+CIT_FILES = [f"{D}/per_paper/citations/{v}_s2.csv" for v in VENUES]
+TMLR_TITLE = "Machine Learning Research Has Outpaced Its Communication Norms"
 
 STAGES: list[tuple[str, list[list[str]]]] = [
     ("process",   [[f"src/processing/process_{v}.py",
@@ -72,14 +79,37 @@ STAGES: list[tuple[str, list[list[str]]]] = [
     ("aggregate", [[f"src/aggregate/aggregate_{a}.py"] for a in AGGREGATES]
                   + [["src/aggregate/aggregate_llm_scores.py", "--venue", v]
                      for v in VENUES]),
-    ("export",    [["src/plotting/export_pgfplots_data.py"]]),
+    ("export",    [["src/plotting/export_pgfplots_data.py", "--baselines"]]),
     ("model_avg", [["src/aggregate/aggregate_llm_model_avg.py", "--venue", "neurips"]]
                   + [["src/aggregate/aggregate_llm_model_avg.py", "--venue", v,
                       "--in-dir", TMLR_PG, "--out-dir", TMLR_PG] for v in VENUES]),
     ("analysis",  [["src/analysis/judge_feature_correlation.py"],
                    ["src/analysis/visual_abstract_data.py"],
                    ["src/analysis/latex_robustness.py"],
-                   ["src/analysis/readability_collinearity.py"]]),
+                   ["src/analysis/readability_collinearity.py"],
+                   ["src/analysis/acronym_reuse.py",
+                    "--baselines", "baselines/acronym_histograms.csv"],
+                   ["src/analysis/acronym_robustness.py"],
+                   ["src/analysis/acronym_concentration.py"],
+                   ["src/analysis/flesch_decomposition.py"],
+                   ["src/analysis/topic_clusters.py"],
+                   ["src/analysis/topic_trends.py"],
+                   ["src/analysis/topic_profiles.py"],
+                   ["src/analysis/topic_decomposition.py"]]),
+    ("self_audit", [["src/metrics/audit_self.py", "--title", TMLR_TITLE,
+                     "--abstract-file", "paper/tmlr/self_audit_abstract.txt",
+                     "--out", f"{AGG}/self_audit.csv"]]),
+    ("citations", [["src/citations/snapshot.py"],
+                   ["src/citations/coverage.py"],
+                   ["src/citations/regression.py", "--venues", *VENUES],
+                   ["src/citations/readability_deciles.py", "--venues", *VENUES,
+                    "--max-year", "2024"],
+                   ["src/citations/judge_deciles.py", "--venues", *VENUES,
+                    "--max-year", "2024"],
+                   ["src/citations/references.py", "--venues", *VENUES],
+                   ["src/citations/regression_topics.py", "--assignments", TOPIC_ASSIGN],
+                   ["src/citations/topic_citations.py", "--assignments", TOPIC_ASSIGN,
+                    "--profiles", TOPIC_PROFILE]]),
     ("figures",   [["paper/analysis/make_heatmap.py"],
                    ["paper/build_figures.py"]]),
     ("verify",    [["verify.py"]]),
@@ -89,6 +119,10 @@ STAGES: list[tuple[str, list[list[str]]]] = [
 def run(stage: str, cmds: list[list[str]]) -> None:
     t0 = time.time()
     print(f"\n===== {stage} =====", flush=True)
+    if stage == "citations" and not all(os.path.exists(p) for p in CIT_FILES):
+        print("  no citation counts under data/per_paper/citations/; skipped "
+              "(see README, Citations)", flush=True)
+        return
     env = dict(os.environ)
     env["PYTHONPATH"] = os.path.join(HERE, "src") + os.pathsep + env.get("PYTHONPATH", "")
     for cmd in cmds:
