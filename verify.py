@@ -6,11 +6,14 @@ script compares what the pipeline just built against them and exits
 non-zero on any mismatch, so a clean-room reproduction either passes or
 fails loudly.
 
-Three comparisons:
+Comparisons, for the UncertaiNLP paper (reference/) and the TMLR paper
+(reference/tmlr/):
 
-  per-paper metrics   byte-for-byte
-  plot-ready CSVs     numeric, atol=0, NaN treated as equal
-  figure PNG          byte-for-byte
+  per-paper metrics          byte-for-byte, every venue in reference/per_paper
+  plot-ready CSVs            numeric at atol=0 (NaN equal to NaN), text columns
+                             equal as strings
+  TMLR analysis CSVs         as plot-ready CSVs
+  figure PNG                 byte-for-byte
 
     python verify.py
 """
@@ -64,6 +67,10 @@ def check_csv(name: str, built: str, ref: str) -> None:
     if len(a) != len(b):
         return report(name, "bad", f"rows {len(a)} vs {len(b)}")
     num = [c for c in a.columns if pd.api.types.is_numeric_dtype(a[c])]
+    txt = [c for c in a.columns if c not in num]
+    for c in txt:
+        if not (a[c].astype(str) == b[c].astype(str)).all():
+            return report(name, "bad", f"text column {c!r} differs")
     same = np.isclose(a[num].astype(float), b[num].astype(float),
                       rtol=0, atol=0, equal_nan=True).all()
     if same:
@@ -75,10 +82,11 @@ def check_csv(name: str, built: str, ref: str) -> None:
 # The versions reference/ was built with. A mismatch here is the usual cause
 # of small numeric differences: textstat has changed its formula
 # implementations between releases, and the spaCy model determines parse
-# depth, NP density, passive rate and TTR.
+# depth, NP density, passive rate and TTR. thinc and blis are spaCy's numeric
+# backend: blis 1.3.4 flips one part-of-speech tag in the NeurIPS corpus.
 EXPECTED = {
     "pandas": "3.0.2", "numpy": "2.4.4", "matplotlib": "3.10.8",
-    "textstat": "0.7.13", "spacy": "3.8.13",
+    "textstat": "0.7.13", "spacy": "3.8.13", "thinc": "8.3.13", "blis": "1.3.3",
 }
 
 
@@ -112,16 +120,28 @@ def main() -> None:
     print("verifying against reference/\n")
 
     print("per-paper metrics")
-    for ref_path in sorted(glob.glob(os.path.join(REF, "per_paper", "*", "neurips.csv"))):
+    for ref_path in sorted(glob.glob(os.path.join(REF, "per_paper", "*", "*.csv"))):
         family = os.path.basename(os.path.dirname(ref_path))
-        check_bytes(f"per_paper/{family}/neurips.csv",
-                    os.path.join(DATA, "per_paper", family, "neurips.csv"),
+        venue = os.path.basename(ref_path)
+        check_bytes(f"per_paper/{family}/{venue}",
+                    os.path.join(DATA, "per_paper", family, venue),
                     ref_path)
 
     print("\nplot-ready data")
     for ref_path in sorted(glob.glob(os.path.join(REF, "pgfplots", "*.csv"))):
         base = os.path.basename(ref_path)
         check_csv(f"pgfplots/{base}", os.path.join(DATA, "pgfplots", base), ref_path)
+
+    print("\nTMLR plot-ready data")
+    for ref_path in sorted(glob.glob(os.path.join(REF, "tmlr", "pgfplots", "*.csv"))):
+        base = os.path.basename(ref_path)
+        check_csv(f"tmlr/pgfplots/{base}", os.path.join(DATA, "pgfplots", "tmlr", base),
+                  ref_path)
+
+    print("\nTMLR analyses")
+    for ref_path in sorted(glob.glob(os.path.join(REF, "tmlr", "*.csv"))):
+        base = os.path.basename(ref_path)
+        check_csv(f"tmlr/{base}", os.path.join(DATA, "aggregate", base), ref_path)
 
     print("\nfigures")
     check_bytes("paper/figs/fig_judge_metric_heatmap.png",
