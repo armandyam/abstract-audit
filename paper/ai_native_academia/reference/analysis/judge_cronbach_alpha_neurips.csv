@@ -1,0 +1,4 @@
+prompt,cronbach_alpha,k_models,n_papers
+simple,0.7855793320314374,6,23257
+ascb,0.7537458835368964,6,24580
+own_reasoning,0.7906661929781735,6,24609

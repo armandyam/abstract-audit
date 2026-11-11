@@ -196,3 +196,24 @@ sha256, first 16 hex:
 aaa5354c5691c4ac  fig_judge_metric_heatmap.png
 20649ddaf5f5104a  pgfplots/judge_metric_corr.csv
 ```
+
+## Analyses shared by the papers
+
+`analysis/latex_robustness.csv`: Flesch Reading Ease of every venue and year
+before and after LaTeX and URL normalisation (`src/analysis/latex_robustness.py`),
+copied whole from upstream commit `eda2733`. The TMLR paper reports all three
+conferences, the AI-Native Academia paper the NeurIPS rows.
+
+`analysis/acronym_reuse_freq.csv`: upstream `data/aggregate/` at `eda2733`,
+all seven rows. `src/analysis/acronym_reuse.py` computes the NeurIPS, ICLR and
+ICML rows from the per-paper acronyms, the arXiv ML, arXiv non-ML and PubMed
+rows from `shared/baselines/acronym_histograms.csv`, and quotes the Barnett
+and Doubleday row. The TMLR paper prints every row, the AI-Native Academia
+paper the NeurIPS, arXiv and PubMed rows.
+
+sha256, first 16 hex:
+
+```
+5eeb7980e2dd778a  analysis/acronym_reuse_freq.csv
+fada74d095f423dc  analysis/latex_robustness.csv
+```

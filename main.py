@@ -30,7 +30,11 @@ Stages (each runs over NeurIPS, ICLR and ICML):
                                       distributed; see README)
   citations  src/citations/*          citation analyses; runs only with the
                                       reader's own Semantic Scholar counts
-  macros     paper/tmlr/make_macros   the TMLR paper's 163 inline numbers and
+  macros     ai_native_academia/      the AI-Native Academia paper's 52 inline
+               make_macros, make_tables numbers and five tables -> data/ai_native_academia/,
+               check_macros, check_tables compared with its reference/macros.csv
+                                      and the manuscript (report only)
+             paper/tmlr/make_macros   the TMLR paper's 163 inline numbers and
                                       six generated tables -> data/tmlr/
              paper/tmlr/make_tables   its seven other data-driven tables
              paper/tmlr/check_macros  compared with paper/tmlr/reference/macros.csv
@@ -45,6 +49,8 @@ Stages (each runs over NeurIPS, ICLR and ICML):
              build_figures            renders every figure to paper/uncertainlp/figures.pdf
              tmlr/build_figures       every TMLR figure and table to
                                       data/tmlr/figures.pdf (not distributed)
+             ai_native_academia/      the same for the AI-Native Academia
+               build_figures          paper, data/ai_native_academia/
   verify     verify                   every output against shared/reference/
                                       and paper/*/reference/
 
@@ -90,6 +96,10 @@ PG = f"{D}/pgfplots"
 AGG = f"{D}/aggregate"
 TOPIC_ASSIGN = f"{AGG}/topic_assignments.csv"
 TOPIC_PROFILE = f"{AGG}/topic_profiles.csv"
+# The AI-Native Academia paper fits its topics on NeurIPS alone.
+TOPIC_ASSIGN_N = f"{AGG}/topic_assignments_neurips.csv"
+TOPIC_PROFILE_N = f"{AGG}/topic_profiles_neurips.csv"
+CIT_ANA = f"{AGG}/citations/ai_native_academia"
 # Citation counts are fetched by the reader (src/citations/fetch_s2.py) and
 # are not distributed; the citations stage runs only when all three exist.
 CIT_FILES = [f"{D}/per_paper/citations/{v}_s2.csv" for v in VENUES]
@@ -100,7 +110,9 @@ PAPER = os.environ.get("AA_PAPER") or None
 PROCESSED = f"{D}/processed/*/*.json"
 
 # What each script needs before it can run, as globs that must each match a
-# file. A command not listed needs only what earlier stages always write.
+# file. A command not listed needs only what earlier stages always write. A
+# key may also be a whole command line, which then takes precedence over the
+# script's own entry (the same script run on different inputs).
 NEEDS: dict[str, list[str]] = {
     **{f"src/processing/process_{v}.py": [f"{D}/raw/{v}/*"] for v in VENUES},
     "src/validate.py": [PROCESSED],
@@ -117,6 +129,11 @@ NEEDS: dict[str, list[str]] = {
     "src/citations/regression.py": [PROCESSED],
     "src/citations/regression_topics.py": [PROCESSED, TOPIC_ASSIGN],
     "src/citations/topic_citations.py": [TOPIC_ASSIGN, TOPIC_PROFILE],
+    "paper/ai_native_academia/topics.py": [TOPIC_ASSIGN_N],
+    f"src/citations/regression_topics.py --venues neurips --assignments {TOPIC_ASSIGN_N} "
+    f"--out-dir {CIT_ANA}": [PROCESSED, TOPIC_ASSIGN_N],
+    f"src/citations/topic_citations.py --venues neurips --assignments {TOPIC_ASSIGN_N} "
+    f"--profiles {TOPIC_PROFILE_N} --out-dir {CIT_ANA}": [TOPIC_ASSIGN_N, TOPIC_PROFILE_N],
     "src/plotting/make_heatmap.py": [f"{PG}/judge_metric_corr.csv"],
     # The figure sources read ../../data/uncertainlp/pgfplots/ relative to
     # paper/uncertainlp/: the repository's data/ directory, whatever $AA_DATA says.
@@ -132,6 +149,12 @@ NEEDS: dict[str, list[str]] = {
         "acronyms_abstract", "papers_per_year", "sentence_length",
         "llm_scores_model_avg_simple", "llm_scores_model_avg_iclr_simple",
         "llm_scores_model_avg_icml_simple")],
+    # Likewise ../../data/ relative to paper/ai_native_academia/.
+    "paper/ai_native_academia/build_figures.py": [f"data/pgfplots/{f}.csv" for f in (
+        "readability_flesch_ease", "sensational_total", "acronyms_title",
+        "acronyms_abstract", "papers_per_year", "sentence_length",
+        "llm_scores_model_avg_simple", "llm_scores_standardized_simple")]
+        + ["shared/figs/fig_judge_metric_heatmap.png"],
 }
 INCOMPLETE = f"{D}/incomplete.json"
 
@@ -169,7 +192,12 @@ STAGES: list[tuple[str, list[list[str]]]] = [
                    ["src/analysis/topic_clusters.py"],
                    ["src/analysis/topic_trends.py"],
                    ["src/analysis/topic_profiles.py"],
-                   ["src/analysis/topic_decomposition.py"]]),
+                   ["src/analysis/topic_decomposition.py"],
+                   # AI-Native Academia: topics fitted on NeurIPS alone, and
+                   # the judges' agreement and run-to-run stability.
+                   ["src/analysis/topic_clusters.py", "--venues", "neurips"],
+                   ["paper/ai_native_academia/topics.py"],
+                   ["src/analysis/judge_agreement.py", "--venue", "neurips"]]),
     ("self_audit", [["src/metrics/audit_self.py",
                      "--from-tex", os.path.join(PAPER or "", "main.tex"),
                      "--out", f"{AGG}/self_audit.csv"]]),
@@ -183,15 +211,27 @@ STAGES: list[tuple[str, list[list[str]]]] = [
                    ["src/citations/references.py", "--venues", *VENUES],
                    ["src/citations/regression_topics.py", "--assignments", TOPIC_ASSIGN],
                    ["src/citations/topic_citations.py", "--assignments", TOPIC_ASSIGN,
-                    "--profiles", TOPIC_PROFILE]]),
+                    "--profiles", TOPIC_PROFILE],
+                   ["src/citations/readability_deciles.py", "--venues", "neurips",
+                    "--max-year", "2024"],
+                   ["src/citations/regression_topics.py", "--venues", "neurips",
+                    "--assignments", TOPIC_ASSIGN_N, "--out-dir", CIT_ANA],
+                   ["src/citations/topic_citations.py", "--venues", "neurips",
+                    "--assignments", TOPIC_ASSIGN_N, "--profiles", TOPIC_PROFILE_N,
+                    "--out-dir", CIT_ANA]]),
     ("macros",    [["paper/tmlr/make_macros.py"],
                    ["paper/tmlr/make_tables.py"],
                    ["paper/tmlr/check_macros.py", "--report-only"],
-                   ["paper/tmlr/check_tables.py", "--report-only"]]),
+                   ["paper/tmlr/check_tables.py", "--report-only"],
+                   ["paper/ai_native_academia/make_macros.py"],
+                   ["paper/ai_native_academia/make_tables.py"],
+                   ["paper/ai_native_academia/check_macros.py", "--report-only"],
+                   ["paper/ai_native_academia/check_tables.py", "--report-only"]]),
     ("claims",    [["paper/tmlr/check_claims.py", "--report-only"]]),
     ("figures",   [["src/plotting/make_heatmap.py"],
                    ["paper/uncertainlp/build_figures.py"],
-                   ["paper/tmlr/build_figures.py"]]),
+                   ["paper/tmlr/build_figures.py"],
+                   ["paper/ai_native_academia/build_figures.py"]]),
     ("verify",    [["verify.py"]]),
 ]
 
@@ -201,7 +241,8 @@ def unmet(cmd: list[str]) -> list[str]:
     def found(pattern: str) -> bool:
         p = pattern if os.path.isabs(pattern) else os.path.join(HERE, pattern)
         return bool(glob.glob(p))
-    return [g for g in NEEDS.get(cmd[0], []) if not found(g)]
+    needs = NEEDS.get(" ".join(cmd), NEEDS.get(cmd[0], []))
+    return [g for g in needs if not found(g)]
 
 
 def load_incomplete() -> dict:

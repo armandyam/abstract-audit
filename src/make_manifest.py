@@ -33,7 +33,8 @@ import sys
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MANIFESTS = [os.path.join(REPO, d, "reference", "MANIFEST.md")
              for d in ("shared", os.path.join("paper", "uncertainlp"),
-                       os.path.join("paper", "tmlr"))]
+                       os.path.join("paper", "tmlr"),
+                       os.path.join("paper", "ai_native_academia"))]
 INTRO = "sha256, first 16 hex:"
 LINE = re.compile(r"^([0-9a-f]{16})  (\S+)$")
 # Files in a reference directory that describe the others and are not listed.

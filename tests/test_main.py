@@ -50,7 +50,9 @@ def test_processed_dependent_commands_declare_their_input():
     for script in ("src/analysis/topic_trends.py", "src/analysis/topic_profiles.py",
                    "src/analysis/topic_decomposition.py"):
         assert main.NEEDS[script] == [main.TOPIC_ASSIGN]
-    staged = {cmd[0] for _, cmds in main.STAGES for cmd in cmds}
+    # A NEEDS key is a script or a whole command line, and either is staged.
+    staged = ({cmd[0] for _, cmds in main.STAGES for cmd in cmds}
+              | {" ".join(cmd) for _, cmds in main.STAGES for cmd in cmds})
     assert set(main.NEEDS) <= staged
 
 

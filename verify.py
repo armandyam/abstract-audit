@@ -7,8 +7,11 @@ script compares what the pipeline just built against them and exits
 non-zero on any mismatch, so a clean-room reproduction either passes or
 fails loudly.
 
-Comparisons, for both papers (shared/reference/), the UncertaiNLP paper
-(paper/uncertainlp/reference/) and the TMLR paper (paper/tmlr/reference/):
+Comparisons, for every paper (shared/reference/), the UncertaiNLP paper
+(paper/uncertainlp/reference/), the TMLR paper (paper/tmlr/reference/) and
+the AI-Native Academia paper (paper/ai_native_academia/reference/: its
+analysis CSVs, its 52 macros and five tables, by its own check_macros.py and
+check_tables.py, with $AA_PAPER_AI_NATIVE_ACADEMIA for the manuscript):
 
   per-paper metrics          byte-for-byte, every venue in shared/reference/per_paper
   plot-ready CSVs            numeric at atol=0 (NaN equal to NaN), text columns
@@ -70,6 +73,8 @@ DATA = os.environ.get("AA_DATA", "data")
 SHARED_REF = os.path.join(HERE, "shared", "reference")
 UNC_REF    = os.path.join(HERE, "paper", "uncertainlp", "reference")
 TMLR_REF   = os.path.join(HERE, "paper", "tmlr", "reference")
+ANA        = os.path.join(HERE, "paper", "ai_native_academia")
+ANA_REF    = os.path.join(ANA, "reference")
 sys.path.insert(0, os.path.join(HERE, "src"))
 sys.path.insert(0, os.path.join(HERE, "paper", "tmlr"))
 
@@ -201,6 +206,47 @@ def tables_section(m: str, paper: str | None) -> None:
     missing += res.missing
 
 
+def _load(name: str, path: str):
+    """A paper's checker by path: the papers' checkers share file names."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(name, path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def ana_section(m: str) -> None:
+    """The AI-Native Academia paper: its analyses, its 52 inline numbers and
+    its five tables (paper/ai_native_academia/check_macros.py and
+    check_tables.py, see their docstrings)."""
+    global ok, fail, missing
+    print("\nAI-Native Academia analyses")
+    for ref_path in sorted(glob.glob(os.path.join(ANA_REF, "analysis", "*.csv"))):
+        base = os.path.basename(ref_path)
+        check_csv(f"ai_native_academia/analysis/{base}",
+                  os.path.join(DATA, "aggregate", base), ref_path)
+    cm = _load("ana_check_macros", os.path.join(ANA, "check_macros.py"))
+    ct = _load("ana_check_tables", os.path.join(ANA, "check_tables.py"))
+    paper = cm.paper_dir()
+    print(f"\nAI-Native Academia manuscript: {paper}" if paper else
+          f"\nAI-Native Academia manuscript: not given ({cm.ENV} unset); the "
+          "checks that read it are skipped")
+    print(f"\nAI-Native Academia macros (citation mode {m})")
+    res = cm.check(os.path.join(DATA, "ai_native_academia"), m, paper=paper)
+    for line in res.lines + cm.summary(res):
+        print(line)
+    ok += res.ok
+    fail += res.bad
+    missing += res.missing
+    print(f"\nAI-Native Academia tables (citation mode {m})")
+    res = ct.check(os.path.join(DATA, "ai_native_academia", "tables"), m, paper)
+    for line in res.lines + res.summary():
+        print(line)
+    ok += res.ok
+    fail += res.bad
+    missing += res.missing
+
+
 def claims_section(m: str, paper: str | None) -> None:
     """Every number the TMLR manuscript prints, outside the macros.
 
@@ -232,17 +278,18 @@ def incomplete_section() -> None:
             for rec in json.load(fh).values():
                 items.append(f"  not run   {rec['stage']}: {rec['script']}, "
                              f"absent {', '.join(rec['absent'])}")
-    path = os.path.join(DATA, "tmlr", "skipped.json")
-    if os.path.exists(path):
-        with open(path) as fh:
-            for rec in json.load(fh).get("incomplete", []):
-                items.append(f"  not built macros: section {rec['section']}, "
-                             f"absent {rec['input']}")
-    path = os.path.join(DATA, "tmlr", "tables.json")
-    if os.path.exists(path):
-        with open(path) as fh:
-            for name, what in json.load(fh).get("incomplete", {}).items():
-                items.append(f"  not built table: {name}, absent {what}")
+    for paper in ("tmlr", "ai_native_academia"):
+        path = os.path.join(DATA, paper, "skipped.json")
+        if os.path.exists(path):
+            with open(path) as fh:
+                for rec in json.load(fh).get("incomplete", []):
+                    items.append(f"  not built {paper} macros: section "
+                                 f"{rec['section']}, absent {rec['input']}")
+        path = os.path.join(DATA, paper, "tables.json")
+        if os.path.exists(path):
+            with open(path) as fh:
+                for name, what in json.load(fh).get("incomplete", {}).items():
+                    items.append(f"  not built {paper} table: {name}, absent {what}")
     if items:
         print("incomplete analyses (their outputs are reported missing below)")
         for line in items:
@@ -274,6 +321,11 @@ def main() -> None:
         base = os.path.basename(ref_path)
         check_csv(f"pgfplots/{base}", os.path.join(DATA, "pgfplots", base), ref_path)
 
+    print("\nshared analyses")
+    for ref_path in sorted(glob.glob(os.path.join(SHARED_REF, "analysis", "*.csv"))):
+        base = os.path.basename(ref_path)
+        check_csv(f"analysis/{base}", os.path.join(DATA, "aggregate", base), ref_path)
+
     print("\nTMLR analyses")
     for ref_path in sorted(glob.glob(os.path.join(TMLR_REF, "*.csv"))
                            + glob.glob(os.path.join(TMLR_REF, "analysis", "*.csv"))):
@@ -292,6 +344,7 @@ def main() -> None:
     macros_section(m, paper)
     tables_section(m, paper)
     claims_section(m, paper)
+    ana_section(m)
 
     print("\nfigures")
     check_bytes("shared/figs/fig_judge_metric_heatmap.png",

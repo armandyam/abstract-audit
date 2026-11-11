@@ -1,0 +1,71 @@
+% Acronym density -- title (left) and abstract (right).
+% Data: ../../data/pgfplots/acronyms_title.csv, acronyms_abstract.csv
+
+\begin{figure}[h]
+\centering
+\pgfplotsset{
+  acro style/.style={
+    height=5cm, width=0.47\linewidth,
+    xlabel={Year}, ylabel={Acronyms per 100 words},
+    xtick distance=4, x tick label style={rotate=45, anchor=east, font=\tiny,
+                                          /pgf/number format/1000 sep={}},
+    ytick align=inside, ymin=0,
+    tick label style={font=\tiny}, label style={font=\small},
+    enlarge x limits=0.02,
+  }
+}
+% -- title density: legend collected here ----------------------------------
+\begin{tikzpicture}
+\begin{axis}[acro style,
+  title={\small Titles~[\textdownarrow\ better]},
+  legend to name=acrolegend,
+  legend columns=5,
+  legend style={draw=none, fill=none, font=\scriptsize,
+                cells={anchor=west}, column sep=6pt},
+]
+  \addplot[color={rgb,255:red,44;green,160;blue,44}, dashdotted, very thick]
+    table[x=year, y=neurips, col sep=comma] {../../data/pgfplots/acronyms_title.csv};
+  \addlegendentry{NeurIPS}
+  \addplot[color={rgb,255:red,148;green,103;blue,189}, solid, very thick]
+    table[x=year, y=arxiv_ml, col sep=comma] {../../data/pgfplots/acronyms_title.csv};
+  \addlegendentry{arXiv ML}
+  \addplot[color={rgb,255:red,140;green,86;blue,75}, dotted, thick]
+    table[x=year, y=arxiv_nonml, col sep=comma] {../../data/pgfplots/acronyms_title.csv};
+  \addlegendentry{arXiv non-ML}
+  \addplot[color={rgb,255:red,214;green,39;blue,40}, dashed, thick]
+    table[x=year, y=pubmed, col sep=comma] {../../data/pgfplots/acronyms_title.csv};
+  \addlegendentry{PubMed}
+  \addplot[black, dashed, semithick, domain=1987:2025] {2.40};
+  \addlegendentry{Barnett 2020 peak (2.40)}
+  \draw[black, dashed, semithick] (axis cs:2022,0) -- (axis cs:2022,100);
+\end{axis}
+\end{tikzpicture}%
+\hfill
+% -- abstract density ------------------------------------------------------
+\begin{tikzpicture}
+\begin{axis}[acro style, title={\small Abstracts~[\textdownarrow\ better]}]
+  \addplot[color={rgb,255:red,44;green,160;blue,44}, dashdotted, very thick]
+    table[x=year, y=neurips, col sep=comma] {../../data/pgfplots/acronyms_abstract.csv};
+  \addplot[color={rgb,255:red,148;green,103;blue,189}, solid, very thick]
+    table[x=year, y=arxiv_ml, col sep=comma] {../../data/pgfplots/acronyms_abstract.csv};
+  \addplot[color={rgb,255:red,140;green,86;blue,75}, dotted, thick]
+    table[x=year, y=arxiv_nonml, col sep=comma] {../../data/pgfplots/acronyms_abstract.csv};
+  \addplot[color={rgb,255:red,214;green,39;blue,40}, dashed, thick]
+    table[x=year, y=pubmed, col sep=comma] {../../data/pgfplots/acronyms_abstract.csv};
+  \addplot[black, dashed, semithick, domain=1987:2025] {2.40};
+  \draw[black, dashed, semithick] (axis cs:2022,0) -- (axis cs:2022,100);
+\end{axis}
+\end{tikzpicture}
+
+\vspace{2mm}
+\pgfplotslegendfromname{acrolegend}
+
+\caption{\textbf{Acronym density in titles (left) and abstracts
+  (right), 1987 to 2025.}
+  Lower values indicate fewer acronyms per word (\textdownarrow\
+  better). Dashed black horizontal line marks the Barnett and
+  Doubleday science-wide peak of 2.40 per 100 words (2019).
+  NeurIPS and arXiv ML diverge from the non-ML control around
+  2017 on titles and around 2020 on abstracts.}
+\label{fig:acronyms}
+\end{figure}

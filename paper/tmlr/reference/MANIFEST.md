@@ -13,7 +13,8 @@ additionally needs scikit-learn 1.9.0.
 The paper's figure data (the per-metric series and the judge series) is
 shared with the other papers and lives in `shared/reference/pgfplots/`.
 
-- `latex_robustness.csv`, `readability_collinearity.csv`: copied whole.
+- `readability_collinearity.csv`: copied whole. `latex_robustness.csv`, which
+  the AI-Native Academia paper also uses, is in `shared/reference/analysis/`.
 - `latex_robustness_summary.csv`: computed by this repository's
   `src/analysis/latex_robustness.py`. Its 26 values match the paper's macros
   at the paper's rounding.
@@ -21,7 +22,6 @@ shared with the other papers and lives in `shared/reference/pgfplots/`.
 sha256, first 16 hex:
 
 ```
-fada74d095f423dc  latex_robustness.csv
 441560718fac44c7  latex_robustness_summary.csv
 d519a7059d8b673d  readability_collinearity.csv
 ```
@@ -31,12 +31,9 @@ d519a7059d8b673d  readability_collinearity.csv
 Copied byte for byte from the upstream working tree at `eda2733`, except
 `analysis/topic_profiles.csv` (see below).
 
-- `analysis/acronym_reuse_freq.csv`, `analysis/acronym_robustness.csv`:
-  upstream `data/aggregate/`. The reuse file holds all seven upstream rows.
-  `src/analysis/acronym_reuse.py` computes the NeurIPS, ICLR and ICML rows
-  from the per-paper acronyms, the arXiv ML, arXiv non-ML and PubMed rows from
-  `shared/baselines/acronym_histograms.csv`, and quotes the Barnett and
-  Doubleday row.
+- `analysis/acronym_robustness.csv`: upstream `data/aggregate/`. The
+  acronym reuse table, which the AI-Native Academia paper also uses, is in
+  `shared/reference/analysis/`.
 - `analysis/{acronym_concentration,acronym_top_terms,flesch_decomposition,
   topic_assignments,topic_terms,topic_stability,topic_trends,topic_profiles,
   topic_decomposition,topic_decomposition_summary,fixed_mix_readability}.csv`:
@@ -49,7 +46,6 @@ sha256, first 16 hex:
 
 ```
 498d4a785a3e68dc  analysis/acronym_concentration.csv
-5eeb7980e2dd778a  analysis/acronym_reuse_freq.csv
 2e1ef078bcd5a534  analysis/acronym_robustness.csv
 41e2765db2a36c31  analysis/acronym_top_terms.csv
 1deb3285badda1f1  analysis/fixed_mix_readability.csv

@@ -28,12 +28,19 @@ Writes: data/aggregate/topic_assignments.csv   paper_id, venue, year, topic_k*
         data/aggregate/topic_terms.csv         top ten terms per cluster
         data/aggregate/topic_stability.csv     split-sample reproducibility
 
+--venues fits the same model on a subset of the venues. The AI-Native
+Academia workshop paper fits it on NeurIPS alone (--venues neurips); the
+three files then carry the suffix _neurips (topic_assignments_neurips.csv and
+so on), so they never overwrite the pooled fit.
+
 Run:
   python src/analysis/topic_clusters.py
+  python src/analysis/topic_clusters.py --venues neurips
 """
 
 from __future__ import annotations
 
+import argparse
 import glob
 import json
 import os
@@ -150,14 +157,25 @@ def stability(Z: np.ndarray, k_values: list[int] = K_VALUES) -> list[dict]:
     return rows
 
 
+def suffix(venues: list[str]) -> str:
+    """"" for the pooled fit over every venue, else "_" and the venues."""
+    return "" if list(venues) == VENUES else "_" + "_".join(venues)
+
+
 def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--venues", nargs="+", default=VENUES, choices=VENUES,
+                    help="venues to fit on (default: all three, the pooled fit)")
+    a = ap.parse_args()
+    sfx = suffix(a.venues)
     os.makedirs(OUT, exist_ok=True)
-    df = load_conference_papers()
+    df = load_conference_papers(venues=a.venues)
     if df.empty:
         # The pipeline run from the shipped per-paper metrics has no abstracts.
         print(f"  no processed abstracts under {PROCESSED}; skipping")
         return
-    print(f"conference papers: {len(df):,}\n")
+    print(f"conference papers ({', '.join(a.venues)}): {len(df):,}\n")
 
     text = pd.Series([clustering_text(t, a) for t, a in zip(df["title"], df["abstract"])])
     Z, lsa, terms = build_features(text)
@@ -170,10 +188,11 @@ def main() -> None:
     stab = stability(Z)
 
     keep = ["paper_id", "venue", "year"] + [f"topic_k{k}" for k in K_VALUES]
-    df[keep].to_csv(os.path.join(OUT, "topic_assignments.csv"), index=False)
-    term_df.to_csv(os.path.join(OUT, "topic_terms.csv"), index=False)
-    pd.DataFrame(stab).to_csv(os.path.join(OUT, "topic_stability.csv"), index=False)
-    print(f"\nwrote topic_assignments.csv, topic_terms.csv, topic_stability.csv to {OUT}")
+    names = [f"topic_{n}{sfx}.csv" for n in ("assignments", "terms", "stability")]
+    df[keep].to_csv(os.path.join(OUT, names[0]), index=False)
+    term_df.to_csv(os.path.join(OUT, names[1]), index=False)
+    pd.DataFrame(stab).to_csv(os.path.join(OUT, names[2]), index=False)
+    print(f"\nwrote {', '.join(names)} to {OUT}")
 
 
 if __name__ == "__main__":
