@@ -109,7 +109,7 @@ class Inputs:
 
     @property
     def flesch(self) -> str:
-        return os.path.join(self.data, "tmlr", "pgfplots", "readability_flesch_ease.csv")
+        return os.path.join(self.data, "pgfplots", "readability_flesch_ease.csv")
 
 
 @dataclass

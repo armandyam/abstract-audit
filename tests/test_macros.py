@@ -326,7 +326,7 @@ def test_thousands():
 
 
 def test_round4_requires_baseline_columns(tmp_path):
-    d = tmp_path / "tmlr" / "pgfplots"
+    d = tmp_path / "pgfplots"
     d.mkdir(parents=True)
     (d / "readability_flesch_ease.csv").write_text("year,neurips,iclr,icml\n2015,1,2,3\n")
     with pytest.raises(SystemExit, match="--baselines"):
@@ -343,9 +343,10 @@ def _reference_inputs(tmp_path):
     for f in os.listdir(os.path.join(REF, "analysis")):
         shutil.copy(os.path.join(REF, "analysis", f), agg / f)
     shutil.copy(os.path.join(REF, "latex_robustness.csv"), agg)
-    pg = tmp_path / "data" / "tmlr" / "pgfplots"
+    pg = tmp_path / "data" / "pgfplots"
     pg.mkdir(parents=True)
-    shutil.copy(os.path.join(REF, "pgfplots", "readability_flesch_ease.csv"), pg)
+    shutil.copy(os.path.join(ROOT, "shared", "reference", "pgfplots",
+                             "readability_flesch_ease.csv"), pg)
     return str(tmp_path / "data")
 
 

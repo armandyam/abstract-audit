@@ -4,7 +4,9 @@ Produced by the upstream research repository at commit `e291e24`
 (e291e24dccf3f608ddf4e84ad871008c0a4780f2), the artefacts behind the figures
 in the UncertaiNLP paper. The `readability_*.csv` series were trimmed to
 `year,neurips` and to the 39 years NeurIPS covers; see README.md. No value was
-altered. Checked by `python src/make_manifest.py`.
+altered. The judge series, the judge-metric correlations and the heatmap PNG
+this paper also plots are shared with the other papers and live in
+`shared/reference/` (one copy each). Checked by `python src/make_manifest.py`.
 
 Built with: python 3.14.3, pandas 3.0.2, numpy 2.4.4, scipy 1.17.1,
 matplotlib 3.10.8, textstat 0.7.13, spacy 3.8.13, en_core_web_sm 3.8.0.
@@ -12,14 +14,6 @@ matplotlib 3.10.8, textstat 0.7.13, spacy 3.8.13, en_core_web_sm 3.8.0.
 sha256, first 16 hex:
 
 ```
-aaa5354c5691c4ac  fig_judge_metric_heatmap.png
-20649ddaf5f5104a  pgfplots/judge_metric_corr.csv
-32f0f5f9ec24b7dc  pgfplots/llm_scores_model_avg_ascb.csv
-515adf7829950956  pgfplots/llm_scores_model_avg_own_reasoning.csv
-ecd25a1be4133d94  pgfplots/llm_scores_model_avg_simple.csv
-cf8a88f99e626b21  pgfplots/llm_scores_standardized_ascb.csv
-a9d2ba4d67cbc1f5  pgfplots/llm_scores_standardized_own_reasoning.csv
-0d3235e716a8f43c  pgfplots/llm_scores_standardized_simple.csv
 6acff22103d87c31  pgfplots/readability_ari.csv
 b35f59d51e479303  pgfplots/readability_avg_sentence_length.csv
 ed162d06c11cdabb  pgfplots/readability_avg_syllables_per_word.csv

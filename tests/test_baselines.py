@@ -254,8 +254,8 @@ def test_tmlr_without_baselines_is_unchanged(tmp_path, monkeypatch):
                  ).to_csv(agg / "hedging.csv", index=False)
     monkeypatch.setattr(export, "AGG", str(agg))
     monkeypatch.setattr(export, "OUT", str(tmp_path / "pg"))
-    monkeypatch.setattr(export, "TMLR", str(tmp_path / "pg" / "tmlr"))
-    export.export_tmlr()
+    monkeypatch.setattr(export, "SHARED", str(tmp_path / "pg" / "tmlr"))
+    export.export_shared()
     assert list(pd.read_csv(tmp_path / "pg" / "tmlr" / "hedging.csv").columns) == \
         ["year", "neurips"]
     assert not (tmp_path / "pg" / "tmlr" / "sentence_length.csv").exists()

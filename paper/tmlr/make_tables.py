@@ -222,7 +222,7 @@ Prompt & Venue & Top 10\% & Bottom 10\% & $\Delta$ \\
 # ============================================================ corpus ===
 
 def corpus(ctx: C.Ctx) -> str:
-    need(os.path.join(ctx.data, "tmlr", "pgfplots", "papers_per_year.csv"))
+    need(os.path.join(ctx.data, "pgfplots", "papers_per_year.csv"))
     rows = [("arXiv (all categories)", "arxiv"), ("NeurIPS", "neurips"),
             ("ICLR", "iclr"), ("ICML", "icml"), ("PubMed", "pubmed")]
     lines = []

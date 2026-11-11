@@ -8,7 +8,7 @@ value is distributed; always build the tracked copy with it.
 
 Proves the figure and table sources in this repository compile against the
 data the pipeline just produced, without the manuscript. The figures read
-../../data/tmlr/pgfplots/ and the generated tables ../../data/tmlr/tables/,
+../../data/pgfplots/ and the generated tables ../../data/tmlr/tables/,
 relative to paper/tmlr/: the repository's data/ directory, whatever $AA_DATA
 says, as for paper/uncertainlp/build_figures.py. A figure or table whose input was not
 built is replaced by a note (see figures.tex); when the local citation counts

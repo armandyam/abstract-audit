@@ -1,17 +1,17 @@
 % LLM-as-judge: model-averaged z-scores per venue, one curve per prompt.
 % Each curve is the mean of all 6 model z-scores for that prompt, standardized
 % to each model's own baseline through 2022 within that venue.
-% Data: ../../data/tmlr/pgfplots/llm_scores_model_avg[_{venue}]_{prompt}.csv
+% Data: ../../data/pgfplots/llm_scores_model_avg[_{venue}]_{prompt}.csv
 
 % One panel's three prompt curves + zero line + 2022 marker.
 % #1 = file suffix: "" (NeurIPS), "_iclr", "_icml"
 \providecommand{\llmpanel}[1]{%
   \addplot[color={rgb,255:red,44;green,160;blue,44}, solid, very thick]
-    table[x=year, y=avg_z, col sep=comma]{../../data/tmlr/pgfplots/llm_scores_model_avg#1_simple.csv};
+    table[x=year, y=avg_z, col sep=comma]{../../data/pgfplots/llm_scores_model_avg#1_simple.csv};
   \addplot[color={rgb,255:red,148;green,103;blue,189}, dashed, very thick]
-    table[x=year, y=avg_z, col sep=comma]{../../data/tmlr/pgfplots/llm_scores_model_avg#1_ascb.csv};
+    table[x=year, y=avg_z, col sep=comma]{../../data/pgfplots/llm_scores_model_avg#1_ascb.csv};
   \addplot[color={rgb,255:red,214;green,39;blue,40}, dashdotted, very thick]
-    table[x=year, y=avg_z, col sep=comma]{../../data/tmlr/pgfplots/llm_scores_model_avg#1_own_reasoning.csv};
+    table[x=year, y=avg_z, col sep=comma]{../../data/pgfplots/llm_scores_model_avg#1_own_reasoning.csv};
   \draw[black, dotted, thin] (axis cs:1900,0) -- (axis cs:2100,0);
   \draw[black, dashed, semithick] (axis cs:2022,-2) -- (axis cs:2022,5.5);
 }
@@ -37,13 +37,13 @@
     legend style={draw=none, fill=none, font=\scriptsize,
                   cells={anchor=west}, column sep=8pt}]
   \addplot[color={rgb,255:red,44;green,160;blue,44}, solid, very thick]
-    table[x=year, y=avg_z, col sep=comma]{../../data/tmlr/pgfplots/llm_scores_model_avg_simple.csv};
+    table[x=year, y=avg_z, col sep=comma]{../../data/pgfplots/llm_scores_model_avg_simple.csv};
   \addlegendentry{Simple}
   \addplot[color={rgb,255:red,148;green,103;blue,189}, dashed, very thick]
-    table[x=year, y=avg_z, col sep=comma]{../../data/tmlr/pgfplots/llm_scores_model_avg_ascb.csv};
+    table[x=year, y=avg_z, col sep=comma]{../../data/pgfplots/llm_scores_model_avg_ascb.csv};
   \addlegendentry{ASCB}
   \addplot[color={rgb,255:red,214;green,39;blue,40}, dashdotted, very thick]
-    table[x=year, y=avg_z, col sep=comma]{../../data/tmlr/pgfplots/llm_scores_model_avg_own_reasoning.csv};
+    table[x=year, y=avg_z, col sep=comma]{../../data/pgfplots/llm_scores_model_avg_own_reasoning.csv};
   \addlegendentry{Own reasoning}
   \draw[black, dotted, thin] (axis cs:1900,0) -- (axis cs:2100,0);
   \draw[black, dashed, semithick] (axis cs:2022,-2) -- (axis cs:2022,5.5);

@@ -1,5 +1,5 @@
 % Mean bibliography entries per paper, NeurIPS / ICLR / ICML.
-% Data: ../../data/tmlr/pgfplots/references_per_year.csv
+% Data: ../../data/pgfplots/references_per_year.csv
 % Papers with no Semantic Scholar reference list are excluded rather than
 % counted as zero; see src/citations/references.py.
 
@@ -22,15 +22,15 @@
   ]
   \addplot[color={rgb,255:red,44;green,160;blue,44}, dashdotted, very thick]
     table[x=year, y=neurips, col sep=comma]
-    {../../data/tmlr/pgfplots/references_per_year.csv};
+    {../../data/pgfplots/references_per_year.csv};
   \addlegendentry{NeurIPS}
   \addplot[color={rgb,255:red,31;green,119;blue,180}, densely dashed, very thick]
     table[x=year, y=iclr, col sep=comma]
-    {../../data/tmlr/pgfplots/references_per_year.csv};
+    {../../data/pgfplots/references_per_year.csv};
   \addlegendentry{ICLR}
   \addplot[color={rgb,255:red,255;green,127;blue,14}, densely dotted, very thick]
     table[x=year, y=icml, col sep=comma]
-    {../../data/tmlr/pgfplots/references_per_year.csv};
+    {../../data/pgfplots/references_per_year.csv};
   \addlegendentry{ICML}
   \draw[black, dashed, semithick] (axis cs:2022,0) -- (axis cs:2022,100);
 \end{axis}

@@ -1,19 +1,18 @@
 """Regenerate the judge/metric correlation heatmap at a legible type size.
 
-The canonical generator, src/analysis/judge_feature_correlation.py, writes
-into manuscript/figs for the NeurIPS paper and sizes its type for a
-single-column float. Rendered at the width this paper uses, its row labels
-come out near 3 pt. This script re-plots the same committed correlations
-with type sized for a two-column float, and writes only into
-uncertainlp/figs so the other manuscripts are untouched.
+The canonical generator, src/analysis/judge_feature_correlation.py, sizes
+its optional diagnostic heatmap for a single-column float; rendered at the
+width the papers use, its row labels come out near 3 pt. This script
+re-plots the same correlations with type sized for a two-column float. The
+UncertaiNLP and AI-Native Academia papers both include this one PNG.
 
-Reads  data/uncertainlp/pgfplots/judge_metric_corr.csv  (written by the canonical
+Reads  data/pgfplots/judge_metric_corr.csv  (written by the canonical
        generator; columns: metric, label, r_pooled, r_within, one per model)
-Writes paper/uncertainlp/figs/fig_judge_metric_heatmap.png
+Writes shared/figs/fig_judge_metric_heatmap.png
 
 Run from the repo root with the venv active:
 
-    python paper/uncertainlp/make_heatmap.py
+    python src/plotting/make_heatmap.py
 """
 
 from __future__ import annotations
@@ -36,8 +35,8 @@ MODELS = [
 ]
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-SRC = os.path.join(REPO, os.environ.get("AA_DATA", "data"), "uncertainlp", "pgfplots", "judge_metric_corr.csv")
-DEST = os.path.join(REPO, "paper", "uncertainlp", "figs", "fig_judge_metric_heatmap.png")
+SRC = os.path.join(REPO, os.environ.get("AA_DATA", "data"), "pgfplots", "judge_metric_corr.csv")
+DEST = os.path.join(REPO, "shared", "figs", "fig_judge_metric_heatmap.png")
 
 # Sized for a figure* placed at 0.72\textwidth. At that width the scale
 # factor is about 0.63, so 11 pt here renders near 7 pt on the page and the

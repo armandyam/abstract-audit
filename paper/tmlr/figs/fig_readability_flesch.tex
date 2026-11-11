@@ -1,5 +1,5 @@
 % Flesch Reading Ease on NeurIPS, arXiv ML, arXiv non-ML, and PubMed.
-% Data: ../../data/tmlr/pgfplots/readability_flesch_ease.csv
+% Data: ../../data/pgfplots/readability_flesch_ease.csv
 % Higher values = easier reading.
 
 \begin{figure}[h]
@@ -23,27 +23,27 @@
   ]
   \addplot[color={rgb,255:red,44;green,160;blue,44}, dashdotted, very thick]
     table[x=year, y=neurips, col sep=comma]
-    {../../data/tmlr/pgfplots/readability_flesch_ease.csv};
+    {../../data/pgfplots/readability_flesch_ease.csv};
   \addlegendentry{NeurIPS}
   \addplot[color={rgb,255:red,31;green,119;blue,180}, densely dashed, very thick]
     table[x=year, y=iclr, col sep=comma]
-    {../../data/tmlr/pgfplots/readability_flesch_ease.csv};
+    {../../data/pgfplots/readability_flesch_ease.csv};
   \addlegendentry{ICLR}
   \addplot[color={rgb,255:red,255;green,127;blue,14}, densely dotted, very thick]
     table[x=year, y=icml, col sep=comma]
-    {../../data/tmlr/pgfplots/readability_flesch_ease.csv};
+    {../../data/pgfplots/readability_flesch_ease.csv};
   \addlegendentry{ICML}
   \addplot[color={rgb,255:red,148;green,103;blue,189}, solid, very thick]
     table[x=year, y=arxiv_ml, col sep=comma]
-    {../../data/tmlr/pgfplots/readability_flesch_ease.csv};
+    {../../data/pgfplots/readability_flesch_ease.csv};
   \addlegendentry{arXiv ML}
   \addplot[color={rgb,255:red,140;green,86;blue,75}, dotted, thick]
     table[x=year, y=arxiv_nonml, col sep=comma]
-    {../../data/tmlr/pgfplots/readability_flesch_ease.csv};
+    {../../data/pgfplots/readability_flesch_ease.csv};
   \addlegendentry{arXiv non-ML}
   \addplot[color={rgb,255:red,214;green,39;blue,40}, dashed, thick]
     table[x=year, y=pubmed, col sep=comma]
-    {../../data/tmlr/pgfplots/readability_flesch_ease.csv};
+    {../../data/pgfplots/readability_flesch_ease.csv};
   \addlegendentry{PubMed}
   % Marker for the arrival of LLM assisted writing (late 2022)
   \draw[black, dashed, semithick] (axis cs:2022,-5) -- (axis cs:2022,50);

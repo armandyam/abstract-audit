@@ -267,7 +267,7 @@ def test_compare_rules():
 # ── check functions on synthetic data ───────────────────────────────────
 
 def write_series(root, name, years, cols):
-    d = os.path.join(root, "tmlr", "pgfplots")
+    d = os.path.join(root, "pgfplots")
     os.makedirs(d, exist_ok=True)
     df = pd.DataFrame({"year": years, **cols})
     df.to_csv(os.path.join(d, f"{name}.csv"), index=False)

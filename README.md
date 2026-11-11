@@ -124,7 +124,7 @@ metrics_nlp  parse depth, NP density, passive rate, TTR, clause and POS counts
 aggregate    per-paper values to per-year mean, standard deviation and count;
              papers per year; judge scores per venue
 export       aggregates to plot-ready CSVs: data/uncertainlp/pgfplots/ for the UncertaiNLP
-             figures, data/tmlr/pgfplots/ for the TMLR figures, with the arXiv
+             figures, data/pgfplots/ for the TMLR figures, with the arXiv
              and PubMed series from shared/baselines/
 model_avg    per-model z-scores to the six-model average
 analysis     metric against judge Spearman correlation, summary series,
@@ -183,7 +183,7 @@ python src/metrics/audit_self.py --from-tex $AA_PAPER/main.tex
 
 Every figure and table of the paper has its source in `paper/tmlr/`: the ten
 figures in `figs/`, with their captions, read the export's
-`data/tmlr/pgfplots/`. The data-driven tables are generated from the
+`data/pgfplots/`. The data-driven tables are generated from the
 pipeline's outputs into `data/tmlr/tables/`, each from the paper's table as
 the template: six by `make_macros.py` with the paper's macros, seven by
 `make_tables.py` (acronym reuse, the two citation decile tables, corpus

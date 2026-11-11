@@ -9,7 +9,7 @@ never scored), so this analysis covers those 24,772 papers, not the full
 30,595 used elsewhere.
 
 Outputs (deterministic, consumed by the manuscripts):
-  data/uncertainlp/pgfplots/judge_metric_corr.csv     metric x {pooled, within-year, per-model} Spearman r
+  data/pgfplots/judge_metric_corr.csv     metric x {pooled, within-year, per-model} Spearman r
   figs/fig_judge_metric_heatmap.png       metric x model Spearman heatmap
 
 Run from the repo root:  python src/analysis/judge_feature_correlation.py
@@ -22,7 +22,7 @@ import pandas as pd
 _D = os.environ.get("AA_DATA", "data")
 BASE = os.path.join(_D, "per_paper")
 JUDGE = os.environ.get("AA_JUDGE", "shared/judge_scores")
-OUT  = os.path.join(_D, "uncertainlp", "pgfplots")
+OUT  = os.path.join(_D, "pgfplots")
 FIGS = os.environ.get("AA_FIGS")  # optional diagnostic PNG target; unset means skip
 
 MODELS = ["Gemma-3-27B-Instruct", "Gemma-4-31B-Instruct",
@@ -146,7 +146,7 @@ def main() -> None:
         plt.tight_layout()
         if not FIGS:
             print("diagnostic heatmap not written (set AA_FIGS to enable); "
-                  "the paper figure comes from paper/uncertainlp/make_heatmap.py")
+                  "the paper figure comes from src/plotting/make_heatmap.py")
         else:
             os.makedirs(FIGS, exist_ok=True)
             plt.savefig(f"{FIGS}/fig_judge_metric_heatmap.png", dpi=150)

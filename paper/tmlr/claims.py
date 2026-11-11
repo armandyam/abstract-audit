@@ -123,7 +123,7 @@ class Ctx:
     @lru_cache(maxsize=None)
     def pg(self, name: str) -> pd.DataFrame:
         """pgfplots/tmlr/{name}.csv indexed by year."""
-        df = pd.read_csv(os.path.join(self.data, "tmlr", "pgfplots", f"{name}.csv"))
+        df = pd.read_csv(os.path.join(self.data, "pgfplots", f"{name}.csv"))
         return df.set_index("year").sort_index()
 
     @lru_cache(maxsize=None)
@@ -525,7 +525,7 @@ def style_gap_set(ctx, kind, threshold=0.5):
 def style_suite_size(ctx):
     """The number of style series the release exports (STYLE, all present)."""
     return sum(1 for m in STYLE if os.path.exists(
-        os.path.join(ctx.data, "tmlr", "pgfplots", f"{m}.csv")))
+        os.path.join(ctx.data, "pgfplots", f"{m}.csv")))
 
 
 @check

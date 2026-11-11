@@ -16,9 +16,9 @@ Stages (each runs over NeurIPS, ICLR and ICML):
              linguistic_complexity     spaCy: parse depth, NP density, passive, TTR
   aggregate  aggregate_*              per-paper scores -> per-year mean, std, count;
                                       papers per year; judge scores per venue
-  export     export_pgfplots_data     aggregates -> plot-ready CSVs, one set per
-                                      paper (data/uncertainlp/pgfplots,
-                                      data/tmlr/pgfplots)
+  export     export_pgfplots_data     aggregates -> plot-ready CSVs, one copy of
+                                      every shared series (data/pgfplots)
+                                      and UncertaiNLP's own (data/uncertainlp/)
   model_avg  aggregate_llm_model_avg  per-model z-scores -> six-model average
   analysis   judge_feature_correlation  metric vs judge Spearman r
              visual_abstract_data     the two-panel summary series
@@ -86,7 +86,7 @@ AGGREGATES = ("readability", "acronyms", "active_narration", "clauses_per_senten
               "parse_depth", "passive_rate", "sensational_language",
               "signposting", "ttr", "verbs", "sentence_length", "papers_per_year")
 D = os.environ.get("AA_DATA", "data")
-TMLR_PG = f"{D}/tmlr/pgfplots"
+PG = f"{D}/pgfplots"
 AGG = f"{D}/aggregate"
 TOPIC_ASSIGN = f"{AGG}/topic_assignments.csv"
 TOPIC_PROFILE = f"{AGG}/topic_profiles.csv"
@@ -117,15 +117,17 @@ NEEDS: dict[str, list[str]] = {
     "src/citations/regression.py": [PROCESSED],
     "src/citations/regression_topics.py": [PROCESSED, TOPIC_ASSIGN],
     "src/citations/topic_citations.py": [TOPIC_ASSIGN, TOPIC_PROFILE],
-    "paper/uncertainlp/make_heatmap.py": [f"{D}/uncertainlp/pgfplots/judge_metric_corr.csv"],
+    "src/plotting/make_heatmap.py": [f"{PG}/judge_metric_corr.csv"],
     # The figure sources read ../../data/uncertainlp/pgfplots/ relative to
     # paper/uncertainlp/: the repository's data/ directory, whatever $AA_DATA says.
-    "paper/uncertainlp/build_figures.py": [f"data/uncertainlp/pgfplots/{f}.csv" for f in (
-        "va_flesch", "va_zscore", "readability_flesch_ease",
-        "llm_scores_model_avg_simple", "llm_scores_standardized_simple")],
+    "paper/uncertainlp/build_figures.py":
+        [f"data/uncertainlp/pgfplots/{f}.csv" for f in (
+            "va_flesch", "va_zscore", "readability_flesch_ease")]
+        + [f"data/pgfplots/{f}.csv" for f in (
+            "llm_scores_model_avg_simple", "llm_scores_standardized_simple")],
     # Likewise ../../data/ relative to paper/tmlr/. The tables and the
     # citation figure that were not built are replaced by notes.
-    "paper/tmlr/build_figures.py": [f"data/tmlr/pgfplots/{f}.csv" for f in (
+    "paper/tmlr/build_figures.py": [f"data/pgfplots/{f}.csv" for f in (
         "readability_flesch_ease", "sensational_total", "acronyms_title",
         "acronyms_abstract", "papers_per_year", "sentence_length",
         "llm_scores_model_avg_simple", "llm_scores_model_avg_iclr_simple",
@@ -153,9 +155,8 @@ STAGES: list[tuple[str, list[list[str]]]] = [
                   + [["src/aggregate/aggregate_llm_scores.py", "--venue", v]
                      for v in VENUES]),
     ("export",    [["src/plotting/export_pgfplots_data.py", "--baselines"]]),
-    ("model_avg", [["src/aggregate/aggregate_llm_model_avg.py", "--venue", "neurips"]]
-                  + [["src/aggregate/aggregate_llm_model_avg.py", "--venue", v,
-                      "--in-dir", TMLR_PG, "--out-dir", TMLR_PG] for v in VENUES]),
+    ("model_avg", [["src/aggregate/aggregate_llm_model_avg.py", "--venue", v]
+                   for v in VENUES]),
     ("analysis",  [["src/analysis/judge_feature_correlation.py"],
                    ["src/analysis/visual_abstract_data.py"],
                    ["src/analysis/latex_robustness.py"],
@@ -188,7 +189,7 @@ STAGES: list[tuple[str, list[list[str]]]] = [
                    ["paper/tmlr/check_macros.py", "--report-only"],
                    ["paper/tmlr/check_tables.py", "--report-only"]]),
     ("claims",    [["paper/tmlr/check_claims.py", "--report-only"]]),
-    ("figures",   [["paper/uncertainlp/make_heatmap.py"],
+    ("figures",   [["src/plotting/make_heatmap.py"],
                    ["paper/uncertainlp/build_figures.py"],
                    ["paper/tmlr/build_figures.py"]]),
     ("verify",    [["verify.py"]]),

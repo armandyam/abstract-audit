@@ -268,12 +268,11 @@ def main() -> None:
         check_csv(f"uncertainlp/pgfplots/{base}",
                   os.path.join(DATA, "uncertainlp", "pgfplots", base), ref_path)
 
-    print("\nTMLR figure data: judge series and per-metric series with the arXiv and "
-          "PubMed baselines")
-    for ref_path in sorted(glob.glob(os.path.join(TMLR_REF, "pgfplots", "*.csv"))):
+    print("\nshared figure data: per-metric series with the arXiv and PubMed "
+          "baselines, judge series, judge-metric correlations")
+    for ref_path in sorted(glob.glob(os.path.join(SHARED_REF, "pgfplots", "*.csv"))):
         base = os.path.basename(ref_path)
-        check_csv(f"tmlr/pgfplots/{base}",
-                  os.path.join(DATA, "tmlr", "pgfplots", base), ref_path)
+        check_csv(f"pgfplots/{base}", os.path.join(DATA, "pgfplots", base), ref_path)
 
     print("\nTMLR analyses")
     for ref_path in sorted(glob.glob(os.path.join(TMLR_REF, "*.csv"))
@@ -295,10 +294,9 @@ def main() -> None:
     claims_section(m, paper)
 
     print("\nfigures")
-    check_bytes("paper/uncertainlp/figs/fig_judge_metric_heatmap.png",
-                os.path.join(HERE, "paper", "uncertainlp", "figs",
-                             "fig_judge_metric_heatmap.png"),
-                os.path.join(UNC_REF, "fig_judge_metric_heatmap.png"))
+    check_bytes("shared/figs/fig_judge_metric_heatmap.png",
+                os.path.join(HERE, "shared", "figs", "fig_judge_metric_heatmap.png"),
+                os.path.join(SHARED_REF, "fig_judge_metric_heatmap.png"))
 
     total = ok + fail + missing
     print(f"\n{ok}/{total} artefacts match reference")

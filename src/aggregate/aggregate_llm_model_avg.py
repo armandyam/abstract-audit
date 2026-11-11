@@ -7,18 +7,17 @@ Algorithm (per the manuscript review):
      own pre-2022 baseline:
          z = (score - mean_{year<=2022}) / std_{year<=2022}
      This step is already done by export_pgfplots_data.export_standardized_llm(),
-     which writes data/uncertainlp/pgfplots/llm_scores_standardized_{prompt}.csv.
+     which writes data/pgfplots/llm_scores_standardized_{prompt}.csv.
   2. Average the z-scores over all complete models for each year.
-  3. Write data/uncertainlp/pgfplots/llm_scores_model_avg_{prompt}.csv with columns:
+  3. Write data/pgfplots/llm_scores_model_avg_{prompt}.csv with columns:
          year, avg_z, std_z, n_models
 
-Reads:  data/uncertainlp/pgfplots/llm_scores_standardized_{prompt}.csv
-Writes: data/uncertainlp/pgfplots/llm_scores_model_avg_{prompt}.csv
+Reads:  data/pgfplots/llm_scores_standardized_{prompt}.csv
+Writes: data/pgfplots/llm_scores_model_avg_{prompt}.csv
 
 Run (from repo root with venv active):
     python src/aggregate/aggregate_llm_model_avg.py
     python src/aggregate/aggregate_llm_model_avg.py --prompts simple ascb
-    python src/aggregate/aggregate_llm_model_avg.py --in-dir data/tmlr/pgfplots --out-dir data/tmlr/pgfplots
 """
 
 from __future__ import annotations
@@ -94,11 +93,11 @@ def main() -> None:
         help="Which prompts to process (default: all three).",
     )
     parser.add_argument(
-        "--in-dir",  default=os.path.join(os.environ.get("AA_DATA","data"), "uncertainlp", "pgfplots"),
+        "--in-dir",  default=os.path.join(os.environ.get("AA_DATA","data"), "pgfplots"),
         help="Directory containing llm_scores_standardized_*.csv files.",
     )
     parser.add_argument(
-        "--out-dir", default=os.path.join(os.environ.get("AA_DATA","data"), "uncertainlp", "pgfplots"),
+        "--out-dir", default=os.path.join(os.environ.get("AA_DATA","data"), "pgfplots"),
         help="Directory to write llm_scores_model_avg_*.csv files.",
     )
     parser.add_argument(
