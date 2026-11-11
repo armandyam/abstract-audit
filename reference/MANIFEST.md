@@ -5,6 +5,11 @@ These files were produced by the upstream research repository at commit
 The `readability_*.csv` series were trimmed to `year,neurips` and to the
 39 years NeurIPS covers; see README.md. No value was altered.
 
+Every hash list below is checked against the files by
+`python reference/make_manifest.py`, which fails on a listed path that is
+missing, a hash that differs and a file no list names; `--write` refreshes
+the hashes.
+
 Built with: python 3.14.3, pandas 3.0.2, numpy 2.4.4, scipy 1.17.1,
 matplotlib 3.10.8, textstat 0.7.13, spacy 3.8.13, en_core_web_sm 3.8.0.
 
@@ -51,4 +56,217 @@ d2ed373c453e0305  pgfplots/readability_smog.csv
 49714ce64ca3e75d  pgfplots/readability_spache.csv
 96b209daec7cf086  pgfplots/va_flesch.csv
 835d4767bbaef127  pgfplots/va_zscore.csv
+```
+
+## TMLR paper
+
+Added for *Machine Learning Research Has Outpaced Its Communication Norms*
+(TMLR). Produced by the upstream research repository at commit `eda2733`,
+the camera-ready build of the paper.
+
+- `per_paper/*/iclr.csv`, `per_paper/*/icml.csv`: the upstream per-paper
+  metric files, copied byte for byte.
+- `tmlr/pgfplots/`: the 27 judge series of the paper's `tmlr/data/pgfplots/`,
+  copied whole. The per-metric series and `papers_per_year.csv` were first
+  shipped here trimmed to `year,neurips,iclr,icml`; they were removed when
+  the untrimmed files in `tmlr/pgfplots_full/` (below) became the comparison
+  target, and are not listed.
+- `tmlr/latex_robustness.csv`, `tmlr/readability_collinearity.csv`: copied
+  whole.
+- `tmlr/latex_robustness_summary.csv`: computed by this repository's
+  `src/analysis/latex_robustness.py`; its 26 values match the paper's macros
+  at the paper's rounding.
+
+Built with the versions above plus thinc 8.3.13 and blis 1.3.3, spaCy's
+numeric backend, which the pin list now names because blis 1.3.4 changes one
+verb count in `per_paper/verbs/neurips.csv`.
+
+sha256, first 16 hex:
+
+```
+8e7ec69f9b24d65d  per_paper/acronyms/iclr.csv
+82994bd60ed8b3b3  per_paper/acronyms/icml.csv
+978986054509bc53  per_paper/active_narration/iclr.csv
+9c0018ca05e9104a  per_paper/active_narration/icml.csv
+1561e51605080a55  per_paper/clauses_per_sentence/iclr.csv
+355446adad161a04  per_paper/clauses_per_sentence/icml.csv
+dd49e46f6debfe2d  per_paper/hedging/iclr.csv
+91de2e3534bb7347  per_paper/hedging/icml.csv
+1b61370d521cde7a  per_paper/noun_chunks/iclr.csv
+f9169529e1118e07  per_paper/noun_chunks/icml.csv
+5a8641dea158fc45  per_paper/nouns/iclr.csv
+8ef6d4b9284ab874  per_paper/nouns/icml.csv
+8d7eaa399c1aefe6  per_paper/np_density/iclr.csv
+980d2be7fd2645c4  per_paper/np_density/icml.csv
+fde62ed4c181082c  per_paper/numbers/iclr.csv
+9902d908af25e50f  per_paper/numbers/icml.csv
+51bc6079f9ff47fb  per_paper/parse_depth/iclr.csv
+64a10d145bf62566  per_paper/parse_depth/icml.csv
+678bb59c337ece84  per_paper/passive_rate/iclr.csv
+84abafb391063251  per_paper/passive_rate/icml.csv
+73900cc36e084579  per_paper/readability/iclr.csv
+5b1c2bc6e0cedc57  per_paper/readability/icml.csv
+d0acf22d0a7272dd  per_paper/sensational_language/iclr.csv
+7b60b1071a12e548  per_paper/sensational_language/icml.csv
+3c3e5747330a9b5e  per_paper/signposting/iclr.csv
+07430b735f1477aa  per_paper/signposting/icml.csv
+2caa3be202117fb8  per_paper/ttr/iclr.csv
+f82d4beea6dc1c99  per_paper/ttr/icml.csv
+d66e55daee0fc927  per_paper/verbs/iclr.csv
+5cdb5177f84cf381  per_paper/verbs/icml.csv
+fada74d095f423dc  tmlr/latex_robustness.csv
+441560718fac44c7  tmlr/latex_robustness_summary.csv
+43037553b804db56  tmlr/pgfplots/llm_scores_ascb.csv
+f221d7a95bb58603  tmlr/pgfplots/llm_scores_iclr_ascb.csv
+8fa99b93ed9f3812  tmlr/pgfplots/llm_scores_iclr_own_reasoning.csv
+dcdffb1b1e06cead  tmlr/pgfplots/llm_scores_iclr_simple.csv
+d753f4fab6afc2cf  tmlr/pgfplots/llm_scores_icml_ascb.csv
+40723f6ccb49c86b  tmlr/pgfplots/llm_scores_icml_own_reasoning.csv
+c137c2d6cb532206  tmlr/pgfplots/llm_scores_icml_simple.csv
+32f0f5f9ec24b7dc  tmlr/pgfplots/llm_scores_model_avg_ascb.csv
+a93b3e08b571f170  tmlr/pgfplots/llm_scores_model_avg_iclr_ascb.csv
+b943023c5de6f440  tmlr/pgfplots/llm_scores_model_avg_iclr_own_reasoning.csv
+0585828f76ea5574  tmlr/pgfplots/llm_scores_model_avg_iclr_simple.csv
+2cea7641303faaa9  tmlr/pgfplots/llm_scores_model_avg_icml_ascb.csv
+00c9e203d0c830cd  tmlr/pgfplots/llm_scores_model_avg_icml_own_reasoning.csv
+812f7d678f3ada70  tmlr/pgfplots/llm_scores_model_avg_icml_simple.csv
+515adf7829950956  tmlr/pgfplots/llm_scores_model_avg_own_reasoning.csv
+ecd25a1be4133d94  tmlr/pgfplots/llm_scores_model_avg_simple.csv
+d302f205fa55c976  tmlr/pgfplots/llm_scores_own_reasoning.csv
+99bc248a9caaf395  tmlr/pgfplots/llm_scores_simple.csv
+cf8a88f99e626b21  tmlr/pgfplots/llm_scores_standardized_ascb.csv
+b5297e3b43a10d05  tmlr/pgfplots/llm_scores_standardized_iclr_ascb.csv
+1a3d807eba5eec75  tmlr/pgfplots/llm_scores_standardized_iclr_own_reasoning.csv
+c2773d1de10ff242  tmlr/pgfplots/llm_scores_standardized_iclr_simple.csv
+b9bcbd889401908d  tmlr/pgfplots/llm_scores_standardized_icml_ascb.csv
+6b55ab217b71eaa7  tmlr/pgfplots/llm_scores_standardized_icml_own_reasoning.csv
+a3cc0affc3256031  tmlr/pgfplots/llm_scores_standardized_icml_simple.csv
+a9d2ba4d67cbc1f5  tmlr/pgfplots/llm_scores_standardized_own_reasoning.csv
+0d3235e716a8f43c  tmlr/pgfplots/llm_scores_standardized_simple.csv
+d519a7059d8b673d  tmlr/readability_collinearity.csv
+```
+
+## TMLR paper: sentence length, acronym tables, topic analyses
+
+Added from the same upstream commit `eda2733`. Every file below was copied byte
+for byte from the upstream working tree, which matches that commit, except
+`tmlr/analysis/topic_profiles.csv` (see below). The sentence length series is
+in `tmlr/pgfplots_full/sentence_length.csv`.
+
+- `per_paper/sentence_length/{neurips,iclr,icml}.csv`: upstream
+  `data/per_paper/sentence_length/` (not tracked upstream; regenerated here
+  byte for byte by `src/metrics/sentence_length.py`).
+- `tmlr/analysis/acronym_reuse_freq.csv`, `tmlr/analysis/acronym_robustness.csv`:
+  upstream `data/aggregate/`. The reuse file holds all seven upstream rows.
+  `src/analysis/acronym_reuse.py` computes the NeurIPS, ICLR and ICML rows
+  from the per-paper acronyms, the arXiv ML, arXiv non-ML and PubMed rows from
+  `baselines/acronym_histograms.csv`, and quotes the Barnett and Doubleday
+  row.
+- `tmlr/analysis/{acronym_concentration,acronym_top_terms,flesch_decomposition,
+  topic_assignments,topic_terms,topic_stability,topic_trends,topic_profiles,
+  topic_decomposition,topic_decomposition_summary,fixed_mix_readability}.csv`:
+  upstream `tmlr/analysis/out/`. `topic_profiles.csv` is the upstream file
+  without its two citation columns, `median_citations` and
+  `n_with_citations`: the other six columns and all 15 rows are the upstream
+  strings, unchanged. No citation statistic is distributed: the paper's
+  median citations per topic are checked against the printed table, and only
+  in strict citation mode.
+
+Topic clustering additionally needs scikit-learn 1.9.0.
+
+sha256, first 16 hex:
+
+```
+ef870ceb2cd92625  per_paper/sentence_length/neurips.csv
+7a01a9a86e51b2ab  per_paper/sentence_length/iclr.csv
+5d796220cc68881f  per_paper/sentence_length/icml.csv
+498d4a785a3e68dc  tmlr/analysis/acronym_concentration.csv
+5eeb7980e2dd778a  tmlr/analysis/acronym_reuse_freq.csv
+2e1ef078bcd5a534  tmlr/analysis/acronym_robustness.csv
+41e2765db2a36c31  tmlr/analysis/acronym_top_terms.csv
+1deb3285badda1f1  tmlr/analysis/fixed_mix_readability.csv
+c375e91a4335fac3  tmlr/analysis/flesch_decomposition.csv
+a4dfa81dd5b02ea0  tmlr/analysis/topic_assignments.csv
+04486650bc796cf5  tmlr/analysis/topic_decomposition.csv
+3c3e672a21af87e4  tmlr/analysis/topic_decomposition_summary.csv
+fae8a138ced76794  tmlr/analysis/topic_profiles.csv
+52923e414c40fbd5  tmlr/analysis/topic_stability.csv
+4bc880bfc5745590  tmlr/analysis/topic_terms.csv
+2f678b2b0e37d4e6  tmlr/analysis/topic_trends.csv
+```
+
+## TMLR paper, untrimmed figure data
+
+`tmlr/pgfplots_full/` holds the 41 files of the upstream `tmlr/data/pgfplots/`
+whose header is `year,neurips,iclr,icml,arxiv_ml,arxiv_nonml,pubmed`, copied
+byte for byte from upstream commit `eda2733` (`git show eda2733:<path>`). They
+are the untrimmed versions of the per-metric series and `papers_per_year.csv`
+in `tmlr/pgfplots/`, plus `sentence_length.csv`, and carry every year any of
+the five corpora covers (1987-2027). They are the comparison target for
+`src/plotting/export_pgfplots_data.py --baselines`, which builds them from the
+conference aggregates and `baselines/`.
+
+sha256, first 16 hex:
+
+```
+d07de27c1153dd39  tmlr/pgfplots_full/acronyms_abstract.csv
+90b84d9bef5ef680  tmlr/pgfplots_full/acronyms_title.csv
+83d1a9c0307b041a  tmlr/pgfplots_full/active_narration.csv
+b26de28c5bbb1393  tmlr/pgfplots_full/clauses_per_sent.csv
+000b6abeb1326451  tmlr/pgfplots_full/hedging.csv
+eead30699fb087ad  tmlr/pgfplots_full/noun_chunks.csv
+18b357bf49c890a9  tmlr/pgfplots_full/nouns.csv
+aed9ad3df11a75d1  tmlr/pgfplots_full/np_density.csv
+7ac795cabe3c6bd2  tmlr/pgfplots_full/numbers.csv
+c943607945aa28fc  tmlr/pgfplots_full/papers_per_year.csv
+9e15c3e8c0418e17  tmlr/pgfplots_full/parse_depth.csv
+4f496b90b294bfc5  tmlr/pgfplots_full/passive_rate.csv
+2fe7dac4e84dd4d8  tmlr/pgfplots_full/readability_ari.csv
+4d7fdd1dde1a5291  tmlr/pgfplots_full/readability_avg_sentence_length.csv
+5c093815e658ed98  tmlr/pgfplots_full/readability_avg_syllables_per_word.csv
+aa5cbdce1fd9de77  tmlr/pgfplots_full/readability_coleman_liau.csv
+023525172164d891  tmlr/pgfplots_full/readability_dale_chall.csv
+ec255156482a56dc  tmlr/pgfplots_full/readability_flesch_ease.csv
+f11a35f5a7e5e5fa  tmlr/pgfplots_full/readability_flesch_kincaid.csv
+888587e64c438f0d  tmlr/pgfplots_full/readability_forcast.csv
+5ac0d7a24de5c5ec  tmlr/pgfplots_full/readability_gunning_fog.csv
+15ec6501be8959ce  tmlr/pgfplots_full/readability_linsear_write.csv
+fbf2db9ac778e1ae  tmlr/pgfplots_full/readability_lix.csv
+2d62750521dc0631  tmlr/pgfplots_full/readability_powers_sumner_kearl.csv
+3759c786a0cae842  tmlr/pgfplots_full/readability_rix.csv
+0321a2d9c6f8de82  tmlr/pgfplots_full/readability_smog.csv
+bcc9b051a47488f8  tmlr/pgfplots_full/readability_spache.csv
+eccbe1c4b8f9f9f6  tmlr/pgfplots_full/sensational_additional.csv
+5bf0a9109dad1a06  tmlr/pgfplots_full/sensational_attitude.csv
+19019704f65f53cb  tmlr/pgfplots_full/sensational_importance.csv
+c3bde1c450d7c0d3  tmlr/pgfplots_full/sensational_novelty.csv
+69b1b77099dc3d65  tmlr/pgfplots_full/sensational_problem.csv
+52f887d3f78a4bab  tmlr/pgfplots_full/sensational_quality.csv
+85af2d9299c39db3  tmlr/pgfplots_full/sensational_rigor.csv
+41c7c27266d64812  tmlr/pgfplots_full/sensational_scale.csv
+b9b9d4636da88743  tmlr/pgfplots_full/sensational_total.csv
+d6a51f9c63cb5062  tmlr/pgfplots_full/sensational_utility.csv
+d70aca46527f2000  tmlr/pgfplots_full/sentence_length.csv
+a09886514aa191f1  tmlr/pgfplots_full/signposting.csv
+28f97df9873a2fab  tmlr/pgfplots_full/ttr.csv
+1bf5a67df8bc7862  tmlr/pgfplots_full/verbs.csv
+```
+
+## TMLR inline numbers
+
+`tmlr/macros.csv` holds 152 of the 163 values the paper prints through its
+three macro files (`generated_round{2,3,4}.tex`): one row per macro, with the
+file, the macro name and the printed value. Every value is a computed number
+or a computed label (a topic's leading term, the ten commonest acronyms);
+none is text from the manuscript. The eleven citation macros
+(`make_macros.CITATION_MACROS`) are left out: they are computed from the
+citation snapshot, which is not distributed, and the check reads their
+printed values from the manuscript. It was written from the manuscript at upstream commit
+`1cc4809` by `python paper/tmlr/check_macros.py --write-reference` (the
+macro files are unchanged since `eda2733`).
+
+sha256, first 16 hex:
+
+```
+7062123daec4f2b5  tmlr/macros.csv
 ```

@@ -1,0 +1,125 @@
+% Standalone rendering of every figure and table in the TMLR paper, so the
+% figure and table sources in this repository can be built and checked
+% without the manuscript, which is not distributed.
+%
+%   python paper/tmlr/build_figures.py            # full render, data/tmlr/figures.pdf
+%   python paper/tmlr/build_figures.py --public   # the tracked figures.pdf
+%
+% Build through build_figures.py only: it writes the full render outside the
+% repository and switches the citation content off for the tracked copy.
+%
+% Data comes from ../../data: pgfplots/tmlr/ for the figures (export stage),
+% tmlr/ for the macros and the generated tables (make_macros.py and
+% make_tables.py). paper/tmlr/tables/ holds the two tables that carry no
+% computed value. A figure or table whose input was not built (the citation
+% outputs, without the reader's own citation counts; the self-audit, without
+% the manuscript) is replaced by a note saying why. Captions keep their
+% \cite and \ref commands, which print as ?? here. The tikz and pgfplots setup
+% matches the manuscript preamble, so the figures render as they do there.
+\documentclass[10pt]{article}
+\usepackage[letterpaper,margin=1in]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{textcomp}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{caption}
+\captionsetup[table]{skip=8pt}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{nicefrac}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage[numbers]{natbib}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, shapes.geometric, fit, backgrounds}
+\usepackage{pgfplots}
+\usepackage{pgfplotstable}
+\pgfplotsset{compat=1.18,
+  every axis/.append style={
+    /pgf/number format/1000 sep={},
+    /pgf/number format/fixed,
+  }
+}
+\usepgfplotslibrary{groupplots}
+\DeclareUnicodeCharacter{2191}{\ensuremath{\uparrow}}
+\DeclareUnicodeCharacter{2193}{\ensuremath{\downarrow}}
+
+% The manuscript marks revised text with these for its review build; here
+% they print their argument unchanged, as in the published paper.
+\newcommand{\rev}[1]{#1}
+\newcommand{\revtwo}[1]{#1}
+\newcommand{\revthree}[1]{#1}
+\newcommand{\revfour}[1]{#1}
+
+\newcommand{\aadata}{../../data}
+\newcommand{\aanote}[1]{\begin{center}\fbox{\parbox{0.9\linewidth}{\small #1}}\end{center}}
+% \aainput{file}{what}{why}: input file, or a note when it was not built.
+\newcommand{\aainput}[3]{\IfFileExists{#1}{\input{#1}}{\aanote{#2 not rendered: #3}}}
+\newcommand{\aamacros}[1]{\IfFileExists{\aadata/tmlr/#1}{\input{\aadata/tmlr/#1}}{}}
+\aamacros{generated_round2.tex}
+\aamacros{generated_round3.tex}
+\aamacros{generated_round4.tex}
+\newcommand{\aatable}[2]{\aainput{\aadata/tmlr/tables/#1}{Table \texttt{\detokenize{#1}}}{#2}}
+\newcommand{\nocit}{the citation outputs were not built (the citation counts are
+  not distributed; see README, Citations)}
+\newcommand{\nopipe}{its input was not built; see \texttt{data/incomplete.json}
+  and \texttt{data/tmlr/}}
+% build_figures.py defines \aacitationsabsent when the local citation counts
+% are absent, so an output left from an earlier run is not rendered.
+\newcommand{\aacitations}[2]{\ifdefined\aacitationsabsent\aanote{#2 not rendered:
+  \nocit}\else#1\fi}
+
+\title{abstract-audit: TMLR figure and table sources}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section*{Main text}
+
+\input{tables/metric_families}
+\input{figs/fig_readability_flesch}
+\input{figs/fig_sensational_total}
+\input{figs/fig_llm}
+\clearpage
+\input{figs/fig_acronyms}
+\aacitations{\aatable{topics.tex}{\nocit}}{Table topics.tex}
+\clearpage
+
+\section*{Appendix}
+
+\input{figs/fig_workflow}
+\aatable{corpus.tex}{\nopipe}
+\aatable{normalisation_rules.tex}{\nopipe}
+\aatable{normalisation.tex}{\nopipe}
+\clearpage
+\aatable{prompts.tex}{\nopipe}
+\clearpage
+\aacitations{\aatable{topic_controls.tex}{\nocit}}{Table topic\_controls.tex}
+\aatable{topic_trends.tex}{\nopipe}
+\aatable{topic_decomposition.tex}{\nopipe}
+\clearpage
+\aatable{acronym_reuse_freq.tex}{\nopipe}
+\aatable{acronym_concentration.tex}{\nopipe}
+\aacitations{\aatable{citation_readability_top_bottom_combined.tex}{\nocit}}{Table
+  citation\_readability\_top\_bottom\_combined.tex}
+\aacitations{\aatable{citation_llm_top_bottom_combined.tex}{\nocit}}{Table
+  citation\_llm\_top\_bottom\_combined.tex}
+\clearpage
+\aacitations{\IfFileExists{\aadata/pgfplots/tmlr/references_per_year.csv}{\input{figs/fig_app_references}}{\aanote{Figure
+  fig\_app\_references not rendered: \nocit}}}{Figure fig\_app\_references}
+\input{figs/fig_papers}
+\input{tables/nine}
+\clearpage
+\input{figs/fig_readability}
+\clearpage
+\input{figs/fig_sensational}
+\clearpage
+\input{figs/fig_app_hohmann}
+\clearpage
+\aatable{self_audit.tex}{the self-audit measures the paper's own abstract, which
+  is not distributed; set \texttt{AA\_PAPER} and run the self\_audit stage}
+
+\end{document}

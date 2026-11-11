@@ -1,0 +1,43 @@
+\begin{table}[t]
+  \centering
+  \small
+  \begin{tabular}{p{0.20\textwidth}p{0.30\textwidth}p{0.12\textwidth}p{0.26\textwidth}}
+    \toprule
+    Family & What it measures & Section & Direction over time \\
+    \midrule
+    Classical readability, 15 formulas
+      & Surface difficulty of the prose, from sentence length and word length
+      & \ref{sec:readability-classical}
+      & Harder to read at every venue \\
+    \addlinespace
+    Hohmann writing style suite, \revfour{extended to 12 metrics}
+      & Syntactic structure, including parse depth, passive rate and noun
+        phrase density
+      & \ref{sec:hohmann}
+      & Largely parallel to the non-ML control \\
+    \addlinespace
+    Sensational language rate\revfour{, part of the style suite}
+      & Rhetorical stance, counted as promotional words per 100 words
+      & \ref{sec:sensational}
+      & Rising at every venue \\
+    \addlinespace
+    Acronym density and reuse
+      & Vocabulary a reader must already hold, and how often each term recurs
+      & \ref{sec:acronyms}
+      & Denser, with most terms rarely reused \\
+    \addlinespace
+    LLM as judge, 6 models
+      & What an automated reviewer reports about readability
+      & \ref{sec:llm-judge}
+      & Rising after 2022 at NeurIPS and ICML, against the classical scores \\
+    \addlinespace
+    Citation counts
+      & What the field rewarded, within venue-year cohorts
+      & \ref{sec:citations}
+      & More readable papers cited slightly more \\
+    \bottomrule
+  \end{tabular}
+\caption{\revthree{The five metric families, what each one measures, and the
+  direction it moves at NeurIPS, ICLR and ICML.}}
+  \label{tab:families}
+\end{table}

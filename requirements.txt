@@ -7,7 +7,18 @@ numpy==2.4.4
 matplotlib==3.10.8
 textstat==0.7.13
 spacy==3.8.13
+# spaCy's numeric backend. A newer blis changes the floating-point results of
+# the tagger by enough to flip a part-of-speech tag (one verb in one of the
+# 30,595 NeurIPS abstracts with blis 1.3.4), so both are pinned exactly.
+thinc==8.3.13
+blis==1.3.3
 pydantic==2.13.3
+# Percentiles in the self-audit (src/metrics/audit_self.py).
+scipy==1.17.1
+# Topic clustering (src/analysis/topic_clusters.py): TF-IDF, truncated SVD and
+# mini-batch k-means. The topic labels depend on this version, so it is pinned
+# exactly.
+scikit-learn==1.9.0
 
 # The spaCy model is a separate download and its version is part of the
 # result: parse depth, NP density, passive rate, TTR and the noun/verb counts

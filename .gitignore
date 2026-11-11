@@ -13,3 +13,9 @@ __pycache__/
 *.pyc
 .DS_Store
 venv/
+paper/tmlr/*.aux
+paper/tmlr/*.log
+paper/tmlr/*.out
+
+# Coverage data holds absolute local paths; never track it.
+.coverage*

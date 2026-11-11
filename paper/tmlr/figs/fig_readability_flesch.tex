@@ -1,0 +1,61 @@
+% Flesch Reading Ease on NeurIPS, arXiv ML, arXiv non-ML, and PubMed.
+% Data: ../../data/pgfplots/tmlr/readability_flesch_ease.csv
+% Higher values = easier reading.
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+    width=0.88\linewidth, height=5cm,
+    xlabel={Year},
+    ylabel={Flesch Reading Ease (\textuparrow\ easier)},
+    xtick distance=8,
+    x tick label style={rotate=45, anchor=east, font=\tiny,
+                        /pgf/number format/1000 sep={}},
+    ytick align=inside,
+    legend columns=3,
+    legend style={draw=none, fill=none, font=\scriptsize,
+                  cells={anchor=west}, column sep=8pt,
+                  at={(0.5,-0.28)}, anchor=north},
+    tick label style={font=\tiny},
+    label style={font=\small},
+    enlarge x limits=0.02,
+  ]
+  \addplot[color={rgb,255:red,44;green,160;blue,44}, dashdotted, very thick]
+    table[x=year, y=neurips, col sep=comma]
+    {../../data/pgfplots/tmlr/readability_flesch_ease.csv};
+  \addlegendentry{NeurIPS}
+  \addplot[color={rgb,255:red,31;green,119;blue,180}, densely dashed, very thick]
+    table[x=year, y=iclr, col sep=comma]
+    {../../data/pgfplots/tmlr/readability_flesch_ease.csv};
+  \addlegendentry{ICLR}
+  \addplot[color={rgb,255:red,255;green,127;blue,14}, densely dotted, very thick]
+    table[x=year, y=icml, col sep=comma]
+    {../../data/pgfplots/tmlr/readability_flesch_ease.csv};
+  \addlegendentry{ICML}
+  \addplot[color={rgb,255:red,148;green,103;blue,189}, solid, very thick]
+    table[x=year, y=arxiv_ml, col sep=comma]
+    {../../data/pgfplots/tmlr/readability_flesch_ease.csv};
+  \addlegendentry{arXiv ML}
+  \addplot[color={rgb,255:red,140;green,86;blue,75}, dotted, thick]
+    table[x=year, y=arxiv_nonml, col sep=comma]
+    {../../data/pgfplots/tmlr/readability_flesch_ease.csv};
+  \addlegendentry{arXiv non-ML}
+  \addplot[color={rgb,255:red,214;green,39;blue,40}, dashed, thick]
+    table[x=year, y=pubmed, col sep=comma]
+    {../../data/pgfplots/tmlr/readability_flesch_ease.csv};
+  \addlegendentry{PubMed}
+  % Marker for the arrival of LLM assisted writing (late 2022)
+  \draw[black, dashed, semithick] (axis cs:2022,-5) -- (axis cs:2022,50);
+  \node[font=\tiny, anchor=east, align=right]
+    at (axis cs:2021.7,32) {\revfour{LLM assisted}\\\revfour{writing (2022)}};
+\end{axis}
+\end{tikzpicture}
+\caption{\textbf{Flesch Reading Ease across all six corpora
+  (NeurIPS, ICLR, ICML, arXiv ML, arXiv non-ML, and PubMed),
+  1987--2026.}
+  Higher values indicate easier reading (\textuparrow).
+  \rev{The three conferences and arXiv ML all decline, and by 2025 each
+  sits below both the arXiv non-ML and the PubMed baseline.}}
+\label{fig:readability-flesch}
+\end{figure}

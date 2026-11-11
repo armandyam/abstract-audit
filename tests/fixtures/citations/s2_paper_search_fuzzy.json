@@ -1,0 +1,15 @@
+{
+  "total": 3,
+  "offset": 0,
+  "data": [
+    {"paperId": "bbbb000000000000000000000000000000000001",
+     "title": "Learning to rank with partially labelled data",
+     "citationCount": 7, "referenceCount": 22, "year": 2009},
+    {"paperId": "bbbb000000000000000000000000000000000002",
+     "title": "Learning to Rank with Partially-Labeled Data",
+     "citationCount": 151, "referenceCount": 30, "year": 2008},
+    {"paperId": "bbbb000000000000000000000000000000000003",
+     "title": null,
+     "citationCount": 1, "referenceCount": 1, "year": 2008}
+  ]
+}

@@ -1,0 +1,4 @@
+venue,n_papers_total,n_papers_complete,n_metrics,n_pairs,mean_abs_pairwise_corr,pc1_var_explained,pc1_pc2_var_explained,pc1_pc3_var_explained
+neurips,30595,30595,15,105,0.6807,0.7151,0.8844,0.9205
+iclr,16807,16807,15,105,0.6817,0.717,0.882,0.917
+icml,15226,15226,15,105,0.6611,0.695,0.8788,0.9187
