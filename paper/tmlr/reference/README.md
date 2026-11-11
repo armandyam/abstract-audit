@@ -7,12 +7,12 @@ shared with the other papers and is in `shared/reference/pgfplots/`.
 - `readability_collinearity.csv` is copied whole from upstream. The
   normalisation series itself, `latex_robustness.csv`, is shared with the
   AI-Native Academia paper and is in `shared/reference/analysis/`.
-- `latex_robustness_summary.csv` holds the derived numbers the paper quotes
-  from the normalisation analysis. Upstream computed them inside the script
-  that writes the paper's LaTeX macros, so there is no upstream CSV. This file
-  was computed by `src/analysis/latex_robustness.py` from
-  `shared/reference/analysis/latex_robustness.csv`, and every value matches the paper's macros at the
-  paper's rounding.
+- `latex_robustness_summary.csv` holds 35 values derived from the
+  normalisation analysis. Upstream computed them inside the script that writes
+  the paper's LaTeX macros, so there is no upstream CSV. This file was computed
+  by `src/analysis/latex_robustness.py` from
+  `shared/reference/analysis/latex_robustness.csv`, and the values the paper
+  prints through its macros match at the paper's rounding.
 - `analysis/` holds the acronym robustness and concentration tables,
   the Flesch decomposition and the topic analyses, copied whole except
   `topic_profiles.csv`, which lacks the two upstream citation columns

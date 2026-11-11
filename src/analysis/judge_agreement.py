@@ -5,12 +5,13 @@ Each judge scored every abstract three times per prompt, sampling at
 temperature 0.7. This script measures how stable a judge is under that
 resampling and how far the six judges agree with each other:
 
-  run stability   per model and prompt, over (paper) groups of the three
-                  generations: the mean standard deviation, the mean range,
-                  and the percentage of abstracts whose three scores are
-                  identical
+  run stability   per model and prompt, over the parsed scores of each paper:
+                  the mean standard deviation (papers with at least two
+                  scores), the mean range, and the percentage of papers whose
+                  scores are all identical (a paper with one parsed score
+                  counts as identical)
   raw levels      per model and prompt, the paper-level score (median of the
-                  three runs) averaged over all papers and over the first and
+                  available parsed scores) averaged over all papers and over the first and
                   last year, on the raw 1 to 5 scale
   scored papers   per model and prompt, how many papers carry a paper-level
                   score in the first and in the last year

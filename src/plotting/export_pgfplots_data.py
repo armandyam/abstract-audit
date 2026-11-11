@@ -17,12 +17,13 @@ By default the per-metric series hold the conferences alone:
 
 With --baselines they are the papers' figure data in full. The arXiv and
 PubMed aggregates shipped in shared/baselines/ are merged in, and each
-per-metric file has the six columns
+per-metric file has the seven columns
 
   year, neurips, iclr, icml, arxiv_ml, arxiv_nonml, pubmed
 
-over every year any of the five corpora covers (1987-2027; the rows past 2025
-come from ICLR 2026 and PubMed's ahead-of-print records). arxiv_ml and
+over every year any of its corpora covers (up to 2027 for the series with
+PubMed records; the rows past 2025 come from ICLR 2026 and PubMed's
+ahead-of-print records, and PubMed values after 2025 are blank). arxiv_ml and
 arxiv_nonml are count-weighted means over the primary categories of each
 group (src/arxiv_categories.py), and PubMed is cut at PUBMED_MAX = 2025.
 Papers per year takes the arXiv counts from the acronym aggregate's

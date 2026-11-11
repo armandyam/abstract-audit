@@ -5,12 +5,15 @@ This is a purely correlational analysis. It reports what the judge score
 co-varies with; it makes no causal claim.
 
 The LLM judge was scored on NeurIPS 1987-2024 only (the 2025 cohort was
-never scored), so this analysis covers those 24,772 papers, not the full
-30,595 used elsewhere.
+never scored): the score files cover 24,772 papers, not the full 30,595 used
+elsewhere. After unparseable scores are dropped, 24,754 papers have at least
+one usable judge score. Each correlation uses the papers with both values
+present.
 
-Outputs (deterministic, consumed by the manuscripts):
-  data/pgfplots/judge_metric_corr.csv     metric x {pooled, within-year, per-model} Spearman r
-  figs/fig_judge_metric_heatmap.png       metric x model Spearman heatmap
+Writes data/pgfplots/judge_metric_corr.csv (metric x {pooled, within-year,
+per-model} Spearman r). With $AA_FIGS set it also writes a diagnostic image,
+$AA_FIGS/fig_judge_metric_heatmap.png. The papers' heatmap,
+shared/figs/fig_judge_metric_heatmap.png, comes from src/plotting/make_heatmap.py.
 
 Run from the repo root:  python src/analysis/judge_feature_correlation.py
 """

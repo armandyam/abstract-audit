@@ -41,22 +41,25 @@ Inputs (upstream tmlr/analysis/out/X.csv is $AA_DATA/aggregate/X.csv here):
   aggregate/acronym_concentration.csv          analysis stage
   aggregate/acronym_top_terms.csv              analysis stage
   aggregate/topic_decomposition_summary.csv    analysis stage
-  pgfplots/tmlr/readability_flesch_ease.csv    export stage, with --baselines
+  pgfplots/readability_flesch_ease.csv         export stage, with --baselines
   aggregate/citations/citation_regression_topics.csv   citations stage
   aggregate/citations/topic_citations.csv              citations stage
 
 The citation counts are not distributed, so the citations stage runs only for
 a reader who has them. The eleven macros and two tables that need citation
 outputs (CITATION_MACROS, CITATION_TABLES) are written only when those outputs
-exist. Otherwise they are left out and listed in skipped.json, and
-check_macros.py does not expect them.
+exist. Otherwise they are left out and listed in skipped.json. check_macros.py
+skips the citation macros when the counts or the manuscript are absent;
+otherwise a missing citation macro is reported, a failure in strict mode and
+report-only in fresh mode.
 
 Any other input is required. A section whose input is absent (the --from
 aggregate route has no processed abstracts, so no LaTeX normalisation or
 topic analysis) is not written: the generator records the section and the
 missing input under "incomplete" in skipped.json and carries on with the
-others, and check_macros.py then reports that section's macros and tables
-missing, a failure. Nothing is silently dropped.
+others. check_macros.py then reports that section's non-citation macros
+missing, a failure, and check_tables.py, given the manuscript, its tables.
+Nothing is silently dropped.
 
     python paper/tmlr/make_macros.py
     python paper/tmlr/make_macros.py --data-dir path/to/data --out-dir path/to/tmlr

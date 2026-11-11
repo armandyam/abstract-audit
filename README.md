@@ -3,8 +3,9 @@
 ## About
 
 Writing metrics for research abstracts. The pipeline computes 15 classical
-readability formulas, 14 further writing measures, and six open-weight LLM
-judge scores over the accepted papers of three machine learning conferences:
+readability measures (13 formulas, mean sentence length and mean syllables per
+word), 15 further families of writing metrics, and six open-weight LLM judge
+scores over the accepted papers of three machine learning conferences:
 
 ```
 NeurIPS  1987-2025  30,595 papers
@@ -17,7 +18,8 @@ regenerated artefacts against the files behind each paper's figures, tables
 and printed numbers:
 
 - *Machine Learning Research Has Outpaced Its Communication Norms*
-  (Transactions on Machine Learning Research, 2026). NeurIPS, ICLR and ICML.
+  (Transactions on Machine Learning Research, 2026). The full study: NeurIPS,
+  ICLR and ICML, with the arXiv ML, arXiv non-ML and PubMed baselines.
 - *Measurable Writing Standards for AI-Native Venues* (NeurIPS 2026
   AI-Native Academia workshop). NeurIPS, with the arXiv and PubMed series.
 - *LLM Judges Agree With Each Other and Disagree With Human-Grounded
@@ -61,15 +63,15 @@ re-fetched.
 ## Contents
 
 ```
-src/                    pipeline, shared by every paper
+src/                    pipeline, shared across papers
 tests/                  tests, documented in tests/README.md
-shared/                 data every paper uses, one copy each
+shared/                 data shared across papers, one copy each
   judge_scores/         judge scores, six models, by venue
   baselines/            arXiv and PubMed per-year aggregates, documented in
                         shared/baselines/README.md
   figs/                 the judge heatmap PNG two papers include
-  reference/            expected outputs every paper uses: per-paper metrics,
-                        plot-ready series, judge correlations; MANIFEST.md
+  reference/            expected outputs shared across papers: per-paper
+                        metrics, plot-ready series, analyses; MANIFEST.md
                         records their provenance and hashes
 paper/<name>/           one folder per paper: its figure and table sources,
                         the rendered figures.pdf, its generators and checks,
@@ -166,9 +168,13 @@ Gemma-4-31B-Instruct    Mistral-7B-Instruct      Qwen2.5-32B-Instruct
 ```
 
 Decoding uses `temperature=0.7`, `do_sample=True` and `max_new_tokens=8`, with
-three runs per paper, prompt and model, of which the median is reported. Scores
-are standardised per model against the 1987 to 2022 baseline, then averaged
-across models. The three prompt templates are in `src/metrics/llm_scores.py`.
+three runs per paper, prompt and model. The yearly series average the scores
+over papers and runs for each model and prompt. Each model's yearly means are
+standardised against that venue's years up to 2022, then averaged across
+models. The agreement analysis scores each paper by each model's median of
+its available parsed scores, separately for each prompt. The metric correlation analysis
+takes each model's median over all of a paper's scores, across prompts and
+runs, and averages those medians across models. The three prompt templates are in `src/metrics/llm_scores.py`.
 
 ## The TMLR paper
 
@@ -180,7 +186,7 @@ The release covers every series, table and number in the TMLR paper:
 - the judge series and six-model averages for all three venues;
 - the LaTeX and URL normalisation analysis (`latex_robustness.csv` and the
   derived numbers in `latex_robustness_summary.csv`);
-- the collinearity of the 15 readability formulas;
+- the collinearity of the 15 readability measures;
 - the acronym reuse, robustness and concentration tables;
 - the Flesch decomposition and the topic analyses (clusters, trends,
   profiles and the topic decomposition);
@@ -193,7 +199,7 @@ python src/metrics/audit_self.py --from-tex $AA_PAPER/main.tex
 ```
 
 Every figure and table of the paper has its source in `paper/tmlr/`: the ten
-figures in `figs/`, with their captions, read the shared series in
+figure source files in `figs/`, with their captions, read the shared series in
 `data/pgfplots/`. The data-driven tables are generated from the
 pipeline's outputs into `data/tmlr/tables/`, each from the paper's table as
 the template: six by `make_macros.py` with the paper's macros, seven by
@@ -201,9 +207,10 @@ the template: six by `make_macros.py` with the paper's macros, seven by
 sizes, the self-audit, the judge prompts and the text normalisation rules).
 The two tables that carry no computed value are committed in `tables/`.
 `paper/tmlr/build_figures.py` renders all of them to `data/tmlr/figures.pdf`
-(the figures stage), with a note in place of any figure or table whose input
-was not built: the citation figure and tables without the reader's citation
-counts, the self-audit without the manuscript. The tracked
+(the figures stage). A generated table that was not built is replaced by a
+note, as is the citation figure without its input, and the citation figure
+and tables are always replaced without the reader's citation counts. Every
+other figure needs its input, and rendering fails if one is missing. The tracked
 `paper/tmlr/figures.pdf` is built with `--public`, which always replaces the
 citation figure and tables by notes, since no citation-derived value is
 distributed.
@@ -219,7 +226,7 @@ for arXiv and PubMed come from `shared/baselines/acronym_histograms.csv`.
 
 ## The AI-Native Academia paper
 
-`paper/ai_native_academia/` holds the paper's eleven data figures, with their
+`paper/ai_native_academia/` holds the paper's eleven figure source files, with their
 captions, and the generators and checks for its tables and inline numbers.
 The figures read the shared series in `data/pgfplots/` and include the shared
 heatmap in `shared/figs/`; the paper holds no figure data of its own.
@@ -269,11 +276,13 @@ check_claims   coverage: every number the paper prints has a row in
 ```
 
 Without `AA_PAPER` the self-audit stage is skipped, those checks are
-reported as skipped, and everything else runs: every printed value stored in
-`claims.csv` and `macros.csv` is still recomputed and compared. The citation
-numbers are the exception: their printed values are not stored (see
-Citations), so without the manuscript the citation macros and claims are
-reported as skipped.
+reported as skipped, and everything else runs. The non-citation macros in
+`macros.csv` and every non-citation row of `claims.csv` with a check function
+are still recomputed and compared, subject to the input exemptions documented
+in `paper/tmlr/check_claims.py`; literature and design rows without a check
+function are skipped, and unverifiable rows are reported as such. The
+citation numbers are the exception: their printed values are not stored (see Citations), so without
+the manuscript the citation macros and claims are reported as skipped.
 
 ## Citations
 
@@ -285,12 +294,12 @@ one of three modes, decided by `src/citations/snapshot.py`:
 
 ```
 strict   the three local files match the published snapshot's hashes: every
-         citation number the paper prints (claims, macros and the two
-         citation tables) must be reproduced exactly
-fresh    the files exist but differ (a new fetch): those numbers are
-         reported, not failed, since counts change daily
-absent   no files: the citations stage does not run and citation checks are
-         skipped
+         citation number the paper prints (claims, macros and the four
+         citation-dependent tables) must be reproduced exactly
+fresh    all three files exist and at least one differs (a new fetch): those
+         numbers are reported, not failed, since counts change daily
+absent   at least one of the three files is missing: the citations stage does
+         not run and citation checks are skipped
 ```
 
 No statistic computed from the counts is distributed either, not even the
@@ -336,28 +345,32 @@ table, cell by cell.
 Every other printed number has a row in `paper/tmlr/claims.csv`: the value
 as printed (blank for a citation number, which is read from the manuscript),
 whether it is measured, quoted from the literature, a design
-constant or unverifiable, and the function in `paper/tmlr/claims.py` that
-recomputes it from the pipeline's outputs. The file holds no text from the
+constant or unverifiable, and, where one applies, the function in
+`paper/tmlr/claims.py` that recomputes it from the pipeline's outputs. The file holds no text from the
 manuscript; each row is tied to its place in the paper by a SHA-256 hash of
 the number and the words around it. `paper/tmlr/check_claims.py` reports
-each row as MATCH, MISMATCH, KNOWN, SKIP or UNVERIFIABLE. KNOWN marks the two
+each row as MATCH, MISMATCH, KNOWN, MISSING (an input was not built),
+ERROR, SKIP or UNVERIFIABLE; MISMATCH, MISSING and ERROR count as failures. KNOWN marks the two
 discrepancies the authors chose to keep in the published text; they are
 reported with the computed value and not counted as failures. With the
 manuscript (`AA_PAPER`), `paper/tmlr/inventory.py` finds every number it
 prints (numerals, ranges, fractions and spelled-out quantities), and the
-check fails if a number has no row or a row no longer marks a number. Its
-docstring says how to update `claims.csv` after the manuscript changes.
+check fails if a number has no row or a row no longer marks a number. The
+docstring of `paper/tmlr/check_claims.py` says how to update `claims.csv` after
+the manuscript changes.
 
-Citation numbers (eleven macros, two tables and the citation claims) are
+Citation numbers (eleven macros, four tables and the citation claims) are
 compared when the local counts are the published snapshot, reported but not
 counted after a fresh fetch, and skipped when there are none. Their printed
 values come from the manuscript, so they are also skipped without `AA_PAPER`.
 Without `AA_PAPER` the comparisons with the manuscript are skipped and
 reported (see The manuscript).
 
-Two dependencies determine the values and are pinned exactly. The `textstat`
-implementations have changed across releases. The spaCy model version
-determines parse depth, NP density, passive rate and TTR.
+Reproducing the reference values needs the versions pinned in
+`requirements.txt` and `en_core_web_sm` 3.8.0. The readability values depend
+on `textstat`, whose implementations have changed across releases. The parsed
+features depend on spaCy, its model and its numeric backends (`thinc`,
+`blis`). Topic clustering also depends on scikit-learn.
 
 ## Tests
 

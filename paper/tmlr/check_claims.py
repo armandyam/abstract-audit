@@ -5,10 +5,12 @@ The manuscript is not distributed with this repository. paper/tmlr/claims.csv
 holds one row per number it prints, with the number itself and how to check
 it, but none of the text around it. The check therefore runs in two parts:
 
-  values    every row's check function (claims.py) recomputes the number
-            from the pipeline's outputs and compares it with the printed
-            value stored in the row. Needs no manuscript, except for the
-            citation rows: their printed value is not stored (see below).
+  values    a row's check function (claims.py), where it has one, recomputes
+            the number from the pipeline's outputs and compares it with the printed
+            value stored in the row. Citation rows need the manuscript for
+            their printed values (see below). The self-audit acronym checks
+            read the manuscript directly; the other self-audit checks need
+            its audit output. See Missing inputs below.
   coverage  with a local copy of the manuscript ($AA_PAPER or --paper-dir,
             see manuscript.py), inventory.py finds every number it prints,
             macro invocations excepted (check_macros.py compares the 163
@@ -82,7 +84,7 @@ claims.csv columns:
   context_sha256  sha256 of the file, the number and its context
                   (inventory.context_hashes); no text is stored
 
-Results: MATCH, MISMATCH, KNOWN, MISSING, SKIP(reason) and UNVERIFIABLE.
+Results: MATCH, MISMATCH, KNOWN, MISSING, ERROR, SKIP(reason) and UNVERIFIABLE.
 verify.py counts mismatches, missing inputs, errors, and, with the
 manuscript, uncovered numbers, stale rows and printed values that differ, as
 failures.

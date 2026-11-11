@@ -23,8 +23,9 @@ module reuses:
           reported as skipped.
 
 Citation modes (src/citations/snapshot.py): strict compares the citation
-macros, fresh reports them without counting them, absent skips them, and
-make_macros.py must then have skipped exactly the citation items.
+macros, fresh reports them without counting them, absent skips them. In
+absent mode make_macros.py may have skipped citation items only (its
+skipped.json); it need not have skipped all of them.
 
 macros.csv is written from the manuscript, once per manuscript revision:
 

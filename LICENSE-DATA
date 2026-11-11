@@ -9,8 +9,8 @@ Scope. This licence covers the data files in these directories:
   shared/judge_scores/  LLM judge scores per paper, six models, by venue
   shared/baselines/     per-year arXiv and PubMed aggregates and pooled
                         acronym frequency histograms
-  shared/reference/     expected pipeline outputs every paper uses: per-paper
-                        metrics, per-year series, judge correlations
+  shared/reference/     expected pipeline outputs shared across papers:
+                        per-paper metrics, per-year series, analyses
   shared/figs/          the judge heatmap rendered from those correlations
   paper/*/reference/    each paper's own expected outputs: analysis tables
                         and the expected values of the paper's macros that
@@ -29,4 +29,4 @@ Exclusions. This licence does not cover:
     Neither the per-paper counts nor any statistic computed from them is
     distributed.
 
-Attribution for the sources is given in README.md and baselines/README.md.
+Attribution for the sources is given in README.md and shared/baselines/README.md.

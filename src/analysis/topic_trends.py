@@ -3,19 +3,22 @@
 
 For every k = 15 topic (topic_clusters.py), the change in Flesch Reading
 Ease, sensational language and title and abstract acronym density within the
-window 2015 to 2025. If a trend is carried by two or three topics it is a
-compositional story about which subfields grew. If every topic moves the same
-way it is a field-wide change in how people write.
+window 2015 to 2025. It shows whether the within-topic trends are concentrated
+in a few topics or shared by most. Changes in topic shares are assessed
+separately, by topic_profiles.py and topic_decomposition.py.
 
 Each topic is measured over its own span of well-populated years (at least
 MIN_CELL papers in a topic-year, at least MIN_YEARS such years). Half the
 topics barely exist in 2015, and a common window would drop them from the
 count. Per metric and topic the output carries the first and last populated
-year, their annual means, the change, the slope of a least-squares line
-through the annual means, and the slope fitted on individual papers with a
-95 percent interval clustered by venue-year (`_beta`, `_ci_lo`, `_ci_hi`;
-`_sig` if the interval excludes zero, `_sig_same` if it does so in the
-direction of the aggregate trend: down for Flesch, up for the rest).
+year, their annual means, the change, and the slope of a least-squares line
+through the annual means (`_slope`), all from the well-populated years. Once
+a topic has enough of them, the slope fitted on individual papers (`_beta`)
+and its 95 percent interval clustered by venue-year (`_ci_lo`, `_ci_hi`) use
+every paper of the topic in the window with the metric present, sparse
+topic-years included. `_sig` marks an interval that excludes zero,
+`_sig_same` one that does so in the direction of the aggregate trend: down
+for Flesch, up for the rest.
 
 The window stops at 2025, the last year in which all three venues contribute
 papers. ICLR 2026 is the only venue in 2026, so including it would confound a

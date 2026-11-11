@@ -13,7 +13,7 @@ same layout, labels and caption, with every number computed):
                              aggregate/citations/, citations stage
   citation_llm_top_bottom_combined.tex
                              aggregate/citations/, citations stage
-  corpus.tex                 tab:corpus: pgfplots/tmlr/papers_per_year.csv
+  corpus.tex                 tab:corpus: pgfplots/papers_per_year.csv
                              and shared/baselines/papers_per_year.csv
   self_audit.tex             tab:self-audit: aggregate/self_audit.csv
   prompts.tex                tab:prompts: PROMPTS in src/metrics/llm_scores.py
@@ -24,7 +24,8 @@ Two tables carry no computed value and are committed as they are printed:
 paper/tmlr/tables/metric_families.tex and nine.tex.
 
 Writes under --out-dir (default $AA_DATA/tmlr/tables) and records in
-$AA_DATA/tmlr/tables.json what was written and what was not, and why:
+tables.json, in that directory's parent, what was written and what was not,
+and why:
 
   citation   the citation outputs are absent (the counts are not
              distributed; see README, Citations)

@@ -18,7 +18,9 @@ the NeurIPS rows of `shared/reference/analysis/latex_robustness.csv`.
 `MANIFEST.md` records where each file came from and its sha256 hash.
 
 No citation output is held here, and neither is any statistic computed from
-the citation counts, including the values the paper prints. They are checked
-against the manuscript's own values (`AA_PAPER_AI_NATIVE_ACADEMIA`) when the
-reader's counts are the published snapshot (see `src/citations/snapshot.py`),
-and skipped otherwise. The manuscript itself is not held here either.
+the citation counts, including the values the paper prints. With
+`AA_PAPER_AI_NATIVE_ACADEMIA` set, the citation values are compared with the
+manuscript's own: a difference fails when the reader's counts are the
+published snapshot and is reported without failing after a fresh fetch (see
+`src/citations/snapshot.py`). Without the counts or the manuscript they are
+skipped. The manuscript itself is not held here either.

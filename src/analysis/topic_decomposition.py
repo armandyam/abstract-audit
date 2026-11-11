@@ -14,8 +14,8 @@ interaction term. The two one-sided versions, weighting by the first-year mix
 (which reproduces the fixed-mix counterfactual of topic_profiles.py) or the
 last-year mix, bracket the symmetric split.
 
-All three value a topic at its own mean in BASE_YEAR, which rests on a handful
-of papers for the topics that later grew. The fourth, year-adjusted version
+All three use each topic's mean in both endpoint years, and the BASE_YEAR
+means rest on a handful of papers for the topics that later grew. The fourth, year-adjusted version
 avoids those cells. It values each topic by its readability gap to papers of
 the same year, estimated by one least-squares fit of Flesch on topic and year
 indicators over every year of the window, and sets
@@ -26,8 +26,8 @@ The year-adjusted between term is also reported for the N_HARD least readable
 topics (lowest mean Flesch in topic_profiles.csv). A group's share of the
 between term depends on where the gaps are centred, because the shares sum
 to one in both years. The gaps are centred on their mean over the two years'
-average mix, so a topic adds to the decline only if it is less readable than
-that average and grows.
+average mix, so a topic adds to the decline when it is less readable than
+that average and grows, or more readable and shrinks.
 
 A topic absent in one of the two years has no mean there. It then contributes
 only through its share, valued at its mean in the year in which it exists.

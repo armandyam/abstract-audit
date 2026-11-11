@@ -5,15 +5,17 @@
 %   python paper/tmlr/build_figures.py            # full render, data/tmlr/figures.pdf
 %   python paper/tmlr/build_figures.py --public   # the tracked figures.pdf
 %
-% Build through build_figures.py only: it writes the full render outside the
-% repository and switches the citation content off for the tracked copy.
+% Build through build_figures.py only: it writes the full render under the
+% repository's untracked data/ directory and switches the citation content off
+% for the tracked copy.
 %
-% Data comes from ../../data: pgfplots/tmlr/ for the figures (export stage),
+% Data comes from ../../data: pgfplots/ for the figures (export stage),
 % tmlr/ for the macros and the generated tables (make_macros.py and
 % make_tables.py). paper/tmlr/tables/ holds the two tables that carry no
-% computed value. A figure or table whose input was not built (the citation
-% outputs, without the reader's own citation counts; the self-audit, without
-% the manuscript) is replaced by a note saying why. Captions keep their
+% computed value. A generated table that was not built (the citation tables,
+% without the reader's own citation counts; the self-audit, without the
+% manuscript), and the citation figure without its input, are replaced by a
+% note saying why. Every other figure needs its input. Captions keep their
 % \cite and \ref commands, which print as ?? here. The tikz and pgfplots setup
 % matches the manuscript preamble, so the figures render as they do there.
 \documentclass[10pt]{article}
