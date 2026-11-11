@@ -267,7 +267,7 @@ def test_compare_rules():
 # ── check functions on synthetic data ───────────────────────────────────
 
 def write_series(root, name, years, cols):
-    d = os.path.join(root, "pgfplots", "tmlr")
+    d = os.path.join(root, "pgfplots")
     os.makedirs(d, exist_ok=True)
     df = pd.DataFrame({"year": years, **cols})
     df.to_csv(os.path.join(d, f"{name}.csv"), index=False)
@@ -340,9 +340,9 @@ def test_reuse_share_counts_distinct_acronyms_below_ten(tmp_path):
     for v in C.CONFS:
         pd.DataFrame({"abstract_acronyms": ["|".join(["AB"] * 10), "CD|EF", "CD", ""]}) \
           .to_csv(pp / f"{v}.csv", index=False)
-    (tmp_path / "baselines").mkdir()
+    (tmp_path / "shared" / "baselines").mkdir(parents=True)
     pd.DataFrame({"group": ["pubmed", "pubmed"], "occurrences": [1, 12],
-                  "acronym_types": [3, 1]}).to_csv(tmp_path / "baselines" / "acronym_histograms.csv",
+                  "acronym_types": [3, 1]}).to_csv(tmp_path / "shared" / "baselines" / "acronym_histograms.csv",
                                                    index=False)
     ctx = C.Ctx(str(tmp_path), "absent", repo=str(tmp_path))
     assert C.reuse_share(ctx, "neurips") == pytest.approx(200 / 3)   # CD, EF of AB, CD, EF
@@ -495,7 +495,7 @@ def test_only_documented_checks_are_exempt():
 def _topic_inputs(tmp_path):
     agg = tmp_path / "aggregate"
     agg.mkdir(parents=True, exist_ok=True)
-    src = os.path.join(ROOT, "reference", "tmlr", "analysis", "topic_profiles.csv")
+    src = os.path.join(ROOT, "paper", "tmlr", "reference", "analysis", "topic_profiles.csv")
     df = pd.read_csv(src)
     df.to_csv(agg / "topic_profiles.csv", index=False)
     return df, agg

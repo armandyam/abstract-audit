@@ -1,11 +1,11 @@
 # tests
 
-673 tests covering what the pipeline run cannot (one runs only with
+691 tests covering what the pipeline run cannot (one runs only with
 the manuscript, `AA_PAPER`).
 
 ## What these are for
 
-`verify.py` already compares 157 files against `reference/`, 49 of them byte
+`verify.py` already compares 161 reference files, 49 of them byte
 for byte, over 62,628 real papers, and checks the TMLR paper's 163 macros,
 its 15 tables and the 1,166 numbers its manuscript prints. As a regression test that is stronger than any unit test
 could be, and tests that re-walk the same happy path would add lines without
@@ -60,9 +60,10 @@ So these tests target what an end-to-end run structurally cannot reach:
   local copy, and is skipped otherwise.
 - **Source dispatch.** Each ICLR and ICML year reads one raw source, and the
   early sources pass their text through unchanged.
-- **Reference provenance.** `reference/MANIFEST.md` lists every file in
-  `reference/` with its current hash, and the checker fails on a missing,
-  unlisted, duplicated or changed file.
+- **Reference provenance.** Each reference folder's `MANIFEST.md`
+  (`shared/reference/`, `paper/*/reference/`) lists every file in that folder
+  with its current hash, and the checker fails on a missing, unlisted,
+  duplicated or changed file.
 
 ## What is deliberately not tested
 

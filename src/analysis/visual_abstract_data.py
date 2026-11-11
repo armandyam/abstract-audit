@@ -8,8 +8,8 @@ years. 2022 onward uses the raw yearly values, sampled every 2 years, so the
 sparse recent points show the sharp recent movement without smoothing it out.
 
 Outputs:
-  data/pgfplots/va_flesch.csv   year, flesch
-  data/pgfplots/va_zscore.csv   year, z
+  data/uncertainlp/pgfplots/va_flesch.csv   year, flesch
+  data/uncertainlp/pgfplots/va_zscore.csv   year, z
 
 Run from repo root:  python src/analysis/visual_abstract_data.py
 """
@@ -20,7 +20,8 @@ import os
 import pandas as pd
 
 _D = os.environ.get("AA_DATA", "data")
-PG = os.path.join(_D, "pgfplots")
+PG = os.path.join(_D, "uncertainlp", "pgfplots")   # this paper's own series
+SHARED = os.path.join(_D, "pgfplots")              # the judge model averages
 os.makedirs(PG, exist_ok=True)
 WIN = 3  # centered rolling-mean window for the pre-2022 trend
 PRE_YEARS = [1987, 1991, 1995, 1999, 2003, 2007, 2011, 2015, 2019]  # every 4y, smoothed
@@ -46,7 +47,7 @@ def main() -> None:
     prompts = ["simple", "ascb", "own_reasoning"]
     z = None
     for p in prompts:
-        d = pd.read_csv(f"{PG}/llm_scores_model_avg_{p}.csv", usecols=["year", "avg_z"]).rename(
+        d = pd.read_csv(f"{SHARED}/llm_scores_model_avg_{p}.csv", usecols=["year", "avg_z"]).rename(
             columns={"avg_z": p})
         z = d if z is None else z.merge(d, on="year")
     z_yearly = z.set_index("year")[prompts].mean(axis=1).sort_index()

@@ -1,5 +1,5 @@
 % Acronym density -- title (left) and abstract (right).
-% Data: ../../data/pgfplots/tmlr/acronyms_title.csv, acronyms_abstract.csv
+% Data: ../../data/pgfplots/acronyms_title.csv, acronyms_abstract.csv
 
 \begin{figure}[h]
 \centering
@@ -24,22 +24,22 @@
                 cells={anchor=west}, column sep=6pt},
 ]
   \addplot[color={rgb,255:red,44;green,160;blue,44}, dashdotted, very thick]
-    table[x=year, y=neurips, col sep=comma] {../../data/pgfplots/tmlr/acronyms_title.csv};
+    table[x=year, y=neurips, col sep=comma] {../../data/pgfplots/acronyms_title.csv};
   \addlegendentry{NeurIPS}
   \addplot[color={rgb,255:red,31;green,119;blue,180}, densely dashed, very thick]
-    table[x=year, y=iclr, col sep=comma] {../../data/pgfplots/tmlr/acronyms_title.csv};
+    table[x=year, y=iclr, col sep=comma] {../../data/pgfplots/acronyms_title.csv};
   \addlegendentry{ICLR}
   \addplot[color={rgb,255:red,255;green,127;blue,14}, densely dotted, very thick]
-    table[x=year, y=icml, col sep=comma] {../../data/pgfplots/tmlr/acronyms_title.csv};
+    table[x=year, y=icml, col sep=comma] {../../data/pgfplots/acronyms_title.csv};
   \addlegendentry{ICML}
   \addplot[color={rgb,255:red,148;green,103;blue,189}, solid, very thick]
-    table[x=year, y=arxiv_ml, col sep=comma] {../../data/pgfplots/tmlr/acronyms_title.csv};
+    table[x=year, y=arxiv_ml, col sep=comma] {../../data/pgfplots/acronyms_title.csv};
   \addlegendentry{arXiv ML}
   \addplot[color={rgb,255:red,140;green,86;blue,75}, dotted, thick]
-    table[x=year, y=arxiv_nonml, col sep=comma] {../../data/pgfplots/tmlr/acronyms_title.csv};
+    table[x=year, y=arxiv_nonml, col sep=comma] {../../data/pgfplots/acronyms_title.csv};
   \addlegendentry{arXiv non-ML}
   \addplot[color={rgb,255:red,214;green,39;blue,40}, dashed, thick]
-    table[x=year, y=pubmed, col sep=comma] {../../data/pgfplots/tmlr/acronyms_title.csv};
+    table[x=year, y=pubmed, col sep=comma] {../../data/pgfplots/acronyms_title.csv};
   \addlegendentry{PubMed}
   \addplot[black, dashed, semithick, domain=1987:2025] {2.40};
   \addlegendentry{Barnett 2020 titles (2.40)}
@@ -51,17 +51,17 @@
 \begin{tikzpicture}
 \begin{axis}[acro style, title={\small Abstracts~[\textdownarrow\ better]}]
   \addplot[color={rgb,255:red,44;green,160;blue,44}, dashdotted, very thick]
-    table[x=year, y=neurips, col sep=comma] {../../data/pgfplots/tmlr/acronyms_abstract.csv};
+    table[x=year, y=neurips, col sep=comma] {../../data/pgfplots/acronyms_abstract.csv};
   \addplot[color={rgb,255:red,31;green,119;blue,180}, densely dashed, very thick]
-    table[x=year, y=iclr, col sep=comma] {../../data/pgfplots/tmlr/acronyms_abstract.csv};
+    table[x=year, y=iclr, col sep=comma] {../../data/pgfplots/acronyms_abstract.csv};
   \addplot[color={rgb,255:red,255;green,127;blue,14}, densely dotted, very thick]
-    table[x=year, y=icml, col sep=comma] {../../data/pgfplots/tmlr/acronyms_abstract.csv};
+    table[x=year, y=icml, col sep=comma] {../../data/pgfplots/acronyms_abstract.csv};
   \addplot[color={rgb,255:red,148;green,103;blue,189}, solid, very thick]
-    table[x=year, y=arxiv_ml, col sep=comma] {../../data/pgfplots/tmlr/acronyms_abstract.csv};
+    table[x=year, y=arxiv_ml, col sep=comma] {../../data/pgfplots/acronyms_abstract.csv};
   \addplot[color={rgb,255:red,140;green,86;blue,75}, dotted, thick]
-    table[x=year, y=arxiv_nonml, col sep=comma] {../../data/pgfplots/tmlr/acronyms_abstract.csv};
+    table[x=year, y=arxiv_nonml, col sep=comma] {../../data/pgfplots/acronyms_abstract.csv};
   \addplot[color={rgb,255:red,214;green,39;blue,40}, dashed, thick]
-    table[x=year, y=pubmed, col sep=comma] {../../data/pgfplots/tmlr/acronyms_abstract.csv};
+    table[x=year, y=pubmed, col sep=comma] {../../data/pgfplots/acronyms_abstract.csv};
   \addplot[black, dashed, semithick, domain=1987:2025] {4.10};
   \draw[black, dashed, semithick] (axis cs:2022,0) -- (axis cs:2022,100);
 \end{axis}

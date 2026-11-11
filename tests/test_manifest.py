@@ -1,4 +1,4 @@
-"""reference/MANIFEST.md against the files it lists (reference/make_manifest.py)."""
+"""Each reference MANIFEST.md against the files it lists (src/make_manifest.py)."""
 import importlib.util
 import os
 
@@ -6,7 +6,7 @@ import pytest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 spec = importlib.util.spec_from_file_location(
-    "make_manifest", os.path.join(ROOT, "reference", "make_manifest.py"))
+    "make_manifest", os.path.join(ROOT, "src", "make_manifest.py"))
 mm = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(mm)
 

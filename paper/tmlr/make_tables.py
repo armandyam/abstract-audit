@@ -8,13 +8,13 @@ same layout, labels and caption, with every number computed):
 
   acronym_reuse_freq.tex     aggregate/acronym_reuse_freq.csv; the caption's
                              shares from the per-paper acronym lists and
-                             baselines/acronym_histograms.csv
+                             shared/baselines/acronym_histograms.csv
   citation_readability_top_bottom_combined.tex
                              aggregate/citations/, citations stage
   citation_llm_top_bottom_combined.tex
                              aggregate/citations/, citations stage
   corpus.tex                 tab:corpus: pgfplots/tmlr/papers_per_year.csv
-                             and baselines/papers_per_year.csv
+                             and shared/baselines/papers_per_year.csv
   self_audit.tex             tab:self-audit: aggregate/self_audit.csv
   prompts.tex                tab:prompts: PROMPTS in src/metrics/llm_scores.py
   normalisation_rules.tex    each example run through
@@ -222,7 +222,7 @@ Prompt & Venue & Top 10\% & Bottom 10\% & $\Delta$ \\
 # ============================================================ corpus ===
 
 def corpus(ctx: C.Ctx) -> str:
-    need(os.path.join(ctx.data, "pgfplots", "tmlr", "papers_per_year.csv"))
+    need(os.path.join(ctx.data, "pgfplots", "papers_per_year.csv"))
     rows = [("arXiv (all categories)", "arxiv"), ("NeurIPS", "neurips"),
             ("ICLR", "iclr"), ("ICML", "icml"), ("PubMed", "pubmed")]
     lines = []

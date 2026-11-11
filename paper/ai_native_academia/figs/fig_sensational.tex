@@ -1,0 +1,91 @@
+% Full 10-panel sensational language figure (appendix).
+% Data: ../../data/pgfplots/sensational_<category>.csv
+
+\providecommand{\senspanel}[2]{%
+  \nextgroupplot[title={\tiny #1},
+                 title style={font=\tiny, yshift=-1.5mm}]
+  \addplot[color={rgb,255:red,44;green,160;blue,44}, dashdotted, very thick]
+    table[x=year, y=neurips, col sep=comma]{../../data/pgfplots/#2.csv};
+  \addplot[color={rgb,255:red,148;green,103;blue,189}, solid, thick]
+    table[x=year, y=arxiv_ml, col sep=comma]{../../data/pgfplots/#2.csv};
+  \addplot[color={rgb,255:red,140;green,86;blue,75}, dotted, thick]
+    table[x=year, y=arxiv_nonml, col sep=comma]{../../data/pgfplots/#2.csv};
+  \addplot[color={rgb,255:red,214;green,39;blue,40}, dashed, thick]
+    table[x=year, y=pubmed, col sep=comma]{../../data/pgfplots/#2.csv};
+  \draw[black, dashed, semithick]
+    ({axis cs:2022,0} |- {rel axis cs:0,0})
+    -- ({axis cs:2022,0} |- {rel axis cs:0,1});
+}
+
+\begin{figure}[htbp]
+\centering
+\resizebox{\linewidth}{!}{\begin{tikzpicture}
+\begin{groupplot}[
+    group style={
+      group size=3 by 4,
+      horizontal sep=8mm,
+      vertical sep=12mm,
+    },
+    width=40mm, height=2.4cm,
+    scale only axis,
+    xlabel={}, ylabel={},
+    xtick distance=12,
+    x tick label style={rotate=55, anchor=east, font=\tiny,
+                        /pgf/number format/1000 sep={}},
+    y tick label style={font=\tiny},
+    ytick align=inside,
+    enlarge x limits=0.02,
+    ymin=0,
+  ]
+  % First panel: legend collected here
+  \nextgroupplot[
+    title={\tiny Importance},
+    title style={font=\tiny, yshift=-1.5mm},
+    legend to name=senslegend,
+    legend columns=4,
+    legend style={draw=none, fill=none, font=\scriptsize,
+                  cells={anchor=west}, column sep=8pt},
+  ]
+  \addplot[color={rgb,255:red,44;green,160;blue,44}, dashdotted, very thick]
+    table[x=year, y=neurips, col sep=comma]{../../data/pgfplots/sensational_importance.csv};
+  \addlegendentry{NeurIPS}
+  \addplot[color={rgb,255:red,148;green,103;blue,189}, solid, thick]
+    table[x=year, y=arxiv_ml, col sep=comma]{../../data/pgfplots/sensational_importance.csv};
+  \addlegendentry{arXiv ML}
+  \addplot[color={rgb,255:red,140;green,86;blue,75}, dotted, thick]
+    table[x=year, y=arxiv_nonml, col sep=comma]{../../data/pgfplots/sensational_importance.csv};
+  \addlegendentry{arXiv non-ML}
+  \addplot[color={rgb,255:red,214;green,39;blue,40}, dashed, thick]
+    table[x=year, y=pubmed, col sep=comma]{../../data/pgfplots/sensational_importance.csv};
+  \addlegendentry{PubMed}
+  \draw[black, dashed, semithick]
+    ({axis cs:2022,0} |- {rel axis cs:0,0})
+    -- ({axis cs:2022,0} |- {rel axis cs:0,1});
+  % Remaining 9 panels via macro
+  \senspanel{Novelty}{sensational_novelty}
+  \senspanel{Rigor}{sensational_rigor}
+  \senspanel{Scale}{sensational_scale}
+  \senspanel{Utility}{sensational_utility}
+  \senspanel{Quality}{sensational_quality}
+  \senspanel{Attitude}{sensational_attitude}
+  \senspanel{Problem}{sensational_problem}
+  \senspanel{Additional}{sensational_additional}
+  \senspanel{Total}{sensational_total}
+  \nextgroupplot[hide axis, scale only axis, width=40mm, height=2.4cm]
+  \nextgroupplot[hide axis, scale only axis, width=40mm, height=2.4cm]
+\end{groupplot}
+\end{tikzpicture}}
+
+\vspace{2mm}
+\pgfplotslegendfromname{senslegend}
+
+\caption{\textbf{All nine sensational language categories per 100
+  abstract words, 1987--2025.}
+  Novelty and scale rise sharply after 2015, reaching roughly
+  2.1 times and 3.4 times their 2015 levels on NeurIPS by 2025
+  (1.6 and 2.7 times on arXiv ML); the total rate and rigor rise
+  more modestly. Vertical
+  dashed lines mark the late 2022 availability of
+  instruction-tuned writing assistants.}
+\label{fig:app-sensational}
+\end{figure}

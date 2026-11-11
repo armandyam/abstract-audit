@@ -1,0 +1,35 @@
+% Mean bibliography entries per NeurIPS paper, 1987-2024.
+% Data: ../../data/pgfplots/references_per_year.csv
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+    width=0.85\linewidth, height=5cm,
+    xlabel={Year}, ylabel={Bibliography entries per paper},
+    xtick distance=4,
+    x tick label style={rotate=45, anchor=east, font=\tiny,
+                        /pgf/number format/1000 sep={}},
+    ytick align=inside,
+    tick label style={font=\tiny},
+    label style={font=\small},
+    enlarge x limits=0.02,
+  ]
+  \addplot[color={rgb,255:red,44;green,160;blue,44}, dashdotted, very thick]
+    table[x=year, y=neurips, col sep=comma]
+    {../../data/pgfplots/references_per_year.csv};
+  % ChatGPT launch marker
+  \draw[black, dashed, semithick] (axis cs:2022,0) -- (axis cs:2022,100);
+\end{axis}
+\end{tikzpicture}
+\caption{\textbf{Mean bibliography length per NeurIPS paper,
+  1987--2025.}
+  Reference list length grew from roughly 11 entries per paper
+  in 1987 to approximately 63 entries in 2022, a fivefold to
+  sixfold increase over 35 years. Mean bibliography length then
+  plateaued across 2023 to 2025 (59.4, 60.9, and 59.4 entries).
+  Vertical dashed line marks the
+  late 2022 availability of instruction-tuned writing
+  assistants.}
+\label{fig:app-references}
+\end{figure}

@@ -12,12 +12,14 @@ ICLR     2013-2026  16,807 papers
 ICML     2008-2025  15,226 papers
 ```
 
-It reproduces the results of two papers, and `verify.py` compares the
+It reproduces the results of three papers, and `verify.py` compares the
 regenerated artefacts against the files behind each paper's figures, tables
 and printed numbers:
 
 - *Machine Learning Research Has Outpaced Its Communication Norms*
   (Transactions on Machine Learning Research, 2026). NeurIPS, ICLR and ICML.
+- *Measurable Writing Standards for AI-Native Venues* (NeurIPS 2026
+  AI-Native Academia workshop). NeurIPS, with the arXiv and PubMed series.
 - *LLM Judges Agree With Each Other and Disagree With Human-Grounded
   Readability Metrics* (UncertaiNLP 2026, non-archival). NeurIPS only. The tag
   `uncertainlp-2026` marks the release that accompanied that paper.
@@ -59,27 +61,35 @@ re-fetched.
 ## Contents
 
 ```
-src/            pipeline
-tests/          tests, documented in tests/README.md
-paper/          UncertaiNLP figure sources and rendered figures.pdf;
-                paper/tmlr/ holds the TMLR figure and table sources with
-                their rendered figures.pdf, the macro and table generators,
-                and the claim table (claims.csv) that ties every printed
-                number to an output
-judge_scores/   judge scores, six models, by venue
-baselines/      arXiv and PubMed per-year aggregates for the TMLR paper,
-                documented in baselines/README.md
-reference/      expected pipeline outputs, both papers; MANIFEST.md records
-                their provenance and hashes
-data/           generated, absent from a fresh clone
+src/                    pipeline, shared by every paper
+tests/                  tests, documented in tests/README.md
+shared/                 data every paper uses, one copy each
+  judge_scores/         judge scores, six models, by venue
+  baselines/            arXiv and PubMed per-year aggregates, documented in
+                        shared/baselines/README.md
+  figs/                 the judge heatmap PNG two papers include
+  reference/            expected outputs every paper uses: per-paper metrics,
+                        plot-ready series, judge correlations; MANIFEST.md
+                        records their provenance and hashes
+paper/<name>/           one folder per paper: its figure and table sources,
+                        the rendered figures.pdf, its generators and checks,
+                        and reference/ with the expected outputs only that
+                        paper uses (and its own MANIFEST.md)
+  uncertainlp/
+  tmlr/                 also claims.csv, which ties every printed number to
+                        an output
+  ai_native_academia/
+data/                   generated, absent from a fresh clone: the shared
+                        stages at the top (raw/, processed/, per_paper/,
+                        aggregate/, pgfplots/), then data/<name>/ per paper
 ```
 
-`judge_scores/` requires a GPU to regenerate and is therefore distributed. It
+`shared/judge_scores/` requires a GPU to regenerate and is therefore distributed. It
 covers 56,805 papers: NeurIPS 1987-2024 (24,772), all of ICLR (16,807) and all
-of ICML (15,226). `baselines/` is distributed because its sources cannot be
-fetched again in the form the paper used. `reference/` is the comparison
-target for `verify.py`, and also allows the pipeline to run from the
-aggregation stage onward without scraping.
+of ICML (15,226). `shared/baselines/` is distributed because its sources cannot be
+fetched again in the form the papers used. The reference folders are the
+comparison target for `verify.py`. `shared/reference/per_paper/` also allows
+the pipeline to run from the aggregation stage onward without scraping.
 
 ## Execution
 
@@ -103,7 +113,7 @@ python main.py
 From the distributed metrics, without scraping:
 
 ```bash
-mkdir -p data/per_paper && cp -R reference/per_paper/. data/per_paper/
+mkdir -p data/per_paper && cp -R shared/reference/per_paper/. data/per_paper/
 python main.py --from aggregate
 ```
 
@@ -123,9 +133,10 @@ metrics      readability, acronyms, hedging, signposting, narration, hype,
 metrics_nlp  parse depth, NP density, passive rate, TTR, clause and POS counts
 aggregate    per-paper values to per-year mean, standard deviation and count;
              papers per year; judge scores per venue
-export       aggregates to plot-ready CSVs: data/pgfplots/ for the UncertaiNLP
-             figures, data/pgfplots/tmlr/ for the TMLR figures, with the arXiv
-             and PubMed series from baselines/
+export       aggregates to plot-ready CSVs: data/pgfplots/ for every series
+             more than one paper plots, with the arXiv and PubMed series
+             from shared/baselines/, and data/uncertainlp/pgfplots/ for the
+             UncertaiNLP paper's NeurIPS-only readability series
 model_avg    per-model z-scores to the six-model average
 analysis     metric against judge Spearman correlation, summary series,
              Flesch under LaTeX and URL normalisation, readability
@@ -140,8 +151,8 @@ macros       the TMLR paper's 163 inline numbers and its 13 data-driven
              make_tables.py, and compared with the paper
 claims       every other number the TMLR manuscript prints, checked against
              the outputs by paper/tmlr/check_claims.py
-figures      heatmap and the rendered figure sets of both papers
-verify       all artefacts against reference/
+figures      heatmap and the rendered figure sets of every paper
+verify       all artefacts against shared/reference/ and paper/*/reference/
 ```
 
 `main.py --list` enumerates the stages. `--stages`, `--from` and `--skip`
@@ -182,8 +193,8 @@ python src/metrics/audit_self.py --from-tex $AA_PAPER/main.tex
 ```
 
 Every figure and table of the paper has its source in `paper/tmlr/`: the ten
-figures in `figs/`, with their captions, read the export's
-`data/pgfplots/tmlr/`. The data-driven tables are generated from the
+figures in `figs/`, with their captions, read the shared series in
+`data/pgfplots/`. The data-driven tables are generated from the
 pipeline's outputs into `data/tmlr/tables/`, each from the paper's table as
 the template: six by `make_macros.py` with the paper's macros, seven by
 `make_tables.py` (acronym reuse, the two citation decile tables, corpus
@@ -198,13 +209,41 @@ citation figure and tables by notes, since no citation-derived value is
 distributed.
 
 The arXiv and PubMed series are computed from per-year aggregates shipped in
-`baselines/`, because neither source can be fetched again in the form the
+`shared/baselines/`, because neither source can be fetched again in the form the
 paper used. The scripts that produced them are included and documented there:
 `src/scraping/download_arxiv.py`, `src/processing/process_arxiv.py`,
 `src/processing/fetch_pubmed.py` and `src/processing/clean_pubmed.py` for the
 records, the metric scripts run with `--venues arxiv pubmed` for the
 per-paper values, and `src/baselines/make_baselines.py` for the aggregates. The acronym reuse rows
-for arXiv and PubMed come from `baselines/acronym_histograms.csv`.
+for arXiv and PubMed come from `shared/baselines/acronym_histograms.csv`.
+
+## The AI-Native Academia paper
+
+`paper/ai_native_academia/` holds the paper's eleven data figures, with their
+captions, and the generators and checks for its tables and inline numbers.
+The figures read the shared series in `data/pgfplots/` and include the shared
+heatmap in `shared/figs/`; the paper holds no figure data of its own.
+
+Two analyses are the paper's own. The topic analysis is fitted on NeurIPS
+alone (`src/analysis/topic_clusters.py --venues neurips`, then
+`paper/ai_native_academia/topics.py` for the profile, the fixed-mix series and
+the paper's topic labels), where the TMLR paper pools three venues.
+`src/analysis/judge_agreement.py` computes the judges' run-to-run stability,
+raw score levels and agreement. `make_macros.py` writes the paper's 52 inline
+numbers and its topic table into `data/ai_native_academia/`, and
+`make_tables.py` its acronym reuse, judge stability, judge agreement and
+citation decile tables, without their captions; the numbers the captions print
+are computed and checked all the same. `check_macros.py` compares 42 macros
+with `paper/ai_native_academia/reference/macros.csv`. The other ten are
+citation macros and are handled as in the TMLR paper (see Citations).
+
+With a local copy of the manuscript in `AA_PAPER_AI_NATIVE_ACADEMIA`,
+`check_tables.py` compares every table and every number in its caption with
+the paper. One row differs: the PubMed row of the acronym reuse table prints
+1,692,497 acronyms and 48.5 and 3.1 percent, and
+`shared/baselines/acronym_histograms.csv` gives 1,679,954, 48.4 and 3.2. The
+paper was built from an earlier PubMed histogram that is not part of this
+release, and the check reports the row as a mismatch.
 
 ## The manuscript
 
@@ -221,7 +260,7 @@ python main.py --from self_audit       # or: python verify.py
 
 ```
 self_audit     the paper's own title and abstract, measured by audit_self.py
-check_macros   reference/tmlr/macros.csv against the paper's macro files,
+check_macros   paper/tmlr/reference/macros.csv against the paper's macro files,
                and the citation macros against the paper's values
 check_tables   every generated table against the paper's table, cell by cell
 check_claims   coverage: every number the paper prints has a row in
@@ -255,7 +294,7 @@ absent   no files: the citations stage does not run and citation checks are
 ```
 
 No statistic computed from the counts is distributed either, not even the
-values the paper prints: `reference/tmlr/macros.csv` leaves out the eleven
+values the paper prints: `paper/tmlr/reference/macros.csv` leaves out the eleven
 citation macros, and `paper/tmlr/claims.csv` leaves the printed value blank
 on every citation row. The citation checks read those printed values from
 the manuscript (`AA_PAPER`) and compare the recomputed outputs with them;
@@ -272,14 +311,14 @@ released under CC0 1.0.
 
 ## Verification
 
-`verify.py` compares 157 files against `reference/`. The 48 per-paper metric
-files (16 families for each venue) and the figure PNG are compared byte for
-byte. The other 108 files, the plot-ready CSVs and the analysis outputs of
-both papers, are compared numerically at `atol=0`, with text columns
-compared as strings. It exits non-zero on any mismatch and reports the
-installed package versions against those `reference/` was built with.
-`python reference/make_manifest.py` checks the reference files themselves
-against the hashes in `reference/MANIFEST.md`.
+`verify.py` compares 161 files against `shared/reference/` and the papers'
+`reference/` folders. The 48 per-paper metric files (16 families for each
+venue) and the heatmap PNG are compared byte for byte. The other 112 files,
+the plot-ready CSVs and the analysis outputs of every paper, are compared
+numerically at `atol=0`, with text columns compared as strings. It exits non-zero on any mismatch and reports the
+installed package versions against those the reference files were built with.
+`python src/make_manifest.py` checks the reference files themselves
+against the hashes in each reference folder's `MANIFEST.md`.
 
 It also checks every number the TMLR paper prints, in three parts.
 
@@ -287,7 +326,7 @@ The paper resolves 163 inline numbers through `\newcommand` macros in three
 generated files. `paper/tmlr/make_macros.py` writes them from the pipeline's
 outputs with the formatting code of the upstream generators, and
 `paper/tmlr/check_macros.py` compares them by name and exact value with the
-printed values in `reference/tmlr/macros.csv`, which holds 152 of them. The
+printed values in `paper/tmlr/reference/macros.csv`, which holds 152 of them. The
 eleven citation macros are compared with the manuscript's own macro files.
 
 `paper/tmlr/check_tables.py` compares every table the release builds (the
@@ -340,7 +379,7 @@ criterion.
 Copyright 2026 Ajay Mandyam Rangarajan and Jeyashree Krishnan.
 
 Code under `src/` and `paper/`: MIT (`LICENSE`). Derived data under
-`judge_scores/`, `reference/` and `baselines/`: CC BY 4.0 (`LICENSE-DATA`).
+`shared/` and `paper/*/reference/`: CC BY 4.0 (`LICENSE-DATA`).
 Neither covers the source abstracts (NeurIPS, ICLR, ICML, arXiv, PubMed),
 which are not distributed here, or third-party citation counts.
 
@@ -351,7 +390,7 @@ Sources and attribution:
 - arXiv: arXiv metadata, dedicated to the public domain under CC0 1.0 by
   arXiv.
 - PubMed: courtesy of the U.S. National Library of Medicine. The aggregates in
-  `baselines/` were computed from the 2026 PubMed baseline and do not reflect
+  `shared/baselines/` were computed from the 2026 PubMed baseline and do not reflect
   the most current or accurate data available from NLM. NLM has not endorsed
   this work.
 - Citation counts: Semantic Scholar

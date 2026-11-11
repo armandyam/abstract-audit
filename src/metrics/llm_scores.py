@@ -3,7 +3,7 @@
 LLM-as-judge readability scoring for a single venue with a single model.
 
 Reads:  data/processed/{venue}/{venue}_{year}.json
-Writes: judge_scores/{venue}/{model_name}.csv
+Writes: shared/judge_scores/{venue}/{model_name}.csv
 
 One row per paper × prompt × run. Fully resumable — already-scored paper_ids
 are skipped on re-run.
@@ -114,7 +114,7 @@ def main():
     parser.add_argument("--model",          required=True,
                         help="Path to model directory")
     parser.add_argument("--processed-dir",  default="data/processed")
-    parser.add_argument("--out-base",       default="judge_scores")
+    parser.add_argument("--out-base",       default="shared/judge_scores")
     parser.add_argument("--batch-size",     type=int,   default=32)
     parser.add_argument("--n-runs",         type=int,   default=3)
     parser.add_argument("--temperature",    type=float, default=0.7)

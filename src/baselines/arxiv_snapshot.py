@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Write baselines/arxiv_snapshot.json: where the arXiv snapshot ends.
+"""Write shared/baselines/arxiv_snapshot.json: where the arXiv snapshot ends.
 
 How much of calendar year 2025 the arXiv snapshot covers is a property of
 the snapshot's cutoff date, not of how many papers 2025 has, so it is
@@ -23,9 +23,9 @@ identifier of the snapshot places its cutoff:
 Reads:   {processed_dir}/arxiv/arxiv_{year}.json   (processed records; only
          the "paper_id" fields are read, with a regular expression, so the
          300 MB files are not parsed)
-Writes:  baselines/arxiv_snapshot.json
+Writes:  shared/baselines/arxiv_snapshot.json
 
-The processed arXiv corpus is not distributed (see baselines/README.md), so
+The processed arXiv corpus is not distributed (see shared/baselines/README.md), so
 the JSON is committed. It was written by this script from the corpus the
 paper used (processed in April 2026 from the Kaggle Cornell-University/arxiv
 snapshot), and only identifiers and counts are recorded in it.
@@ -42,7 +42,7 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
-OUT = os.path.join(REPO, "baselines", "arxiv_snapshot.json")
+OUT = os.path.join(REPO, "shared", "baselines", "arxiv_snapshot.json")
 NEW_ID = re.compile(r'"paper_id"\s*:\s*"(\d{2})(\d{2})\.(\d{4,5})(?:v\d+)?"')
 
 

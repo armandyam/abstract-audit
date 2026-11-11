@@ -1,0 +1,16 @@
+topic_k15,n,flesch,abstract_words,sentence_length,top_terms,label
+12,1269,9.020889676910954,178.16548463356975,21.922316784869974,"diffusion, diffusion models, generation, image, generative, diffusion model, sampling, quality, text, training",Diffusion and generative models
+9,1810,11.18032044198895,187.06243093922652,21.44030497237569,"language, visual, text, image, multimodal, vision, video, dataset, tasks, vision language",Vision and language
+1,2141,13.258111630079402,190.60018682858478,21.85082064455862,"llms, language, language models, large language, llm, large, reasoning, models llms, tasks, fine",Large language models
+2,4224,13.923937263257576,176.6032196969697,22.248837831439396,"data, training, methods, performance, datasets, real, machine, propose, world, distribution",Applied methods and benchmarks
+11,1540,13.971690259740258,181.8883116883117,21.857642857142856,"3d, image, reconstruction, view, images, scene, methods, 2d, point, representation",3D vision and reconstruction
+10,808,14.07443688118812,176.48638613861385,22.071753712871285,"adversarial, attacks, robustness, attack, robust, training, adversarial attacks, examples, perturbations, adversarial training",Adversarial robustness
+14,2271,15.172627036547777,168.8639365918098,23.219160722148832,"reinforcement, reinforcement learning, policy, rl, agent, reward, policies, value, learning rl, algorithms",Reinforcement learning
+6,1565,15.201543769968051,155.65431309904153,23.54958146964856,"gradient, convergence, optimization, stochastic, convex, descent, gradient descent, rate, algorithm, stochastic gradient",Optimization theory
+5,2134,16.409988284910966,148.3767572633552,22.92696954076851,"inference, bayesian, variational, distribution, posterior, data, latent, gaussian, probabilistic, distributions",Bayesian inference
+0,1813,18.108703805846663,173.44070601213457,23.3138444567016,"human, visual, neurons, brain, neural, information, activity, using, agents, time",Computational neuroscience
+7,1220,18.468471311475408,175.05573770491804,22.446124590163937,"graph, graphs, graph neural, gnns, node, nodes, networks, neural, gnn, neural networks",Graph neural networks
+4,1186,18.71345699831366,177.81618887015176,21.670274030354133,"object, objects, detection, image, segmentation, object detection, visual, images, features, recognition",Object detection
+3,2993,20.68185867023054,165.76044102906783,22.7898737053124,"neural, networks, network, neural networks, neural network, deep, training, layer, deep neural, input",Neural network architectures
+8,3500,20.78162342857143,155.05657142857143,23.10068257142857,"data, algorithm, linear, problem, dimensional, regression, kernel, matrix, method, sparse",Learning theory and algorithms
+13,2121,22.991699669966994,166.0895803866101,23.89383969825554,"regret, algorithm, online, algorithms, bounds, problem, bound, optimal, setting, bandit",Online learning and bandits

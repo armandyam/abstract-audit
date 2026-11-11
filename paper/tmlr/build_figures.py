@@ -8,9 +8,9 @@ value is distributed; always build the tracked copy with it.
 
 Proves the figure and table sources in this repository compile against the
 data the pipeline just produced, without the manuscript. The figures read
-../../data/pgfplots/tmlr/ and the generated tables ../../data/tmlr/tables/,
+../../data/pgfplots/ and the generated tables ../../data/tmlr/tables/,
 relative to paper/tmlr/: the repository's data/ directory, whatever $AA_DATA
-says, as for paper/build_figures.py. A figure or table whose input was not
+says, as for paper/uncertainlp/build_figures.py. A figure or table whose input was not
 built is replaced by a note (see figures.tex); when the local citation counts
 are absent the citation figure and tables are always replaced, so outputs
 left from an earlier run are not rendered. Skips with a clear message if
@@ -50,7 +50,7 @@ def main() -> None:
     os.makedirs(out_dir, exist_ok=True)
 
     # A fixed timestamp, so the same sources and the same TeX Live give a
-    # byte-identical PDF (see paper/build_figures.py).
+    # byte-identical PDF (see paper/uncertainlp/build_figures.py).
     env = dict(os.environ, SOURCE_DATE_EPOCH="0", FORCE_SOURCE_DATE="1")
     for i in range(2):  # second pass resolves references
         r = subprocess.run(

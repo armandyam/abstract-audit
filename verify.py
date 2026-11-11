@@ -1,20 +1,24 @@
 #!/usr/bin/env python3
-"""Check every regenerated artefact against reference/.
+"""Check every regenerated artefact against the reference files.
 
-reference/ holds the files that produced the figures in the paper. This
+shared/reference/ holds the per-paper metrics every paper uses, and
+paper/<paper>/reference/ the files behind that paper's figures. This
 script compares what the pipeline just built against them and exits
 non-zero on any mismatch, so a clean-room reproduction either passes or
 fails loudly.
 
-Comparisons, for the UncertaiNLP paper (reference/) and the TMLR paper
-(reference/tmlr/):
+Comparisons, for every paper (shared/reference/), the UncertaiNLP paper
+(paper/uncertainlp/reference/), the TMLR paper (paper/tmlr/reference/) and
+the AI-Native Academia paper (paper/ai_native_academia/reference/: its
+analysis CSVs, its 52 macros and five tables, by its own check_macros.py and
+check_tables.py, with $AA_PAPER_AI_NATIVE_ACADEMIA for the manuscript):
 
-  per-paper metrics          byte-for-byte, every venue in reference/per_paper
+  per-paper metrics          byte-for-byte, every venue in shared/reference/per_paper
   plot-ready CSVs            numeric at atol=0 (NaN equal to NaN), text columns
                              equal as strings
   TMLR analysis CSVs         as plot-ready CSVs
   TMLR inline numbers        the 163 \newcommand macros by name and value
-                             against reference/tmlr/macros.csv, the eleven
+                             against paper/tmlr/reference/macros.csv, the eleven
                              citation macros against the manuscript's values
                              (paper/tmlr/check_macros.py)
   TMLR tables                every table the release builds against the
@@ -66,7 +70,11 @@ import pandas as pd
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DATA = os.environ.get("AA_DATA", "data")
-REF  = os.path.join(HERE, "reference")
+SHARED_REF = os.path.join(HERE, "shared", "reference")
+UNC_REF    = os.path.join(HERE, "paper", "uncertainlp", "reference")
+TMLR_REF   = os.path.join(HERE, "paper", "tmlr", "reference")
+ANA        = os.path.join(HERE, "paper", "ai_native_academia")
+ANA_REF    = os.path.join(ANA, "reference")
 sys.path.insert(0, os.path.join(HERE, "src"))
 sys.path.insert(0, os.path.join(HERE, "paper", "tmlr"))
 
@@ -117,7 +125,7 @@ def check_csv(name: str, built: str, ref: str) -> None:
     report(name, "bad", f"max|delta|={mx:.3e}")
 
 
-# The versions reference/ was built with. A mismatch here is the usual cause
+# The versions the reference files were built with. A mismatch here is the usual cause
 # of small numeric differences: textstat has changed its formula
 # implementations between releases, and the spaCy model determines parse
 # depth, NP density, passive rate and TTR. thinc and blis are spaCy's numeric
@@ -130,7 +138,7 @@ EXPECTED = {
 
 
 def environment_report() -> None:
-    print("\nenvironment (reference/MANIFEST.md records what these were built with)")
+    print("\nenvironment (the reference MANIFEST.md files record what these were built with)")
     drift = False
     for pkg, want in EXPECTED.items():
         try:
@@ -198,6 +206,47 @@ def tables_section(m: str, paper: str | None) -> None:
     missing += res.missing
 
 
+def _load(name: str, path: str):
+    """A paper's checker by path: the papers' checkers share file names."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(name, path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def ana_section(m: str) -> None:
+    """The AI-Native Academia paper: its analyses, its 52 inline numbers and
+    its five tables (paper/ai_native_academia/check_macros.py and
+    check_tables.py, see their docstrings)."""
+    global ok, fail, missing
+    print("\nAI-Native Academia analyses")
+    for ref_path in sorted(glob.glob(os.path.join(ANA_REF, "analysis", "*.csv"))):
+        base = os.path.basename(ref_path)
+        check_csv(f"ai_native_academia/analysis/{base}",
+                  os.path.join(DATA, "aggregate", base), ref_path)
+    cm = _load("ana_check_macros", os.path.join(ANA, "check_macros.py"))
+    ct = _load("ana_check_tables", os.path.join(ANA, "check_tables.py"))
+    paper = cm.paper_dir()
+    print(f"\nAI-Native Academia manuscript: {paper}" if paper else
+          f"\nAI-Native Academia manuscript: not given ({cm.ENV} unset); the "
+          "checks that read it are skipped")
+    print(f"\nAI-Native Academia macros (citation mode {m})")
+    res = cm.check(os.path.join(DATA, "ai_native_academia"), m, paper=paper)
+    for line in res.lines + cm.summary(res):
+        print(line)
+    ok += res.ok
+    fail += res.bad
+    missing += res.missing
+    print(f"\nAI-Native Academia tables (citation mode {m})")
+    res = ct.check(os.path.join(DATA, "ai_native_academia", "tables"), m, paper)
+    for line in res.lines + res.summary():
+        print(line)
+    ok += res.ok
+    fail += res.bad
+    missing += res.missing
+
+
 def claims_section(m: str, paper: str | None) -> None:
     """Every number the TMLR manuscript prints, outside the macros.
 
@@ -229,17 +278,18 @@ def incomplete_section() -> None:
             for rec in json.load(fh).values():
                 items.append(f"  not run   {rec['stage']}: {rec['script']}, "
                              f"absent {', '.join(rec['absent'])}")
-    path = os.path.join(DATA, "tmlr", "skipped.json")
-    if os.path.exists(path):
-        with open(path) as fh:
-            for rec in json.load(fh).get("incomplete", []):
-                items.append(f"  not built macros: section {rec['section']}, "
-                             f"absent {rec['input']}")
-    path = os.path.join(DATA, "tmlr", "tables.json")
-    if os.path.exists(path):
-        with open(path) as fh:
-            for name, what in json.load(fh).get("incomplete", {}).items():
-                items.append(f"  not built table: {name}, absent {what}")
+    for paper in ("tmlr", "ai_native_academia"):
+        path = os.path.join(DATA, paper, "skipped.json")
+        if os.path.exists(path):
+            with open(path) as fh:
+                for rec in json.load(fh).get("incomplete", []):
+                    items.append(f"  not built {paper} macros: section "
+                                 f"{rec['section']}, absent {rec['input']}")
+        path = os.path.join(DATA, paper, "tables.json")
+        if os.path.exists(path):
+            with open(path) as fh:
+                for name, what in json.load(fh).get("incomplete", {}).items():
+                    items.append(f"  not built {paper} table: {name}, absent {what}")
     if items:
         print("incomplete analyses (their outputs are reported missing below)")
         for line in items:
@@ -248,41 +298,41 @@ def incomplete_section() -> None:
 
 
 def main() -> None:
-    print("verifying against reference/\n")
+    print("verifying against shared/reference/ and paper/*/reference/\n")
     incomplete_section()
 
     print("per-paper metrics")
-    for ref_path in sorted(glob.glob(os.path.join(REF, "per_paper", "*", "*.csv"))):
+    for ref_path in sorted(glob.glob(os.path.join(SHARED_REF, "per_paper", "*", "*.csv"))):
         family = os.path.basename(os.path.dirname(ref_path))
         venue = os.path.basename(ref_path)
         check_bytes(f"per_paper/{family}/{venue}",
                     os.path.join(DATA, "per_paper", family, venue),
                     ref_path)
 
-    print("\nplot-ready data")
-    for ref_path in sorted(glob.glob(os.path.join(REF, "pgfplots", "*.csv"))):
+    print("\nUncertaiNLP figure data")
+    for ref_path in sorted(glob.glob(os.path.join(UNC_REF, "pgfplots", "*.csv"))):
+        base = os.path.basename(ref_path)
+        check_csv(f"uncertainlp/pgfplots/{base}",
+                  os.path.join(DATA, "uncertainlp", "pgfplots", base), ref_path)
+
+    print("\nshared figure data: per-metric series with the arXiv and PubMed "
+          "baselines, judge series, judge-metric correlations")
+    for ref_path in sorted(glob.glob(os.path.join(SHARED_REF, "pgfplots", "*.csv"))):
         base = os.path.basename(ref_path)
         check_csv(f"pgfplots/{base}", os.path.join(DATA, "pgfplots", base), ref_path)
 
-    print("\nTMLR figure data: judge series")
-    for ref_path in sorted(glob.glob(os.path.join(REF, "tmlr", "pgfplots", "*.csv"))):
+    print("\nshared analyses")
+    for ref_path in sorted(glob.glob(os.path.join(SHARED_REF, "analysis", "*.csv"))):
         base = os.path.basename(ref_path)
-        check_csv(f"tmlr/pgfplots/{base}", os.path.join(DATA, "pgfplots", "tmlr", base),
-                  ref_path)
-
-    print("\nTMLR figure data: per-metric series with the arXiv and PubMed baselines")
-    for ref_path in sorted(glob.glob(os.path.join(REF, "tmlr", "pgfplots_full", "*.csv"))):
-        base = os.path.basename(ref_path)
-        check_csv(f"tmlr/pgfplots_full/{base}",
-                  os.path.join(DATA, "pgfplots", "tmlr", base), ref_path)
+        check_csv(f"analysis/{base}", os.path.join(DATA, "aggregate", base), ref_path)
 
     print("\nTMLR analyses")
-    for ref_path in sorted(glob.glob(os.path.join(REF, "tmlr", "*.csv"))
-                           + glob.glob(os.path.join(REF, "tmlr", "analysis", "*.csv"))):
+    for ref_path in sorted(glob.glob(os.path.join(TMLR_REF, "*.csv"))
+                           + glob.glob(os.path.join(TMLR_REF, "analysis", "*.csv"))):
         base = os.path.basename(ref_path)
         if base == "macros.csv":            # the printed macro values: macros section
             continue
-        rel = os.path.relpath(ref_path, REF)
+        rel = "tmlr/" + os.path.relpath(ref_path, TMLR_REF)
         check_csv(rel, os.path.join(DATA, "aggregate", base), ref_path)
 
     from manuscript import ENV, paper_dir
@@ -294,11 +344,12 @@ def main() -> None:
     macros_section(m, paper)
     tables_section(m, paper)
     claims_section(m, paper)
+    ana_section(m)
 
     print("\nfigures")
-    check_bytes("paper/figs/fig_judge_metric_heatmap.png",
-                os.path.join(HERE, "paper", "figs", "fig_judge_metric_heatmap.png"),
-                os.path.join(REF, "fig_judge_metric_heatmap.png"))
+    check_bytes("shared/figs/fig_judge_metric_heatmap.png",
+                os.path.join(HERE, "shared", "figs", "fig_judge_metric_heatmap.png"),
+                os.path.join(SHARED_REF, "fig_judge_metric_heatmap.png"))
 
     total = ok + fail + missing
     print(f"\n{ok}/{total} artefacts match reference")

@@ -14,7 +14,7 @@ its value from this repository's outputs only:
   $AA_DATA/processed/          canonical records (authors per paper)
   $AA_DATA/raw/neurips/        only for the pre-2008 abstract fallback count
   $AA_DATA/tmlr/tables/        the generated tables (make_macros.py)
-  baselines/                   the arXiv and PubMed counts and histograms
+  shared/baselines/                   the arXiv and PubMed counts and histograms
   src/                         design constants the paper states
 
 A function returns a number, a tuple of numbers (for a printed range or a
@@ -123,7 +123,7 @@ class Ctx:
     @lru_cache(maxsize=None)
     def pg(self, name: str) -> pd.DataFrame:
         """pgfplots/tmlr/{name}.csv indexed by year."""
-        df = pd.read_csv(os.path.join(self.data, "pgfplots", "tmlr", f"{name}.csv"))
+        df = pd.read_csv(os.path.join(self.data, "pgfplots", f"{name}.csv"))
         return df.set_index("year").sort_index()
 
     @lru_cache(maxsize=None)
@@ -140,7 +140,7 @@ class Ctx:
 
     @lru_cache(maxsize=None)
     def base(self, name: str) -> pd.DataFrame:
-        return pd.read_csv(os.path.join(self.repo, "baselines", name))
+        return pd.read_csv(os.path.join(self.repo, "shared", "baselines", name))
 
     @lru_cache(maxsize=None)
     def per_paper(self, family: str, venue: str) -> pd.DataFrame:
@@ -525,7 +525,7 @@ def style_gap_set(ctx, kind, threshold=0.5):
 def style_suite_size(ctx):
     """The number of style series the release exports (STYLE, all present)."""
     return sum(1 for m in STYLE if os.path.exists(
-        os.path.join(ctx.data, "pgfplots", "tmlr", f"{m}.csv")))
+        os.path.join(ctx.data, "pgfplots", f"{m}.csv")))
 
 
 @check
@@ -540,8 +540,8 @@ def pubmed_style_metrics(ctx):
 def corpus_size(ctx, group, last=LAST, unit=1):
     """Papers in a corpus, divided by `unit` (1e6 for a count printed in millions). Conferences: the sum of papers per year
     (pgfplots/tmlr/papers_per_year.csv). arxiv: arXiv ML and non-ML records
-    (baselines/papers_per_year.csv). pubmed: PubMed records dated through
-    `last` (the cleaned-record count, baselines/papers_per_year.csv)."""
+    (shared/baselines/papers_per_year.csv). pubmed: PubMed records dated through
+    `last` (the cleaned-record count, shared/baselines/papers_per_year.csv)."""
     if group in CONFS:
         n = int(ctx.pg("papers_per_year")[group].sum())
     else:
@@ -560,7 +560,7 @@ def corpus_size(ctx, group, last=LAST, unit=1):
 @check
 def corpus_years(ctx, group, last=None):
     """(first, last) year with at least one paper. arxiv and pubmed from
-    baselines/papers_per_year.csv (PubMed cut at 2025 as in every analysis)."""
+    shared/baselines/papers_per_year.csv (PubMed cut at 2025 as in every analysis)."""
     if group in CONFS:
         s = ctx.pg("papers_per_year")[group]
     else:
@@ -624,11 +624,11 @@ def papers_min(ctx, groups, year):
 @check
 def arxiv_year_fraction(ctx, key="cutoff_year_fraction"):
     """The share of calendar year 2025 the arXiv snapshot covers, from its
-    cutoff (baselines/arxiv_snapshot.json, written by
+    cutoff (shared/baselines/arxiv_snapshot.json, written by
     src/baselines/arxiv_snapshot.py from the last arXiv identifier).
     key=cutoff_year_fraction_min or _max gives the bounds the month
     of the last identifier alone allows."""
-    with open(os.path.join(ctx.repo, "baselines", "arxiv_snapshot.json")) as fh:
+    with open(os.path.join(ctx.repo, "shared", "baselines", "arxiv_snapshot.json")) as fh:
         return float(json.load(fh)[key])
 
 
@@ -710,7 +710,7 @@ def _reuse_shares(ctx) -> dict[str, float]:
     """Share (percent) of distinct abstract acronyms used fewer than ten
     times, unrounded. Conferences from the per-paper acronym lists (all
     years, as acronym_reuse.py counts them); arXiv ML, arXiv non-ML and PubMed
-    from baselines/acronym_histograms.csv; B&D from acronym_reuse.BD_BASELINE."""
+    from shared/baselines/acronym_histograms.csv; B&D from acronym_reuse.BD_BASELINE."""
     from analysis.acronym_reuse import BD_BASELINE
     out = {}
     for v in CONFS:

@@ -1,22 +1,22 @@
 % Classical readability: appendix, split into two 3-column figures
 % to fit within the NeurIPS text width.
-% Data: ../../data/pgfplots/tmlr/readability_<metric>.csv
+% Data: ../../data/pgfplots/readability_<metric>.csv
 
 \providecommand{\readpanel}[3]{%
   \nextgroupplot[title={\tiny #1~[#3]},
                  title style={font=\tiny, yshift=-1.5mm}]
   \addplot[color={rgb,255:red,44;green,160;blue,44}, dashdotted, very thick]
-    table[x=year, y=neurips, col sep=comma]{../../data/pgfplots/tmlr/#2.csv};
+    table[x=year, y=neurips, col sep=comma]{../../data/pgfplots/#2.csv};
   \addplot[color={rgb,255:red,31;green,119;blue,180}, densely dashed, very thick]
-    table[x=year, y=iclr, col sep=comma]{../../data/pgfplots/tmlr/#2.csv};
+    table[x=year, y=iclr, col sep=comma]{../../data/pgfplots/#2.csv};
   \addplot[color={rgb,255:red,255;green,127;blue,14}, densely dotted, very thick]
-    table[x=year, y=icml, col sep=comma]{../../data/pgfplots/tmlr/#2.csv};
+    table[x=year, y=icml, col sep=comma]{../../data/pgfplots/#2.csv};
   \addplot[color={rgb,255:red,148;green,103;blue,189}, solid, thick]
-    table[x=year, y=arxiv_ml, col sep=comma]{../../data/pgfplots/tmlr/#2.csv};
+    table[x=year, y=arxiv_ml, col sep=comma]{../../data/pgfplots/#2.csv};
   \addplot[color={rgb,255:red,140;green,86;blue,75}, dotted, thick]
-    table[x=year, y=arxiv_nonml, col sep=comma]{../../data/pgfplots/tmlr/#2.csv};
+    table[x=year, y=arxiv_nonml, col sep=comma]{../../data/pgfplots/#2.csv};
   \addplot[color={rgb,255:red,214;green,39;blue,40}, dashed, thick]
-    table[x=year, y=pubmed, col sep=comma]{../../data/pgfplots/tmlr/#2.csv};
+    table[x=year, y=pubmed, col sep=comma]{../../data/pgfplots/#2.csv};
   \draw[black, dashed, semithick]
     ({axis cs:2022,0} |- {rel axis cs:0,0})
     -- ({axis cs:2022,0} |- {rel axis cs:0,1});
@@ -53,22 +53,22 @@
                   cells={anchor=west}, column sep=8pt},
   ]
   \addplot[color={rgb,255:red,44;green,160;blue,44}, dashdotted, very thick]
-    table[x=year, y=neurips, col sep=comma]{../../data/pgfplots/tmlr/readability_flesch_ease.csv};
+    table[x=year, y=neurips, col sep=comma]{../../data/pgfplots/readability_flesch_ease.csv};
   \addlegendentry{NeurIPS}
   \addplot[color={rgb,255:red,31;green,119;blue,180}, densely dashed, very thick]
-    table[x=year, y=iclr, col sep=comma]{../../data/pgfplots/tmlr/readability_flesch_ease.csv};
+    table[x=year, y=iclr, col sep=comma]{../../data/pgfplots/readability_flesch_ease.csv};
   \addlegendentry{ICLR}
   \addplot[color={rgb,255:red,255;green,127;blue,14}, densely dotted, very thick]
-    table[x=year, y=icml, col sep=comma]{../../data/pgfplots/tmlr/readability_flesch_ease.csv};
+    table[x=year, y=icml, col sep=comma]{../../data/pgfplots/readability_flesch_ease.csv};
   \addlegendentry{ICML}
   \addplot[color={rgb,255:red,148;green,103;blue,189}, solid, thick]
-    table[x=year, y=arxiv_ml, col sep=comma]{../../data/pgfplots/tmlr/readability_flesch_ease.csv};
+    table[x=year, y=arxiv_ml, col sep=comma]{../../data/pgfplots/readability_flesch_ease.csv};
   \addlegendentry{arXiv ML}
   \addplot[color={rgb,255:red,140;green,86;blue,75}, dotted, thick]
-    table[x=year, y=arxiv_nonml, col sep=comma]{../../data/pgfplots/tmlr/readability_flesch_ease.csv};
+    table[x=year, y=arxiv_nonml, col sep=comma]{../../data/pgfplots/readability_flesch_ease.csv};
   \addlegendentry{arXiv non-ML}
   \addplot[color={rgb,255:red,214;green,39;blue,40}, dashed, thick]
-    table[x=year, y=pubmed, col sep=comma]{../../data/pgfplots/tmlr/readability_flesch_ease.csv};
+    table[x=year, y=pubmed, col sep=comma]{../../data/pgfplots/readability_flesch_ease.csv};
   \addlegendentry{PubMed}
   \draw[black, dashed, semithick]
     ({axis cs:2022,0} |- {rel axis cs:0,0})

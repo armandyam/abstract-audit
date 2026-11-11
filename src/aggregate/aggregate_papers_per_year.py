@@ -7,7 +7,7 @@ Writes: data/aggregate/papers_per_year.csv
 Columns: year, neurips, iclr, icml   (0 where a venue has no data that year)
          plus arxiv when AA_BASELINES names it, as upstream wrote it. PubMed
          is never counted here: its corpus runs to tens of millions of
-         records, and its counts come from the aggregates (see baselines/).
+         records, and its counts come from the aggregates (see shared/baselines/).
 
 Run:
   python src/aggregate/aggregate_papers_per_year.py

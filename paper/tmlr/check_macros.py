@@ -4,7 +4,7 @@
 make_macros.py writes three macro files under $AA_DATA/tmlr/. The paper
 resolves 163 inline numbers through the same macro names. The printed
 values of the 152 that need no citation counts are stored in
-reference/tmlr/macros.csv (file, name, value): computed numbers and the few
+paper/tmlr/reference/macros.csv (file, name, value): computed numbers and the few
 computed labels (a topic's leading term, the ten commonest acronyms), never
 text from the manuscript. The eleven citation macros
 (make_macros.CITATION_MACROS) are not stored: the citation counts and every
@@ -66,7 +66,7 @@ sys.path.insert(0, os.path.join(REPO, "src"))
 from make_macros import CITATION_MACROS, CITATION_TABLES, ROUND_FILES  # noqa: E402
 from manuscript import SKIP_REASON, paper_dir  # noqa: E402
 
-REF = os.path.join(REPO, "reference", "tmlr", "macros.csv")
+REF = os.path.join(HERE, "reference", "macros.csv")
 STRICT, FRESH, ABSENT = "strict", "fresh", "absent"
 CIT_ABSENT = "citation counts absent"
 CIT_PAPER = "printed values come from the manuscript, not distributed"
@@ -406,7 +406,7 @@ def main() -> None:
     ap.add_argument("--paper-dir", default=None,
                     help="the manuscript directory (default: $AA_PAPER)")
     ap.add_argument("--write-reference", action="store_true",
-                    help="write reference/tmlr/macros.csv from the manuscript's macro files")
+                    help="write paper/tmlr/reference/macros.csv from the manuscript's macro files")
     ap.add_argument("--report-only", action="store_true",
                     help="exit 0 even on a mismatch (the pipeline stage; "
                          "verify.py is the gate)")

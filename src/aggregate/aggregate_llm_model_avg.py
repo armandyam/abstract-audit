@@ -18,7 +18,6 @@ Writes: data/pgfplots/llm_scores_model_avg_{prompt}.csv
 Run (from repo root with venv active):
     python src/aggregate/aggregate_llm_model_avg.py
     python src/aggregate/aggregate_llm_model_avg.py --prompts simple ascb
-    python src/aggregate/aggregate_llm_model_avg.py --in-dir data/pgfplots --out-dir data/pgfplots
 """
 
 from __future__ import annotations

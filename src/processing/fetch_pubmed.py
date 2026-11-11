@@ -40,7 +40,7 @@ the old one leaves the FTP site. Within 2026 this script refetches the same
 files the paper used (the md5 check confirms it). Once the 2027 baseline is
 out, a run recomputes on a new corpus: records are added, corrected and
 withdrawn, and the year counts change. The PubMed numbers in the paper are
-shipped in baselines/ for that reason.
+shipped in shared/baselines/ for that reason.
 
 Resumable: each baseline file is parsed into its own shard
 (data/processed/pubmed_parsed/.shards/<file>.jsonl.gz, written atomically)

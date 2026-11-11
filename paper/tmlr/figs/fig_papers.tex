@@ -1,5 +1,5 @@
 % Papers per year on a log scale.
-% Data: ../../data/pgfplots/tmlr/papers_per_year.csv
+% Data: ../../data/pgfplots/papers_per_year.csv
 
 \begin{figure}[h]
 \centering
@@ -20,22 +20,22 @@
     enlarge x limits=0.02,
   ]
   \addplot[color={rgb,255:red,44;green,160;blue,44}, dashdotted, very thick]
-    table[x=year, y=neurips, col sep=comma] {../../data/pgfplots/tmlr/papers_per_year.csv};
+    table[x=year, y=neurips, col sep=comma] {../../data/pgfplots/papers_per_year.csv};
   \addlegendentry{NeurIPS}
   \addplot[color={rgb,255:red,31;green,119;blue,180}, densely dashed, very thick]
-    table[x=year, y=iclr, col sep=comma] {../../data/pgfplots/tmlr/papers_per_year.csv};
+    table[x=year, y=iclr, col sep=comma] {../../data/pgfplots/papers_per_year.csv};
   \addlegendentry{ICLR}
   \addplot[color={rgb,255:red,255;green,127;blue,14}, densely dotted, very thick]
-    table[x=year, y=icml, col sep=comma] {../../data/pgfplots/tmlr/papers_per_year.csv};
+    table[x=year, y=icml, col sep=comma] {../../data/pgfplots/papers_per_year.csv};
   \addlegendentry{ICML}
   \addplot[color={rgb,255:red,148;green,103;blue,189}, solid, very thick]
-    table[x=year, y=arxiv_ml, col sep=comma] {../../data/pgfplots/tmlr/papers_per_year.csv};
+    table[x=year, y=arxiv_ml, col sep=comma] {../../data/pgfplots/papers_per_year.csv};
   \addlegendentry{arXiv ML}
   \addplot[color={rgb,255:red,140;green,86;blue,75}, dotted, thick]
-    table[x=year, y=arxiv_nonml, col sep=comma] {../../data/pgfplots/tmlr/papers_per_year.csv};
+    table[x=year, y=arxiv_nonml, col sep=comma] {../../data/pgfplots/papers_per_year.csv};
   \addlegendentry{arXiv non-ML}
   \addplot[color={rgb,255:red,214;green,39;blue,40}, dashed, thick]
-    table[x=year, y=pubmed, col sep=comma] {../../data/pgfplots/tmlr/papers_per_year.csv};
+    table[x=year, y=pubmed, col sep=comma] {../../data/pgfplots/papers_per_year.csv};
   \addlegendentry{PubMed}
   \draw[black, dashed, semithick] (axis cs:2022,1) -- (axis cs:2022,1e8);
 \end{axis}

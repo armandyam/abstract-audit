@@ -1,22 +1,23 @@
 #!/usr/bin/env python3
 """Export plot-ready CSV files for the pgfplots figures.
 
-Two output sets, one per paper:
+Two output sets:
 
-  data/pgfplots/       the UncertaiNLP paper's figures: NeurIPS series only,
-                       `year,neurips` for each readability metric and the
-                       NeurIPS judge series. Unchanged from the tag
-                       uncertainlp-2026, so verify.py checks it as before.
-  data/pgfplots/tmlr/  the TMLR paper's series under the paper's own file
-                       names: one CSV per metric, papers per year, and the
-                       judge series for all three venues.
+  data/pgfplots/              the series more than one paper plots, one copy
+                              each: one CSV per metric, papers per year, and
+                              the judge series for all three venues. The TMLR
+                              and AI-Native Academia papers read the metric
+                              series, all three papers the NeurIPS judge series.
+  data/uncertainlp/pgfplots/  the UncertaiNLP paper's own readability series:
+                              NeurIPS only, `year,neurips`, unchanged in content
+                              from the tag uncertainlp-2026.
 
-By default the TMLR set holds the conferences alone: `year,neurips,iclr,icml`,
-restricted to the years at least one of them covers.
+By default the per-metric series hold the conferences alone:
+`year,neurips,iclr,icml`, restricted to the years at least one of them covers.
 
-With --baselines the TMLR set is the paper's figure data in full. The arXiv
-and PubMed aggregates shipped in baselines/ are merged in, and each per-metric
-file has the paper's six columns
+With --baselines they are the papers' figure data in full. The arXiv and
+PubMed aggregates shipped in shared/baselines/ are merged in, and each
+per-metric file has the six columns
 
   year, neurips, iclr, icml, arxiv_ml, arxiv_nonml, pubmed
 
@@ -26,8 +27,8 @@ arxiv_nonml are count-weighted means over the primary categories of each
 group (src/arxiv_categories.py), and PubMed is cut at PUBMED_MAX = 2025.
 Papers per year takes the arXiv counts from the acronym aggregate's
 categories and PubMed's from the readability-scored count (see
-baselines/README.md for the two PubMed denominators). This is the upstream
-computation, and the files equal reference/tmlr/pgfplots_full/.
+shared/baselines/README.md for the two PubMed denominators). This is the
+upstream computation, and the files equal shared/reference/pgfplots/.
 
 Each source supplies only its own columns. The conference series always come
 from data/aggregate/; arXiv and PubMed come only from the --baselines
@@ -40,7 +41,7 @@ The judge series and the UncertaiNLP set are the same either way.
 
 Run:
   python src/plotting/export_pgfplots_data.py
-  python src/plotting/export_pgfplots_data.py --baselines            # baselines/
+  python src/plotting/export_pgfplots_data.py --baselines            # shared/baselines/
   python src/plotting/export_pgfplots_data.py --baselines path/to/dir
 """
 
@@ -57,10 +58,10 @@ from arxiv_categories import is_ml
 
 _D = os.environ.get("AA_DATA", "data")
 AGG  = os.path.join(_D, "aggregate")
-OUT  = os.path.join(_D, "pgfplots")
-TMLR = os.path.join(OUT, "tmlr")
+OUT    = os.path.join(_D, "uncertainlp", "pgfplots")
+SHARED = os.path.join(_D, "pgfplots")
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-BASELINES = os.path.join(REPO, "baselines")
+BASELINES = os.path.join(REPO, "shared", "baselines")
 
 # PubMed's last full year. The baseline holds ahead-of-print records dated
 # 2026 and 2027, which belong to no publication year.
@@ -160,6 +161,7 @@ def export_readability() -> None:
 
 
 def export_llm_scores(venues=("neurips",), out: str | None = None) -> None:
+    out = out or SHARED
     # neurips keeps the un-suffixed filenames (back-compat with the current
     # figure); iclr/icml emit venue-suffixed files when their aggregates exist.
     for venue in venues:
@@ -190,7 +192,7 @@ def export_standardized_llm(venues=("neurips",), out: str | None = None) -> None
     neurips keeps the un-suffixed filenames; iclr/icml emit venue-suffixed
     files when their per-venue score exports exist.
     """
-    out = out or OUT
+    out = out or SHARED
     for venue in venues:
         suffix = "" if venue == "neurips" else f"_{venue}"
         for prompt in ("simple", "ascb", "own_reasoning"):
@@ -227,7 +229,7 @@ def export_papers_per_year(out: str | None = None) -> None:
     for venue in VENUES:
         if venue in df.columns:
             result[venue] = df[venue].replace(0, np.nan)
-    save(result, "papers_per_year.csv", out or TMLR)
+    save(result, "papers_per_year.csv", out or SHARED)
 
 
 # ── arXiv and PubMed baselines ───────────────────────────────────────────────
@@ -354,10 +356,9 @@ def export_papers_per_year_full(baselines: str, out: str) -> None:
 FULL_EXTRA = [("sentence_length", "words_per_sentence", "sentence_length")]
 
 
-def export_tmlr(baselines: str | None = None) -> None:
-    """TMLR set under the paper's file names: the three conferences, or with
-    `baselines` the paper's full six-column series."""
-    TMLR = os.path.join(OUT, "tmlr")
+def export_shared(baselines: str | None = None) -> None:
+    """The shared set under the papers' file names: the three conferences, or
+    with `baselines` the full six-column series."""
     series = ([("readability", m, f"readability_{m}") for m in READABILITY]
               + [("acronyms", "title_acronym_density", "acronyms_title"),
                  ("acronyms", "abstract_acronym_density", "acronyms_abstract")]
@@ -368,14 +369,14 @@ def export_tmlr(baselines: str | None = None) -> None:
         names = {s[2] for s in series}
         series += [s for s in FULL_EXTRA if s[2] not in names]
         for metric_file, col, out_name in series:
-            export_metric_full(metric_file, col, out_name, baselines, TMLR)
-        export_papers_per_year_full(baselines, TMLR)
+            export_metric_full(metric_file, col, out_name, baselines, SHARED)
+        export_papers_per_year_full(baselines, SHARED)
     else:
         for metric_file, col, out_name in series:
-            export_metric(metric_file, col, out_name, out=TMLR)
-        export_papers_per_year(TMLR)
-    export_llm_scores(VENUES, TMLR)
-    export_standardized_llm(VENUES, TMLR)
+            export_metric(metric_file, col, out_name, out=SHARED)
+        export_papers_per_year(SHARED)
+    export_llm_scores(VENUES, SHARED)
+    export_standardized_llm(VENUES, SHARED)
 
 
 def main() -> None:
@@ -383,18 +384,17 @@ def main() -> None:
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--baselines", nargs="?", const=BASELINES, default=None,
                     metavar="DIR",
-                    help="merge the arXiv and PubMed baselines into the TMLR set "
-                         "(default DIR: baselines/)")
+                    help="merge the arXiv and PubMed baselines into the shared set "
+                         "(default DIR: shared/baselines/)")
     a = ap.parse_args()
     if a.baselines and not os.path.isdir(a.baselines):
         sys.exit(f"--baselines: {a.baselines} is not a directory")
 
     print("Exporting pgfplots CSVs")
+    print("UncertaiNLP set")
     export_readability()
-    export_llm_scores()
-    export_standardized_llm()
-    print("TMLR set" + (f" with baselines from {a.baselines}" if a.baselines else ""))
-    export_tmlr(a.baselines)
+    print("shared set" + (f" with baselines from {a.baselines}" if a.baselines else ""))
+    export_shared(a.baselines)
     print("Done.")
 
 

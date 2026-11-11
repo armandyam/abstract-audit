@@ -1,0 +1,51 @@
+% Papers per year on a log scale.
+% Data: ../../data/pgfplots/papers_per_year.csv
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+    width=0.88\linewidth, height=5cm,
+    xlabel={Year}, ylabel={Papers per year (log scale)},
+    ymode=log,
+    xtick distance=4,
+    x tick label style={rotate=45, anchor=east, font=\tiny,
+                        /pgf/number format/1000 sep={}},
+    ytick align=inside,
+    legend columns=4,
+    legend style={draw=none, fill=none, font=\scriptsize,
+                  cells={anchor=west}, column sep=8pt,
+                  at={(0.5,-0.28)}, anchor=north},
+    tick label style={font=\tiny}, label style={font=\small},
+    enlarge x limits=0.02,
+  ]
+  \addplot[color={rgb,255:red,44;green,160;blue,44}, dashdotted, very thick]
+    table[x=year, y=neurips, col sep=comma] {../../data/pgfplots/papers_per_year.csv};
+  \addlegendentry{NeurIPS}
+  \addplot[color={rgb,255:red,148;green,103;blue,189}, solid, very thick]
+    table[x=year, y=arxiv_ml, col sep=comma] {../../data/pgfplots/papers_per_year.csv};
+  \addlegendentry{arXiv ML}
+  \addplot[color={rgb,255:red,140;green,86;blue,75}, dotted, thick]
+    table[x=year, y=arxiv_nonml, col sep=comma] {../../data/pgfplots/papers_per_year.csv};
+  \addlegendentry{arXiv non-ML}
+  \addplot[color={rgb,255:red,214;green,39;blue,40}, dashed, thick]
+    table[x=year, y=pubmed, col sep=comma] {../../data/pgfplots/papers_per_year.csv};
+  \addlegendentry{PubMed}
+  \draw[black, dashed, semithick] (axis cs:2022,1) -- (axis cs:2022,1e8);
+\end{axis}
+\end{tikzpicture}
+
+\vspace{2mm}
+
+\caption{\textbf{Papers per year, 1987 to 2025.}
+  arXiv ML submissions grew by roughly four orders of magnitude
+  between 1993 and 2025. NeurIPS grew by a factor of roughly 65
+  between 1987 and 2025, from fewer than 100 accepted papers to
+  approximately 5,800. PubMed and arXiv non-ML show
+  sustained but slower growth over the same period. The volume
+  increase is the structural backdrop against which the
+  readability and acronym trends in
+  Sections~\ref{sec:readability} and~\ref{sec:acronyms} must
+  be interpreted.}
+\label{fig:papers}
+\end{figure}
