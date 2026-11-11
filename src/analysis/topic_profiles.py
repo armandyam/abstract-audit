@@ -9,9 +9,9 @@ Two outputs, both at the primary resolution k = 15 (topic_clusters.py):
 
 2. A fixed-mix counterfactual. From BASE_YEAR to LAST_YEAR each year is
    reweighted to the BASE_YEAR topic mix and its mean Flesch recomputed. The
-   gap between the raw and the reweighted decline is the part caused by the
-   field moving into less readable topics; the rest is every topic becoming
-   less readable. The window starts at the base year: reweighting thin early
+   gap between the raw and the reweighted decline is the topic-composition
+   component under this weighting; the reweighted decline is the aggregate
+   within-topic change at the BASE_YEAR topic mix. The window starts at the base year: reweighting thin early
    years (2002 has 207 papers over 14 topics) is unstable enough to reverse
    the sign of the composition share. It stops at 2025, because ICLR 2026 is
    the only venue in 2026 and would let a venue-mix change enter a series

@@ -1,11 +1,11 @@
-"""Generate the two mini-series shown in the visual abstract from the real
-committed data, emphasizing the recent change:
+"""Generate the two mini-series of the UncertaiNLP visual abstract from the
+pipeline's generated series:
   Path 1: NeurIPS Flesch Reading Ease (readability_flesch_ease.csv, neurips).
   Path 2: LLM-as-judge z-score, averaged over the three prompts.
 
-Pre-2022 uses the smoothed trend (centered rolling mean), sampled every 4
-years. 2022 onward uses the raw yearly values, sampled every 2 years, so the
-sparse recent points show the sharp recent movement without smoothing it out.
+Before 2022 each uses a centred three-year rolling mean, sampled every four
+years from 1987 to 2019. From 2022 the unsmoothed yearly values are used:
+2022, 2024 and 2025 for Flesch, and 2022, 2023 and 2024 for the judges.
 
 Outputs:
   data/uncertainlp/pgfplots/va_flesch.csv   year, flesch

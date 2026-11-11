@@ -9,9 +9,9 @@ This is what a reader meets on the page.
 Corpus: NeurIPS, ICLR and ICML abstracts from 2015 to 2025, the window of the
 topic analyses. ICLR 2026 is the only venue in 2026 and is excluded.
 
-Each "|"-separated entry of `abstract_acronyms` is one occurrence. Ties in
-frequency keep the order in which the acronyms first appear (venue, then
-file order), so the top-n sets are reproducible.
+Each "|"-separated entry of `abstract_acronyms` is one occurrence. Acronyms
+are sorted by descending frequency; the order among acronyms with equal
+counts is not defined by the sort.
 
 Reads:  data/per_paper/acronyms/{venue}.csv
 Writes: data/aggregate/acronym_concentration.csv  one row per top_n

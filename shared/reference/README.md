@@ -1,6 +1,6 @@
 # shared/reference/
 
-The expected outputs every paper uses, one copy each. `verify.py` compares
+The expected outputs shared across papers, one copy each. `verify.py` compares
 what the pipeline builds against these. `MANIFEST.md` records where each set
 came from and its sha256 hashes, and `python src/make_manifest.py` checks them.
 Each paper's own expected outputs are in `paper/<name>/reference/`.
@@ -10,9 +10,10 @@ venue: `neurips.csv`, `iclr.csv`, `icml.csv`, for 16 metric families.
 
 `pgfplots/` holds every plot-ready series more than one paper reads:
 
-- 41 per-metric files and `papers_per_year.csv`, with the columns `year`,
-  `neurips`, `iclr`, `icml`, `arxiv_ml`, `arxiv_nonml` and `pubmed` and every
-  year any of the five corpora covers (1987-2027). They are byte copies of the
+- 40 per-metric files and `papers_per_year.csv`, each with the seven columns
+  `year`, `neurips`, `iclr`, `icml`, `arxiv_ml`, `arxiv_nonml` and `pubmed`.
+  The nine spaCy-derived series and `papers_per_year.csv` span 1987-2026, the
+  other 31 series 1987-2027. PubMed values after 2025 are blank. They are byte copies of the
   upstream files. The export builds them from the conference aggregates and
   `shared/baselines/` (`export_pgfplots_data.py --baselines`). The TMLR and
   AI-Native Academia papers plot them.

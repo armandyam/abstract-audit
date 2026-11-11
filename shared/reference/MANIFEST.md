@@ -1,6 +1,7 @@
 # shared/reference/ provenance
 
-The per-paper metric files both papers share. Every hash list below is checked
+The expected outputs shared across papers: per-paper metrics, plot-ready
+series, analyses and the judge heatmap. Every hash list below is checked
 against the files by `python src/make_manifest.py`, which fails on a listed
 path that is missing, a hash that differs and a file no list names; `--write`
 refreshes the hashes.
@@ -94,9 +95,11 @@ ef870ceb2cd92625  per_paper/sentence_length/neurips.csv
 each. `src/plotting/export_pgfplots_data.py --baselines` and
 `src/aggregate/aggregate_llm_model_avg.py` build them into `data/pgfplots/`.
 
-The 41 per-metric files, `sentence_length.csv` and `papers_per_year.csv`
-among them, carry the header `year,neurips,iclr,icml,arxiv_ml,arxiv_nonml,pubmed`
-and every year any of the five corpora covers (1987-2027). They are byte
+The 41 files `sentence_length.csv`, `papers_per_year.csv` and the other
+per-metric series carry the header
+`year,neurips,iclr,icml,arxiv_ml,arxiv_nonml,pubmed`. The nine spaCy-derived
+series and `papers_per_year.csv` span 1987-2026, the other 31 series
+1987-2027, and PubMed values after 2025 are blank. They are byte
 copies of the upstream `tmlr/data/pgfplots/` at commit `eda2733`, built from
 the conference aggregates and `shared/baselines/`. The TMLR and AI-Native
 Academia papers plot them.

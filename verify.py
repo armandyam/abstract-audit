@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Check every regenerated artefact against the reference files.
 
-shared/reference/ holds the per-paper metrics every paper uses, and
+shared/reference/ holds the expected outputs shared across papers, and
 paper/<paper>/reference/ the files behind that paper's figures. This
 script compares what the pipeline just built against them and exits
 non-zero on any mismatch, so a clean-room reproduction either passes or
@@ -24,10 +24,13 @@ check_tables.py, with $AA_PAPER_AI_NATIVE_ACADEMIA for the manuscript):
   TMLR tables                every table the release builds against the
                              paper's own, cell by cell
                              (paper/tmlr/check_tables.py)
-  TMLR printed numbers       every other number the manuscript prints,
-                             recomputed and compared with the printed value in
-                             paper/tmlr/claims.csv, or for a citation number
-                             in the manuscript (paper/tmlr/check_claims.py);
+  TMLR printed numbers       every claims.csv row with a check function,
+                             recomputed and compared with its printed value
+                             (for a citation number, the manuscript's);
+                             literature and design rows without one are
+                             skipped and unverifiable rows reported, subject
+                             to the input exemptions documented in
+                             paper/tmlr/check_claims.py;
                              a mismatch, a missing input and an error each
                              count as a failure; skips are listed by reason;
                              author-accepted discrepancies are listed as KNOWN

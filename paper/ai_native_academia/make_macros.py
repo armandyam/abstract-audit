@@ -41,9 +41,11 @@ Inputs, under $AA_DATA:
 The citation counts are not distributed, so the citations stage runs only for
 a reader who has them. The ten macros and the table that need citation
 outputs (CITATION_MACROS, CITATION_TABLES) are written only when those
-outputs exist; otherwise they are listed in skipped.json and check_macros.py
-does not expect them. Any other absent input marks its section incomplete,
-as in paper/tmlr/make_macros.py.
+outputs exist; otherwise they are listed in skipped.json. check_macros.py
+skips the citation macros when the counts or the manuscript are absent;
+otherwise a missing citation macro is reported, a failure in strict mode and
+report-only in fresh mode. Any other absent input marks its section
+incomplete, as in paper/tmlr/make_macros.py.
 
     python paper/ai_native_academia/make_macros.py
 """

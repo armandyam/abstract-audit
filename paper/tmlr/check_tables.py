@@ -12,8 +12,9 @@ The comparison is the tabular body, cell by cell: every row of every tabular
 in the table, with whitespace collapsed and the revision markers (\\rev,
 \\revtwo, ...) unwrapped, since they only colour revised text in the review
 build. Rules such as \\midrule are layout and not compared. The captions are
-compared the same way and reported, not counted: the numbers in them are
-checked one by one by check_claims.py.
+compared the same way, and a caption that differs makes its table a mismatch
+under the same citation-mode rules. check_claims.py also checks the numbers
+in the captions one by one.
 
 The manuscript is not distributed. Without it ($AA_PAPER or --paper-dir, see
 manuscript.py) every table is reported as skipped. The citation tables

@@ -16,8 +16,8 @@ shared with the other papers and lives in `shared/reference/pgfplots/`.
 - `readability_collinearity.csv`: copied whole. `latex_robustness.csv`, which
   the AI-Native Academia paper also uses, is in `shared/reference/analysis/`.
 - `latex_robustness_summary.csv`: computed by this repository's
-  `src/analysis/latex_robustness.py`. Its 26 values match the paper's macros
-  at the paper's rounding.
+  `src/analysis/latex_robustness.py`. It holds 35 named values; those the
+  paper prints through its macros match them at the paper's rounding.
 
 sha256, first 16 hex:
 

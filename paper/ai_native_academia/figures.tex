@@ -6,16 +6,18 @@
 %   python paper/ai_native_academia/build_figures.py            # full render, data/ai_native_academia/figures.pdf
 %   python paper/ai_native_academia/build_figures.py --public   # the tracked figures.pdf
 %
-% Build through build_figures.py only: it writes the full render outside the
-% repository and switches the citation content off for the tracked copy.
+% Build through build_figures.py only: it writes the full render under the
+% repository's untracked data/ directory and switches the citation content off
+% for the tracked copy.
 %
-% Data comes from ../../data: pgfplots/ for the figures (the series every
-% paper shares, export stage) and ai_native_academia/ for the macros and the
-% generated tables (make_macros.py and make_tables.py). The judge heatmap is
+% Data comes from ../../data: pgfplots/ for the figure series shared across
+% papers, and ai_native_academia/ for the macros and the generated tables
+% (make_macros.py and make_tables.py). The judge heatmap is
 % the PNG in ../../shared/figs/, which the UncertaiNLP paper also includes.
-% A figure or table whose input was not built (the citation outputs, without
-% the reader's own citation counts) is replaced by a note saying why. Captions keep their \ref commands,
-% which print as ?? here. The tikz and pgfplots setup matches the manuscript
+% A generated table that was not built, and the citation figure without its
+% input, are replaced by a note saying why (the citation outputs need the
+% reader's own citation counts). Every other figure needs its input. Captions
+% keep their \ref commands, which print as ?? here. The tikz and pgfplots setup matches the manuscript
 % preamble, so the figures render as they do there.
 \documentclass[10pt]{article}
 \usepackage[letterpaper,margin=1in]{geometry}

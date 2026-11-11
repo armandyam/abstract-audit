@@ -35,9 +35,9 @@ follow the citation mode of src/citations/snapshot.py:
   strict   compared with the manuscript's values like everything else
            (skipped without the manuscript)
   fresh    compared and reported, not counted: a new fetch gives new numbers
-  absent   not compared, reported as skipped. make_macros.py must then have
-           skipped exactly the citation items (its skipped.json), and
-           nothing else.
+  absent   not compared, reported as skipped. make_macros.py may then have
+           skipped citation items only (its skipped.json); it need not
+           have skipped all of them, if outputs from an earlier run remain.
 
 macros.csv is written from the manuscript, once per manuscript revision,
 without the citation macros:

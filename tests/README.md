@@ -67,18 +67,18 @@ So these tests target what an end-to-end run structurally cannot reach:
 
 ## What is deliberately not tested
 
-The fifteen readability formulas from `textstat`, and the spaCy-derived
+The readability calculations `textstat` provides, and the spaCy-derived
 features. Testing those tests someone else's library. What is tested is the
-two formulas implemented here by hand, and the guard that decides whether an
-abstract is scored at all.
+two formulas implemented here by hand (FORCAST and Powers-Sumner-Kearl), and
+the guard that decides whether an abstract is scored at all.
 
 ## Coverage
 
 About 68% of `src/` by statement. That number is low on purpose and the shape
 matters more: nearly all of the remainder is `main()` functions, file-reading
-loops, the GPU scoring path and network fetching. Those are exercised by a
-full pipeline run, which checks them against the reference files rather than
-against a mock.
+loops, the GPU scoring path and network fetching. A full pipeline run
+exercises the processing and analysis paths against the reference files
+rather than against a mock. GPU scoring and source fetching run separately.
 
 The criterion held here is not a percentage but this: every branch that
 handles malformed or edge-case input has a test, because those are exactly

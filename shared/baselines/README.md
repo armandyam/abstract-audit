@@ -4,16 +4,20 @@ Per-year aggregates and pooled acronym frequency histograms for the two
 comparison corpora of the TMLR paper: arXiv, split into machine learning and
 the rest by primary category, and PubMed. The aggregates are inputs to the
 TMLR export (`src/plotting/export_pgfplots_data.py --baselines`), which merges
-them with the conference aggregates into the paper's six-column figure data.
+them with the conference aggregates into the paper's figure data (`year` and
+six corpus columns).
 The histograms are inputs to the acronym reuse table
 (`src/analysis/acronym_reuse.py`).
 
 They are shipped because they cannot be rebuilt in the form the paper used.
 The per-paper metric files they come from run to 13 GB, the arXiv snapshot was
 a Kaggle version that is no longer the current download, and NLM replaces the
-PubMed baseline every year. `src/baselines/make_baselines.py` wrote every file
-here from those per-paper files, with the pipeline's own aggregation code, and
-each one equals the upstream research repository's aggregate value for value.
+PubMed baseline every year. `src/baselines/make_baselines.py` wrote the
+aggregate CSVs, paper counts and acronym histograms here from those per-paper
+files, with the pipeline's own aggregation code, and each one equals the
+upstream research repository's aggregate value for value. `arxiv_snapshot.json`
+records where the arXiv snapshot ends and was written from the processed arXiv
+identifiers by `src/baselines/arxiv_snapshot.py`.
 
 ## Contents
 

@@ -10,10 +10,11 @@ Proves the figure and table sources in this repository compile against the
 data the pipeline just produced, without the manuscript. The figures read
 ../../data/pgfplots/ and the generated tables ../../data/tmlr/tables/,
 relative to paper/tmlr/: the repository's data/ directory, whatever $AA_DATA
-says, as for paper/uncertainlp/build_figures.py. A figure or table whose input was not
-built is replaced by a note (see figures.tex); when the local citation counts
-are absent the citation figure and tables are always replaced, so outputs
-left from an earlier run are not rendered. Skips with a clear message if
+says, as for paper/uncertainlp/build_figures.py. A generated table that was
+not built, and the citation figure without its input, are replaced by notes
+(see figures.tex); every other figure needs its input. When the local
+citation counts are absent the citation figure and tables are always
+replaced, so outputs left from an earlier run are not rendered. Skips with a clear message if
 pdflatex is absent, since the rest of the pipeline does not need LaTeX.
 
     python paper/tmlr/build_figures.py            # data/tmlr/figures.pdf

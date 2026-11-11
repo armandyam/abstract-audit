@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Check or refresh the sha256 lists in the reference MANIFEST.md files.
 
-There is one reference directory for the files every paper shares and one per
+There is one reference directory for the files shared across papers and one per
 paper (MANIFESTS below), each with its own MANIFEST.md. Paths in a manifest are
 relative to its directory.
 

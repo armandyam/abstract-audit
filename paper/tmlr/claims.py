@@ -1,13 +1,14 @@
 """Check functions for the numbers printed in the TMLR paper.
 
-paper/tmlr/claims.csv names one of these functions for every number the
-manuscript prints (see check_claims.py for the format). None of them reads
+Rows of paper/tmlr/claims.csv with a nonempty `check` field name one of these
+functions (see check_claims.py for the format). None of them reads
 the manuscript, except the self-audit's acronym count, which needs the
 paper's own abstract ($AA_PAPER, see manuscript.py). Each function computes
 its value from this repository's outputs only:
 
-  $AA_DATA/pgfplots/tmlr/      per-venue yearly series, six columns with the
-                               arXiv ML, arXiv non-ML and PubMed baselines
+  $AA_DATA/pgfplots/           per-venue yearly series: year and six corpus
+                               columns, the arXiv ML, arXiv non-ML and PubMed
+                               baselines among them
   $AA_DATA/aggregate/          aggregates, analyses, self_audit.csv
   $AA_DATA/aggregate/citations/  citation analyses (see below)
   $AA_DATA/per_paper/          per-paper metrics, where a claim needs them
@@ -72,7 +73,7 @@ GRADE = [m for m in READABILITY
          if m not in ("flesch_ease", "avg_sentence_length", "avg_syllables_per_word")]
 
 # The twelve style metrics of Section 3.3: eight Hohmann metrics (sensational
-# language is reported apart) and four complexity measures, as pgfplots/tmlr
+# language is reported apart) and four complexity measures, as pgfplots/
 # file names.
 STYLE = ["sentence_length", "signposting", "hedging", "noun_chunks",
          "active_narration", "verbs", "nouns", "numbers",
@@ -122,7 +123,7 @@ class Ctx:
     # -- readers ---------------------------------------------------------
     @lru_cache(maxsize=None)
     def pg(self, name: str) -> pd.DataFrame:
-        """pgfplots/tmlr/{name}.csv indexed by year."""
+        """pgfplots/{name}.csv indexed by year."""
         df = pd.read_csv(os.path.join(self.data, "pgfplots", f"{name}.csv"))
         return df.set_index("year").sort_index()
 
@@ -165,7 +166,7 @@ def _list(x) -> list[str]:
 
 @check
 def series(ctx, metric, col, year):
-    """The value of one venue's yearly series (pgfplots/tmlr/{metric}.csv)."""
+    """The value of one venue's yearly series (pgfplots/{metric}.csv)."""
     return ctx.value(metric, col, year)
 
 
@@ -479,8 +480,9 @@ def _style_gaps(ctx) -> dict[str, float]:
     ML is the mean of NeurIPS, ICLR, ICML and arXiv ML in a year, non-ML is
     arXiv non-ML. gap(y) = ML(y) - nonML(y). The change is
     |gap(2025)| - |gap(2015)|, positive when the gap widens. The metric's
-    standard deviation is that of every value in its six-column yearly file
-    (pgfplots/tmlr/{metric}.csv, all venues and years, sample SD)."""
+    standard deviation is that of every value in the six corpus columns of its
+    yearly file
+    (pgfplots/{metric}.csv, all venues and years, sample SD)."""
     out = {}
     for m in STYLE:
         df = ctx.pg(m)
@@ -539,7 +541,7 @@ def pubmed_style_metrics(ctx):
 @check
 def corpus_size(ctx, group, last=LAST, unit=1):
     """Papers in a corpus, divided by `unit` (1e6 for a count printed in millions). Conferences: the sum of papers per year
-    (pgfplots/tmlr/papers_per_year.csv). arxiv: arXiv ML and non-ML records
+    (pgfplots/papers_per_year.csv). arxiv: arXiv ML and non-ML records
     (shared/baselines/papers_per_year.csv). pubmed: PubMed records dated through
     `last` (the cleaned-record count, shared/baselines/papers_per_year.csv)."""
     if group in CONFS:

@@ -26,7 +26,7 @@ form}); check_tables.py looks each one up in the paper's caption when the
 manuscript is given.
 
 Writes under --out-dir (default $AA_DATA/ai_native_academia/tables) and
-records in $AA_DATA/ai_native_academia/tables.json what was written and what
+records in tables.json, in that directory's parent, what was written and what
 was not, and why:
 
   citation   the citation outputs are absent (the counts are not

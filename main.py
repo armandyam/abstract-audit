@@ -6,7 +6,7 @@
     python main.py --from aggregate     # this stage and all later ones
     python main.py --list
 
-Stages (each runs over NeurIPS, ICLR and ICML):
+Stages (venue coverage depends on the analysis):
 
   process    process_{neurips,iclr,icml}  data/raw/{venue} -> data/processed/{venue}
   validate   validate                 every record against the Pydantic schema
@@ -23,7 +23,8 @@ Stages (each runs over NeurIPS, ICLR and ICML):
   analysis   judge_feature_correlation  metric vs judge Spearman r
              visual_abstract_data     the two-panel summary series
              latex_robustness         Flesch under LaTeX and URL normalisation
-             readability_collinearity correlation and PCA of the 15 formulas
+             readability_collinearity correlation and PCA of the 15 readability
+                                      measures
   self_audit audit_self               the TMLR paper's own title and abstract,
                                       read from the manuscript; runs only with
                                       $AA_PAPER (the manuscript is not
@@ -59,7 +60,9 @@ what it lacks and records it in $AA_DATA/incomplete.json, and the later
 stages carry on with what exists (NEEDS below). The documented route from the
 distributed metrics,
 
-    cp -R shared/reference/per_paper/. data/per_paper/ && python main.py --from aggregate
+    mkdir -p data/per_paper
+    cp -R shared/reference/per_paper/. data/per_paper/
+    python main.py --from aggregate
 
 has no processed abstracts, so papers per year, the LaTeX normalisation and
 the topic analyses are not computed. make_macros.py then writes the sections
@@ -67,9 +70,11 @@ it can and lists the others as incomplete, and verify.py reports every
 incomplete analysis by name and fails on the outputs they would have written.
 
 The judge scores in shared/judge_scores/ are shipped, not recomputed: scoring 56,805
-abstracts on six open-weight models needs a GPU. Everything else regenerates
-from data/raw/{neurips,iclr,icml} alone. The scrapers that fill data/raw are
-run separately; see README.md.
+abstracts on six open-weight models needs a GPU. The other stages regenerate
+from data/raw/{neurips,iclr,icml} and the distributed shared/baselines/. The
+citation analyses also need the reader's own citation counts, and the checks
+against a paper's text a local copy of its manuscript. The scrapers that fill
+data/raw are run separately; see README.md.
 """
 from __future__ import annotations
 
