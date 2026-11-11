@@ -17,7 +17,8 @@ regenerated artefacts against the files behind each paper's figures, tables
 and printed numbers:
 
 - *Machine Learning Research Has Outpaced Its Communication Norms*
-  (Transactions on Machine Learning Research, 2026). NeurIPS, ICLR and ICML.
+  (Transactions on Machine Learning Research, 2026). The full study: NeurIPS,
+  ICLR and ICML, with the arXiv ML, arXiv non-ML and PubMed baselines.
 - *Measurable Writing Standards for AI-Native Venues* (NeurIPS 2026
   AI-Native Academia workshop). NeurIPS, with the arXiv and PubMed series.
 - *LLM Judges Agree With Each Other and Disagree With Human-Grounded
