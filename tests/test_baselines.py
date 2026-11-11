@@ -1,7 +1,7 @@
 """Tests for the arXiv and PubMed baselines: opt-in aggregation, the shipped
-baselines/ files, and the six-column TMLR export.
+shared/baselines/ files, and the six-column TMLR export.
 
-The full run is checked against the upstream files (see reference/MANIFEST.md).
+The full run is checked against the upstream files (see paper/tmlr/reference/MANIFEST.md).
 What is tested here is the contract around it: the baselines stay out of the
 default aggregation, the columns and year index they add, the category map,
 the column-at-a-time PubMed path, the count-weighted ML split when a group is
@@ -254,6 +254,7 @@ def test_tmlr_without_baselines_is_unchanged(tmp_path, monkeypatch):
                  ).to_csv(agg / "hedging.csv", index=False)
     monkeypatch.setattr(export, "AGG", str(agg))
     monkeypatch.setattr(export, "OUT", str(tmp_path / "pg"))
+    monkeypatch.setattr(export, "TMLR", str(tmp_path / "pg" / "tmlr"))
     export.export_tmlr()
     assert list(pd.read_csv(tmp_path / "pg" / "tmlr" / "hedging.csv").columns) == \
         ["year", "neurips"]

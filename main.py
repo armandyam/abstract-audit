@@ -17,7 +17,8 @@ Stages (each runs over NeurIPS, ICLR and ICML):
   aggregate  aggregate_*              per-paper scores -> per-year mean, std, count;
                                       papers per year; judge scores per venue
   export     export_pgfplots_data     aggregates -> plot-ready CSVs, one set per
-                                      paper (data/pgfplots, data/pgfplots/tmlr)
+                                      paper (data/uncertainlp/pgfplots,
+                                      data/tmlr/pgfplots)
   model_avg  aggregate_llm_model_avg  per-model z-scores -> six-model average
   analysis   judge_feature_correlation  metric vs judge Spearman r
              visual_abstract_data     the two-panel summary series
@@ -32,7 +33,7 @@ Stages (each runs over NeurIPS, ICLR and ICML):
   macros     paper/tmlr/make_macros   the TMLR paper's 163 inline numbers and
                                       six generated tables -> data/tmlr/
              paper/tmlr/make_tables   its seven other data-driven tables
-             paper/tmlr/check_macros  compared with reference/tmlr/macros.csv
+             paper/tmlr/check_macros  compared with paper/tmlr/reference/macros.csv
                                       (citation macros: with the manuscript)
              paper/tmlr/check_tables  every table compared with the paper's,
                                       given $AA_PAPER (both report only;
@@ -41,24 +42,25 @@ Stages (each runs over NeurIPS, ICLR and ICML):
                                       (paper/tmlr/claims.csv), checked against
                                       the outputs above (report only)
   figures    make_heatmap             the judge-vs-metric heatmap PNG
-             build_figures            renders every figure to paper/figures.pdf
+             build_figures            renders every figure to paper/uncertainlp/figures.pdf
              tmlr/build_figures       every TMLR figure and table to
                                       data/tmlr/figures.pdf (not distributed)
-  verify     verify                   every output against reference/
+  verify     verify                   every output against shared/reference/
+                                      and paper/*/reference/
 
 Dependencies. A command whose inputs are absent is not run: main.py prints
 what it lacks and records it in $AA_DATA/incomplete.json, and the later
 stages carry on with what exists (NEEDS below). The documented route from the
 distributed metrics,
 
-    cp -R reference/per_paper/. data/per_paper/ && python main.py --from aggregate
+    cp -R shared/reference/per_paper/. data/per_paper/ && python main.py --from aggregate
 
 has no processed abstracts, so papers per year, the LaTeX normalisation and
 the topic analyses are not computed. make_macros.py then writes the sections
 it can and lists the others as incomplete, and verify.py reports every
 incomplete analysis by name and fails on the outputs they would have written.
 
-The judge scores in judge_scores/ are shipped, not recomputed: scoring 56,805
+The judge scores in shared/judge_scores/ are shipped, not recomputed: scoring 56,805
 abstracts on six open-weight models needs a GPU. Everything else regenerates
 from data/raw/{neurips,iclr,icml} alone. The scrapers that fill data/raw are
 run separately; see README.md.
@@ -84,7 +86,7 @@ AGGREGATES = ("readability", "acronyms", "active_narration", "clauses_per_senten
               "parse_depth", "passive_rate", "sensational_language",
               "signposting", "ttr", "verbs", "sentence_length", "papers_per_year")
 D = os.environ.get("AA_DATA", "data")
-TMLR_PG = f"{D}/pgfplots/tmlr"
+TMLR_PG = f"{D}/tmlr/pgfplots"
 AGG = f"{D}/aggregate"
 TOPIC_ASSIGN = f"{AGG}/topic_assignments.csv"
 TOPIC_PROFILE = f"{AGG}/topic_profiles.csv"
@@ -115,15 +117,15 @@ NEEDS: dict[str, list[str]] = {
     "src/citations/regression.py": [PROCESSED],
     "src/citations/regression_topics.py": [PROCESSED, TOPIC_ASSIGN],
     "src/citations/topic_citations.py": [TOPIC_ASSIGN, TOPIC_PROFILE],
-    "paper/analysis/make_heatmap.py": [f"{D}/pgfplots/judge_metric_corr.csv"],
-    # The figure sources read ../data/pgfplots/ relative to paper/: the
-    # repository's data/ directory, whatever $AA_DATA says.
-    "paper/build_figures.py": [f"data/pgfplots/{f}.csv" for f in (
+    "paper/uncertainlp/make_heatmap.py": [f"{D}/uncertainlp/pgfplots/judge_metric_corr.csv"],
+    # The figure sources read ../../data/uncertainlp/pgfplots/ relative to
+    # paper/uncertainlp/: the repository's data/ directory, whatever $AA_DATA says.
+    "paper/uncertainlp/build_figures.py": [f"data/uncertainlp/pgfplots/{f}.csv" for f in (
         "va_flesch", "va_zscore", "readability_flesch_ease",
         "llm_scores_model_avg_simple", "llm_scores_standardized_simple")],
     # Likewise ../../data/ relative to paper/tmlr/. The tables and the
     # citation figure that were not built are replaced by notes.
-    "paper/tmlr/build_figures.py": [f"data/pgfplots/tmlr/{f}.csv" for f in (
+    "paper/tmlr/build_figures.py": [f"data/tmlr/pgfplots/{f}.csv" for f in (
         "readability_flesch_ease", "sensational_total", "acronyms_title",
         "acronyms_abstract", "papers_per_year", "sentence_length",
         "llm_scores_model_avg_simple", "llm_scores_model_avg_iclr_simple",
@@ -159,7 +161,7 @@ STAGES: list[tuple[str, list[list[str]]]] = [
                    ["src/analysis/latex_robustness.py"],
                    ["src/analysis/readability_collinearity.py"],
                    ["src/analysis/acronym_reuse.py",
-                    "--baselines", "baselines/acronym_histograms.csv"],
+                    "--baselines", "shared/baselines/acronym_histograms.csv"],
                    ["src/analysis/acronym_robustness.py"],
                    ["src/analysis/acronym_concentration.py"],
                    ["src/analysis/flesch_decomposition.py"],
@@ -186,8 +188,8 @@ STAGES: list[tuple[str, list[list[str]]]] = [
                    ["paper/tmlr/check_macros.py", "--report-only"],
                    ["paper/tmlr/check_tables.py", "--report-only"]]),
     ("claims",    [["paper/tmlr/check_claims.py", "--report-only"]]),
-    ("figures",   [["paper/analysis/make_heatmap.py"],
-                   ["paper/build_figures.py"],
+    ("figures",   [["paper/uncertainlp/make_heatmap.py"],
+                   ["paper/uncertainlp/build_figures.py"],
                    ["paper/tmlr/build_figures.py"]]),
     ("verify",    [["verify.py"]]),
 ]

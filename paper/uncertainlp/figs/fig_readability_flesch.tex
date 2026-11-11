@@ -1,6 +1,6 @@
 % Flesch Reading Ease on NeurIPS abstracts (body figure, NeurIPS only).
 % Cross-venue and all-15-metric versions are in the appendix.
-% Data: ../data/pgfplots/readability_flesch_ease.csv
+% Data: ../../data/uncertainlp/pgfplots/readability_flesch_ease.csv
 % Higher values = easier reading.
 
 \begin{figure}[t]
@@ -20,7 +20,7 @@
   ]
   \addplot[color={rgb,255:red,44;green,160;blue,44}, solid, very thick]
     table[x=year, y=neurips, col sep=comma]
-    {../data/pgfplots/readability_flesch_ease.csv};
+    {../../data/uncertainlp/pgfplots/readability_flesch_ease.csv};
   % ChatGPT launch marker (late 2022)
   \draw[black, dashed, semithick] (axis cs:2022,-5) -- (axis cs:2022,50);
   \node[font=\tiny, rotate=90, anchor=south west]

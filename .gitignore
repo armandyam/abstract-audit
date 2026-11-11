@@ -5,17 +5,14 @@ data/
 
 # LaTeX intermediates. figures.pdf itself is tracked: it is the rendered
 # output of the figure sources, readable without a TeX installation.
-paper/*.aux
-paper/*.log
-paper/*.out
+paper/*/*.aux
+paper/*/*.log
+paper/*/*.out
 
 __pycache__/
 *.pyc
 .DS_Store
 venv/
-paper/tmlr/*.aux
-paper/tmlr/*.log
-paper/tmlr/*.out
 
 # Coverage data holds absolute local paths; never track it.
 .coverage*

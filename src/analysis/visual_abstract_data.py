@@ -8,8 +8,8 @@ years. 2022 onward uses the raw yearly values, sampled every 2 years, so the
 sparse recent points show the sharp recent movement without smoothing it out.
 
 Outputs:
-  data/pgfplots/va_flesch.csv   year, flesch
-  data/pgfplots/va_zscore.csv   year, z
+  data/uncertainlp/pgfplots/va_flesch.csv   year, flesch
+  data/uncertainlp/pgfplots/va_zscore.csv   year, z
 
 Run from repo root:  python src/analysis/visual_abstract_data.py
 """
@@ -20,7 +20,7 @@ import os
 import pandas as pd
 
 _D = os.environ.get("AA_DATA", "data")
-PG = os.path.join(_D, "pgfplots")
+PG = os.path.join(_D, "uncertainlp", "pgfplots")
 os.makedirs(PG, exist_ok=True)
 WIN = 3  # centered rolling-mean window for the pre-2022 trend
 PRE_YEARS = [1987, 1991, 1995, 1999, 2003, 2007, 2011, 2015, 2019]  # every 4y, smoothed

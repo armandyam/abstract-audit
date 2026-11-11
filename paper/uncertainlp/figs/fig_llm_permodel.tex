@@ -1,7 +1,7 @@
 % Per-model standardized judge scores, one panel per prompt. The body claim
 % is that every model under every prompt shows the same shape; the
 % model-averaged Figure 3 cannot show that, so this figure does.
-% Data: ../data/pgfplots/llm_scores_standardized_{prompt}.csv
+% Data: ../../data/uncertainlp/pgfplots/llm_scores_standardized_{prompt}.csv
 \pgfplotsset{
   permodel/.style={
     width=0.245\textwidth, height=3.7cm, scale only axis,
@@ -27,22 +27,22 @@
 \nextgroupplot[title={\texttt{simple}}, ylabel={Judge score ($z$)}]
   \addplot[color={rgb,255:red,31;green,119;blue,180}, thick]
     table[x=year, y=Gemma-3-27B-Instruct_z, col sep=comma]
-    {../data/pgfplots/llm_scores_standardized_simple.csv};
+    {../../data/uncertainlp/pgfplots/llm_scores_standardized_simple.csv};
   \addplot[color={rgb,255:red,255;green,127;blue,14}, thick]
     table[x=year, y=Gemma-4-31B-Instruct_z, col sep=comma]
-    {../data/pgfplots/llm_scores_standardized_simple.csv};
+    {../../data/uncertainlp/pgfplots/llm_scores_standardized_simple.csv};
   \addplot[color={rgb,255:red,44;green,160;blue,44}, thick]
     table[x=year, y=Llama-3.1-8B-Instruct_z, col sep=comma]
-    {../data/pgfplots/llm_scores_standardized_simple.csv};
+    {../../data/uncertainlp/pgfplots/llm_scores_standardized_simple.csv};
   \addplot[color={rgb,255:red,214;green,39;blue,40}, thick]
     table[x=year, y=Mistral-7B-Instruct_z, col sep=comma]
-    {../data/pgfplots/llm_scores_standardized_simple.csv};
+    {../../data/uncertainlp/pgfplots/llm_scores_standardized_simple.csv};
   \addplot[color={rgb,255:red,148;green,103;blue,189}, thick]
     table[x=year, y=Mixtral-8x7B-Instruct_z, col sep=comma]
-    {../data/pgfplots/llm_scores_standardized_simple.csv};
+    {../../data/uncertainlp/pgfplots/llm_scores_standardized_simple.csv};
   \addplot[color={rgb,255:red,127;green,127;blue,127}, thick]
     table[x=year, y=Qwen2.5-32B-Instruct_z, col sep=comma]
-    {../data/pgfplots/llm_scores_standardized_simple.csv};
+    {../../data/uncertainlp/pgfplots/llm_scores_standardized_simple.csv};
   \draw[black, densely dashed, semithick]
     (axis cs:2022,-3.2) -- (axis cs:2022,6.2);
 
@@ -53,22 +53,22 @@
   legend cell align=left]
   \addplot[color={rgb,255:red,31;green,119;blue,180}, thick]
     table[x=year, y=Gemma-3-27B-Instruct_z, col sep=comma]
-    {../data/pgfplots/llm_scores_standardized_ascb.csv};
+    {../../data/uncertainlp/pgfplots/llm_scores_standardized_ascb.csv};
   \addplot[color={rgb,255:red,255;green,127;blue,14}, thick]
     table[x=year, y=Gemma-4-31B-Instruct_z, col sep=comma]
-    {../data/pgfplots/llm_scores_standardized_ascb.csv};
+    {../../data/uncertainlp/pgfplots/llm_scores_standardized_ascb.csv};
   \addplot[color={rgb,255:red,44;green,160;blue,44}, thick]
     table[x=year, y=Llama-3.1-8B-Instruct_z, col sep=comma]
-    {../data/pgfplots/llm_scores_standardized_ascb.csv};
+    {../../data/uncertainlp/pgfplots/llm_scores_standardized_ascb.csv};
   \addplot[color={rgb,255:red,214;green,39;blue,40}, thick]
     table[x=year, y=Mistral-7B-Instruct_z, col sep=comma]
-    {../data/pgfplots/llm_scores_standardized_ascb.csv};
+    {../../data/uncertainlp/pgfplots/llm_scores_standardized_ascb.csv};
   \addplot[color={rgb,255:red,148;green,103;blue,189}, thick]
     table[x=year, y=Mixtral-8x7B-Instruct_z, col sep=comma]
-    {../data/pgfplots/llm_scores_standardized_ascb.csv};
+    {../../data/uncertainlp/pgfplots/llm_scores_standardized_ascb.csv};
   \addplot[color={rgb,255:red,127;green,127;blue,127}, thick]
     table[x=year, y=Qwen2.5-32B-Instruct_z, col sep=comma]
-    {../data/pgfplots/llm_scores_standardized_ascb.csv};
+    {../../data/uncertainlp/pgfplots/llm_scores_standardized_ascb.csv};
   \draw[black, densely dashed, semithick]
     (axis cs:2022,-3.2) -- (axis cs:2022,6.2);
   \legend{Gemma-3-27B, Gemma-4-31B, Llama-3.1-8B, Mistral-7B,
@@ -77,22 +77,22 @@
 \nextgroupplot[title={\texttt{own\_reasoning}}]
   \addplot[color={rgb,255:red,31;green,119;blue,180}, thick]
     table[x=year, y=Gemma-3-27B-Instruct_z, col sep=comma]
-    {../data/pgfplots/llm_scores_standardized_own_reasoning.csv};
+    {../../data/uncertainlp/pgfplots/llm_scores_standardized_own_reasoning.csv};
   \addplot[color={rgb,255:red,255;green,127;blue,14}, thick]
     table[x=year, y=Gemma-4-31B-Instruct_z, col sep=comma]
-    {../data/pgfplots/llm_scores_standardized_own_reasoning.csv};
+    {../../data/uncertainlp/pgfplots/llm_scores_standardized_own_reasoning.csv};
   \addplot[color={rgb,255:red,44;green,160;blue,44}, thick]
     table[x=year, y=Llama-3.1-8B-Instruct_z, col sep=comma]
-    {../data/pgfplots/llm_scores_standardized_own_reasoning.csv};
+    {../../data/uncertainlp/pgfplots/llm_scores_standardized_own_reasoning.csv};
   \addplot[color={rgb,255:red,214;green,39;blue,40}, thick]
     table[x=year, y=Mistral-7B-Instruct_z, col sep=comma]
-    {../data/pgfplots/llm_scores_standardized_own_reasoning.csv};
+    {../../data/uncertainlp/pgfplots/llm_scores_standardized_own_reasoning.csv};
   \addplot[color={rgb,255:red,148;green,103;blue,189}, thick]
     table[x=year, y=Mixtral-8x7B-Instruct_z, col sep=comma]
-    {../data/pgfplots/llm_scores_standardized_own_reasoning.csv};
+    {../../data/uncertainlp/pgfplots/llm_scores_standardized_own_reasoning.csv};
   \addplot[color={rgb,255:red,127;green,127;blue,127}, thick]
     table[x=year, y=Qwen2.5-32B-Instruct_z, col sep=comma]
-    {../data/pgfplots/llm_scores_standardized_own_reasoning.csv};
+    {../../data/uncertainlp/pgfplots/llm_scores_standardized_own_reasoning.csv};
   \draw[black, densely dashed, semithick]
     (axis cs:2022,-3.2) -- (axis cs:2022,6.2);
 

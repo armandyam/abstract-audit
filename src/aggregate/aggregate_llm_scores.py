@@ -2,7 +2,7 @@
 """
 Aggregate LLM readability scores by year.
 
-Reads:  judge_scores/{venue}/{model}.csv
+Reads:  shared/judge_scores/{venue}/{model}.csv
 Writes: data/aggregate/llm_scores_{venue}.csv
 
 Columns: year, {model}_mean, {model}_std
@@ -24,7 +24,7 @@ import statistics
 
 VENUE    = "neurips"
 _D = os.environ.get("AA_DATA", "data")
-IN_BASE  = os.environ.get("AA_JUDGE", "judge_scores")
+IN_BASE  = os.environ.get("AA_JUDGE", "shared/judge_scores")
 OUT_BASE = os.path.join(_D, "aggregate")
 PROMPTS  = ["simple", "ascb", "own_reasoning"]
 

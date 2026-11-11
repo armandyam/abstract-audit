@@ -29,7 +29,7 @@ one. A download today therefore does not regenerate the paper's arXiv
 series. It recomputes them on a newer corpus: every year changes a little
 (revised abstracts), 2025 gains its last four months, and later years appear.
 
-The arXiv numbers in the paper are shipped as aggregates in baselines/ and
+The arXiv numbers in the paper are shipped as aggregates in shared/baselines/ and
 are reproduced from there (src/baselines/make_baselines.py documents how
 they were made). Running this script and process_arxiv.py is the route to
 recomputing the baselines on a new snapshot. Pass --sha256 to record the

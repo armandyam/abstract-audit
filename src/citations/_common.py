@@ -26,7 +26,7 @@ CIT_DIR = os.path.join(D, "per_paper", "citations")
 READ_DIR = os.path.join(D, "per_paper", "readability")
 PROCESSED_DIR = os.path.join(D, "processed")
 OUT_DIR = os.path.join(D, "aggregate", "citations")
-JUDGE_DIR = os.environ.get("AA_JUDGE", "judge_scores")
+JUDGE_DIR = os.environ.get("AA_JUDGE", "shared/judge_scores")
 
 VENUES = ["neurips", "iclr", "icml"]
 

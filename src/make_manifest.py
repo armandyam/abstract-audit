@@ -1,19 +1,23 @@
 #!/usr/bin/env python3
-"""Check or refresh the sha256 lists in reference/MANIFEST.md.
+"""Check or refresh the sha256 lists in the reference MANIFEST.md files.
+
+There is one reference directory for the files every paper shares and one per
+paper (MANIFESTS below), each with its own MANIFEST.md. Paths in a manifest are
+relative to its directory.
 
 MANIFEST.md is prose, one section per set of reference files, and each
 section ends in a fenced list of `<first 16 hex of sha256>  <path>` lines,
 introduced by the line "sha256, first 16 hex:". This script reads those lists
-and compares them with the files in reference/:
+and compares them with the files in that reference directory:
 
   - a listed path that does not exist is an error;
   - a listed hash that differs from the file's is an error (fixed by --write);
-  - a file under reference/ that no list names is an error (it needs a
+  - a file in the directory that no list names is an error (it needs a
     section saying where it came from, so it has to be added by hand);
   - a path listed twice is an error.
 
-    python reference/make_manifest.py            # check, exit 1 on any error
-    python reference/make_manifest.py --write    # rewrite the hashes in place
+    python src/make_manifest.py            # check all, exit 1 on any error
+    python src/make_manifest.py --write    # rewrite the hashes in place
 
 --write changes only the hashes, never the prose or which paths are listed,
 and refuses to write while a listed path is missing or a file is unlisted.
@@ -26,12 +30,14 @@ import os
 import re
 import sys
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-MANIFEST = os.path.join(HERE, "MANIFEST.md")
+REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+MANIFESTS = [os.path.join(REPO, d, "reference", "MANIFEST.md")
+             for d in ("shared", os.path.join("paper", "uncertainlp"),
+                       os.path.join("paper", "tmlr"))]
 INTRO = "sha256, first 16 hex:"
 LINE = re.compile(r"^([0-9a-f]{16})  (\S+)$")
-# Files in reference/ that describe the others and are not themselves listed.
-NOT_LISTED = {"MANIFEST.md", "README.md", "make_manifest.py"}
+# Files in a reference directory that describe the others and are not listed.
+NOT_LISTED = {"MANIFEST.md", "README.md"}
 IGNORED_PARTS = {"__pycache__", ".DS_Store"}
 
 
@@ -102,35 +108,41 @@ def check(text: str, root: str) -> tuple[list[str], list[tuple[int, str]]]:
     return errors, stale
 
 
-def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description=__doc__,
-                                 formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--write", action="store_true",
-                    help="rewrite stale hashes in MANIFEST.md")
-    ap.add_argument("--manifest", default=MANIFEST)
-    a = ap.parse_args(argv)
-    root = os.path.dirname(os.path.abspath(a.manifest))
-    with open(a.manifest, encoding="utf-8") as fh:
+def run(manifest: str, write: bool) -> int:
+    root = os.path.dirname(os.path.abspath(manifest))
+    print(os.path.relpath(manifest, REPO))
+    with open(manifest, encoding="utf-8") as fh:
         text = fh.read()
     errors, stale = check(text, root)
     n = len(listed_lines(text))
     for e in errors:
         print(f"  ERROR  {e}")
-    if a.write:
+    if write:
         if errors:
-            print("not written: fix the errors above first")
+            print("  not written: fix the errors above first")
             return 1
         lines = text.split("\n")
         for idx, new in stale:
             lines[idx] = new
-        with open(a.manifest, "w", encoding="utf-8") as fh:
+        with open(manifest, "w", encoding="utf-8") as fh:
             fh.write("\n".join(lines))
-        print(f"{n} entries, {len(stale)} hashes updated")
+        print(f"  {n} entries, {len(stale)} hashes updated")
         return 0
     for idx, new in stale:
         print(f"  STALE  {new.split()[1]}  (line {idx + 1}; run with --write)")
-    print(f"{n} entries, {len(errors)} errors, {len(stale)} stale hashes")
+    print(f"  {n} entries, {len(errors)} errors, {len(stale)} stale hashes")
     return 1 if errors or stale else 0
+
+
+def main(argv: list[str] | None = None) -> int:
+    ap = argparse.ArgumentParser(description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--write", action="store_true",
+                    help="rewrite stale hashes in MANIFEST.md")
+    ap.add_argument("--manifest", action="append",
+                    help="check this manifest only (repeatable; default: all)")
+    a = ap.parse_args(argv)
+    return max(run(m, a.write) for m in (a.manifest or MANIFESTS))
 
 
 if __name__ == "__main__":

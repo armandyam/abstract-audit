@@ -1,4 +1,4 @@
-# baselines/
+# shared/baselines/
 
 Per-year aggregates and pooled acronym frequency histograms for the two
 comparison corpora of the TMLR paper: arXiv, split into machine learning and

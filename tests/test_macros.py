@@ -25,7 +25,7 @@ sys.path.insert(0, os.path.join(ROOT, "paper", "tmlr"))
 import check_macros as cm  # noqa: E402
 import make_macros as mm  # noqa: E402
 
-REF = os.path.join(ROOT, "reference", "tmlr")
+REF = os.path.join(ROOT, "paper", "tmlr", "reference")
 
 
 # ── parser ───────────────────────────────────────────────────────────────
@@ -326,7 +326,7 @@ def test_thousands():
 
 
 def test_round4_requires_baseline_columns(tmp_path):
-    d = tmp_path / "pgfplots" / "tmlr"
+    d = tmp_path / "tmlr" / "pgfplots"
     d.mkdir(parents=True)
     (d / "readability_flesch_ease.csv").write_text("year,neurips,iclr,icml\n2015,1,2,3\n")
     with pytest.raises(SystemExit, match="--baselines"):
@@ -336,16 +336,16 @@ def test_round4_requires_baseline_columns(tmp_path):
 # ── the generator on the committed reference inputs ──────────────────────
 
 def _reference_inputs(tmp_path):
-    """The upstream analysis outputs as committed under reference/tmlr/, laid
+    """The upstream analysis outputs as committed under paper/tmlr/reference/, laid
     out where make_macros.py reads them. No citation output is distributed."""
     agg = tmp_path / "data" / "aggregate"
     agg.mkdir(parents=True)
     for f in os.listdir(os.path.join(REF, "analysis")):
         shutil.copy(os.path.join(REF, "analysis", f), agg / f)
     shutil.copy(os.path.join(REF, "latex_robustness.csv"), agg)
-    pg = tmp_path / "data" / "pgfplots" / "tmlr"
+    pg = tmp_path / "data" / "tmlr" / "pgfplots"
     pg.mkdir(parents=True)
-    shutil.copy(os.path.join(REF, "pgfplots_full", "readability_flesch_ease.csv"), pg)
+    shutil.copy(os.path.join(REF, "pgfplots", "readability_flesch_ease.csv"), pg)
     return str(tmp_path / "data")
 
 

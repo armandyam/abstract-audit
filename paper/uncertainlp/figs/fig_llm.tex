@@ -1,7 +1,7 @@
 % LLM-as-judge: model-averaged z-scores, one curve per prompt.
 % Each curve is the mean of all 6 model z-scores for that prompt.
 % Z-scores are standardized to each model's own 1987--2022 baseline.
-% Data: ../data/pgfplots/llm_scores_model_avg_{prompt}.csv
+% Data: ../../data/uncertainlp/pgfplots/llm_scores_model_avg_{prompt}.csv
 
 \begin{figure}[t]
 \centering
@@ -25,15 +25,15 @@
   ]
   \addplot[color={rgb,255:red,44;green,160;blue,44}, solid, very thick]
     table[x=year, y=avg_z, col sep=comma]
-    {../data/pgfplots/llm_scores_model_avg_simple.csv};
+    {../../data/uncertainlp/pgfplots/llm_scores_model_avg_simple.csv};
   \addlegendentry{Simple}
   \addplot[color={rgb,255:red,148;green,103;blue,189}, dashed, very thick]
     table[x=year, y=avg_z, col sep=comma]
-    {../data/pgfplots/llm_scores_model_avg_ascb.csv};
+    {../../data/uncertainlp/pgfplots/llm_scores_model_avg_ascb.csv};
   \addlegendentry{ASCB}
   \addplot[color={rgb,255:red,214;green,39;blue,40}, dashdotted, very thick]
     table[x=year, y=avg_z, col sep=comma]
-    {../data/pgfplots/llm_scores_model_avg_own_reasoning.csv};
+    {../../data/uncertainlp/pgfplots/llm_scores_model_avg_own_reasoning.csv};
   \addlegendentry{Own reasoning}
   % Baseline reference at z = 0
   \addplot[black, dotted, thin, forget plot, domain=1987:2024] {0};

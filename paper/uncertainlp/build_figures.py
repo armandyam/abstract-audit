@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Render every figure source to paper/figures.pdf.
+"""Render every figure source to paper/uncertainlp/figures.pdf.
 
 Proves the figure sources in this repository compile against the data the
 pipeline just produced. Skips with a clear message if pdflatex is absent,
 since the rest of the pipeline does not need LaTeX.
 
-    python paper/build_figures.py
+    python paper/uncertainlp/build_figures.py
 """
 from __future__ import annotations
 

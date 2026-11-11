@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build baselines/, the shipped arXiv and PubMed aggregates.
+"""Build shared/baselines/, the shipped arXiv and PubMed aggregates.
 
 The TMLR paper sets the three conferences against two baselines: arXiv,
 split into machine learning and the rest by primary category, and PubMed.
@@ -15,7 +15,7 @@ Reads:
                                                       arXiv file has no
                                                       arxiv_primary_category
 
-Writes, under --out-dir (default: baselines/):
+Writes, under --out-dir (default: shared/baselines/):
 
   aggregate/{family}.csv
       year, then pubmed_{col}_{mean,std,count} and arxiv_{col}_{mean,std,count},
@@ -70,7 +70,7 @@ from arxiv_categories import is_ml  # noqa: E402
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DATA_DIR = os.environ.get("AA_DATA", "data")
-OUT_DIR = os.path.join(REPO, "baselines")
+OUT_DIR = os.path.join(REPO, "shared", "baselines")
 MAX_YEAR = 2025
 
 # Metric family and the columns aggregated, as in src/aggregate/aggregate_*.py.

@@ -26,14 +26,14 @@ covers them. No value was altered.
   `icml`, `arxiv_ml`, `arxiv_nonml` and `pubmed` and every year any of the
   five corpora covers (1987-2027). They are byte copies of the upstream
   files. The export builds them from the conference aggregates and
-  `baselines/` (`export_pgfplots_data.py --baselines`).
+  `shared/baselines/` (`export_pgfplots_data.py --baselines`).
 - `tmlr/latex_robustness.csv` and `tmlr/readability_collinearity.csv` are
   copied whole.
 - `tmlr/analysis/` holds the acronym reuse, robustness and concentration
   tables, the Flesch decomposition and the topic analyses, copied whole
   except `topic_profiles.csv`, which lacks the two upstream citation columns
   (`median_citations`, `n_with_citations`). The arXiv and PubMed rows of
-  `acronym_reuse_freq.csv` are computed from `baselines/acronym_histograms.csv`.
+  `acronym_reuse_freq.csv` are computed from `shared/baselines/acronym_histograms.csv`.
 - `tmlr/latex_robustness_summary.csv` holds the derived numbers the paper
   quotes from the normalisation analysis. Upstream computed them inside the
   script that writes the paper's LaTeX macros, so there is no upstream CSV.
@@ -58,5 +58,5 @@ The manuscript itself is not held here either. The checks that read it take
 a local copy at run time (`AA_PAPER`, see the top-level README).
 
 No file in this directory is an input to the pipeline. To work from the shipped
-metrics instead of scraping, copy `reference/per_paper/` into `data/per_paper/`
+metrics instead of scraping, copy `shared/reference/per_paper/` into `data/per_paper/`
 and run `python main.py --from aggregate`.

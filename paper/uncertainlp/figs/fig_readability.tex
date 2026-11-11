@@ -1,11 +1,11 @@
 % Classical readability on NeurIPS only, appendix, split into two 3-column
-% figures. Data: ../data/pgfplots/readability_<metric>.csv (neurips column).
+% figures. Data: ../../data/uncertainlp/pgfplots/readability_<metric>.csv (neurips column).
 
 \providecommand{\readpanel}[3]{%
   \nextgroupplot[title={\tiny #1~[#3]},
                  title style={font=\tiny, yshift=-1.5mm}]
   \addplot[color={rgb,255:red,44;green,160;blue,44}, dashdotted, very thick]
-    table[x=year, y=neurips, col sep=comma]{../data/pgfplots/#2.csv};
+    table[x=year, y=neurips, col sep=comma]{../../data/uncertainlp/pgfplots/#2.csv};
   \draw[black, dashed, semithick]
     ({axis cs:2022,0} |- {rel axis cs:0,0})
     -- ({axis cs:2022,0} |- {rel axis cs:0,1});

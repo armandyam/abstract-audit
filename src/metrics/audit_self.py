@@ -5,7 +5,7 @@ Audit one title and abstract with the pipeline's own per-paper metrics.
 Runs the same code that produced every per-paper metric file on a single
 title and abstract, and reports each value with its percentile in the NeurIPS
 per-paper distribution (data/per_paper/{metric}/neurips.csv, so run the
-pipeline or copy reference/per_paper/ there first).
+pipeline or copy shared/reference/per_paper/ there first).
 
 The TMLR paper audits its own title and abstract this way (Appendix E,
 Table tab:self-audit). The manuscript is not distributed with this

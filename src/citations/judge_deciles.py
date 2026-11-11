@@ -13,7 +13,7 @@ These are every number in the TMLR paper's Table tab:citation-llm.
 Upstream wrote that table directly to LaTeX; this script writes the numbers.
 
 Reads:
-  judge_scores/{venue}/{model}.csv            ($AA_JUDGE overrides)
+  shared/judge_scores/{venue}/{model}.csv            ($AA_JUDGE overrides)
   $AA_DATA/per_paper/citations/{venue}_s2.csv
 Writes:
   $AA_DATA/aggregate/citations/citation_llm_top_bottom_combined.csv

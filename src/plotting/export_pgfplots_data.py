@@ -3,19 +3,19 @@
 
 Two output sets, one per paper:
 
-  data/pgfplots/       the UncertaiNLP paper's figures: NeurIPS series only,
-                       `year,neurips` for each readability metric and the
-                       NeurIPS judge series. Unchanged from the tag
-                       uncertainlp-2026, so verify.py checks it as before.
-  data/pgfplots/tmlr/  the TMLR paper's series under the paper's own file
-                       names: one CSV per metric, papers per year, and the
-                       judge series for all three venues.
+  data/uncertainlp/pgfplots/  the UncertaiNLP paper's figures: NeurIPS series
+                              only, `year,neurips` for each readability metric
+                              and the NeurIPS judge series. Unchanged in content
+                              from the tag uncertainlp-2026.
+  data/tmlr/pgfplots/         the TMLR paper's series under the paper's own
+                              file names: one CSV per metric, papers per year,
+                              and the judge series for all three venues.
 
 By default the TMLR set holds the conferences alone: `year,neurips,iclr,icml`,
 restricted to the years at least one of them covers.
 
 With --baselines the TMLR set is the paper's figure data in full. The arXiv
-and PubMed aggregates shipped in baselines/ are merged in, and each per-metric
+and PubMed aggregates shipped in shared/baselines/ are merged in, and each per-metric
 file has the paper's six columns
 
   year, neurips, iclr, icml, arxiv_ml, arxiv_nonml, pubmed
@@ -26,8 +26,8 @@ arxiv_nonml are count-weighted means over the primary categories of each
 group (src/arxiv_categories.py), and PubMed is cut at PUBMED_MAX = 2025.
 Papers per year takes the arXiv counts from the acronym aggregate's
 categories and PubMed's from the readability-scored count (see
-baselines/README.md for the two PubMed denominators). This is the upstream
-computation, and the files equal reference/tmlr/pgfplots_full/.
+shared/baselines/README.md for the two PubMed denominators). This is the upstream
+computation, and the files equal paper/tmlr/reference/pgfplots/.
 
 Each source supplies only its own columns. The conference series always come
 from data/aggregate/; arXiv and PubMed come only from the --baselines
@@ -40,7 +40,7 @@ The judge series and the UncertaiNLP set are the same either way.
 
 Run:
   python src/plotting/export_pgfplots_data.py
-  python src/plotting/export_pgfplots_data.py --baselines            # baselines/
+  python src/plotting/export_pgfplots_data.py --baselines            # shared/baselines/
   python src/plotting/export_pgfplots_data.py --baselines path/to/dir
 """
 
@@ -57,10 +57,10 @@ from arxiv_categories import is_ml
 
 _D = os.environ.get("AA_DATA", "data")
 AGG  = os.path.join(_D, "aggregate")
-OUT  = os.path.join(_D, "pgfplots")
-TMLR = os.path.join(OUT, "tmlr")
+OUT  = os.path.join(_D, "uncertainlp", "pgfplots")
+TMLR = os.path.join(_D, "tmlr", "pgfplots")
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-BASELINES = os.path.join(REPO, "baselines")
+BASELINES = os.path.join(REPO, "shared", "baselines")
 
 # PubMed's last full year. The baseline holds ahead-of-print records dated
 # 2026 and 2027, which belong to no publication year.
@@ -357,7 +357,6 @@ FULL_EXTRA = [("sentence_length", "words_per_sentence", "sentence_length")]
 def export_tmlr(baselines: str | None = None) -> None:
     """TMLR set under the paper's file names: the three conferences, or with
     `baselines` the paper's full six-column series."""
-    TMLR = os.path.join(OUT, "tmlr")
     series = ([("readability", m, f"readability_{m}") for m in READABILITY]
               + [("acronyms", "title_acronym_density", "acronyms_title"),
                  ("acronyms", "abstract_acronym_density", "acronyms_abstract")]
@@ -384,7 +383,7 @@ def main() -> None:
     ap.add_argument("--baselines", nargs="?", const=BASELINES, default=None,
                     metavar="DIR",
                     help="merge the arXiv and PubMed baselines into the TMLR set "
-                         "(default DIR: baselines/)")
+                         "(default DIR: shared/baselines/)")
     a = ap.parse_args()
     if a.baselines and not os.path.isdir(a.baselines):
         sys.exit(f"--baselines: {a.baselines} is not a directory")

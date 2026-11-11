@@ -96,7 +96,7 @@ def main() -> None:
     ap.add_argument("--citations-dir", default=CIT_DIR)
     ap.add_argument("--out-dir", default=OUT_DIR)
     ap.add_argument("--min-papers", type=int, default=MIN_PAPERS)
-    ap.add_argument("--pgfplots-dir", default=os.path.join(D, "pgfplots", "tmlr"),
+    ap.add_argument("--pgfplots-dir", default=os.path.join(D, "tmlr", "pgfplots"),
                     help="where the figure sources read references_per_year.csv")
     a = ap.parse_args()
     per_venue, totals = {}, {}
